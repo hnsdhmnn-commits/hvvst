@@ -343,7 +343,7 @@ export function ScreenLogin({onLogin}){
 }
 
 // ─── API KEY ──────────────────────────────────────────────────────
-export function ScreenApiKey({user,onConfirm}){
+export function ScreenApiKey({user,onConfirm,onReset}){
   const[key,setKey]=useState("");const[err,setErr]=useState("");
   return(
     <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.fB,padding:24}}>
@@ -360,6 +360,7 @@ export function ScreenApiKey({user,onConfirm}){
           <div style={{padding:"24px 32px"}}>
             <TxtInput label="Chave de Acesso (API Key)" placeholder="sk-ant-api03-..." value={key} onChange={v=>{setKey(v);setErr("");}} error={err} autoFocus/>
             <div style={{marginTop:16}}><Btn onClick={()=>key.startsWith("sk-")?onConfirm(key):setErr("Chave inválida. Deve começar com sk-ant-")} variant="gold" style={{width:"100%",padding:"13px"}}>ATIVAR MINHA EQUIPE →</Btn></div>
+            {onReset&&<div style={{textAlign:"center",marginTop:10}}><button onClick={onReset} style={{background:"none",border:"none",fontSize:10,color:T.inkFaint,cursor:"pointer",fontFamily:T.fB,letterSpacing:"0.1em",textDecoration:"underline"}}>↺ refazer onboarding</button></div>}
             <div style={{marginTop:20,padding:"14px 16px",background:T.surfaceMid,borderRadius:8,border:`1px solid ${T.border}`}}>
               <Lbl>Não tem uma chave?</Lbl>
               <div style={{fontSize:12,color:T.inkMid,lineHeight:1.9}}>1. Acesse <span style={{color:T.gold,fontWeight:600}}>console.anthropic.com</span><br/>2. Crie uma conta gratuita<br/>3. API Keys → + Create Key<br/>4. Copie e cole aqui</div>
