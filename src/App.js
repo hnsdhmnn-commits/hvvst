@@ -24,7 +24,7 @@ export default function HVV(){
         if(pid){
           setPacienteId(pid);
           const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).single();
-          if(perfil){setForm(perfil);setScreen("apikey");}
+          if(perfil && perfil.hvv_onboarding_completo===true){setForm(perfil);setScreen("apikey");}
           else setScreen("apikey");
         }else{
           setScreen("apikey");
@@ -71,9 +71,13 @@ export default function HVV(){
       if(pid){
         setPacienteId(pid);
         const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).single();
-        if(perfil){setForm(perfil);setScreen("app");return;}
+        // Só vai para o app se o onboarding HVV foi completado
+        if(perfil && perfil.hvv_onboarding_completo===true){
+          setForm(perfil);setScreen("app");return;
+        }
       }
     }
+    // Qualquer outro caso — novo usuário ou onboarding pendente — vai para boas-vindas
     setScreen("boasvindas");
   };
 
@@ -87,11 +91,20 @@ export default function HVV(){
     }
     if(pid){
       try{
-        await supabase.from("perfis").upsert({paciente_id:pid,...f},{onConflict:"paciente_id"});
+        await supabase.from("perfis").upsert({paciente_id:pid,...f,hvv_onboarding_completo:true},{onConflict:"paciente_id"});
         await supabase.from("pacientes").update({nome:f.nome,cargo:f.cargo||""}).eq("id",pid);
       }catch(e){console.error("Erro ao salvar perfil:",e);}
     }
     setTimeout(()=>setScreen("app"),2800);
+  };
+
+  const handleReset=async()=>{
+    // Limpa flag de onboarding — usuário passa pelo fluxo novamente
+    if(pacienteId){
+      await supabase.from("perfis").update({hvv_onboarding_completo:false}).eq("paciente_id",pacienteId);
+    }
+    setForm(null);
+    setScreen("boasvindas");
   };
 
   const handleLogout=async()=>{
@@ -109,7 +122,7 @@ export default function HVV(){
     <>
       <style>{`*{box-sizing:border-box;margin:0;padding:0} textarea{resize:none} ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:#C7E6D0;border-radius:2px} @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}} @keyframes pulse{0%,100%{opacity:0.4;transform:scale(0.9)}50%{opacity:1;transform:scale(1.05)}} @keyframes blink{0%,100%{opacity:0.2}50%{opacity:1}} @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
       {screen==="login"      && <ScreenLogin onLogin={handleLogin}/>}
-      {screen==="apikey"     && <ScreenApiKey user={user} onConfirm={handleApiKey}/>}
+      {screen==="apikey"     && <ScreenApiKey user={user} onConfirm={handleApiKey} onReset={handleReset}/>}
       {screen==="boasvindas" && <ScreenBoasVindas onStart={()=>setScreen("onboarding")}/>}
       {screen==="onboarding" && <ScreenOnboarding user={user} onComplete={handleOnboarding}/>}
       {screen==="processing" && <ScreenProcessing/>}
