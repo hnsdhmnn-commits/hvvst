@@ -65,7 +65,9 @@ function calcScores(form,checkin){
     if(checkin.sono)s["Sono"]=Math.round(s["Sono"]*0.4+Number(checkin.sono)*10*0.6);
     if(checkin.energia)s["Atividade"]=Math.round(s["Atividade"]*0.7+Number(checkin.energia)*10*0.3);
     if(checkin.estresse)s["Estresse"]=Math.max(10,Math.round(s["Estresse"]*0.5+(10-Number(checkin.estresse))*10*0.5));
-    if(checkin.humor)s["Relacionamentos"]=Math.round(s["Relacionamentos"]*0.6+Number(checkin.humor)*10*0.4);
+    if(checkin.humor)s["Bem-estar"]=Math.round((s["Bem-estar"]||60)*0.6+Number(checkin.humor)*10*0.4);
+    if(checkin.vinculos)s["Vínculos"]=Math.round((s["Vínculos"]||60)*0.4+Number(checkin.vinculos)*10*0.6);
+    if(checkin.bem_estar)s["Bem-estar"]=Math.round((s["Bem-estar"]||60)*0.5+Number(checkin.bem_estar)*10*0.5);
   }
   Object.keys(s).forEach(k=>{s[k]=Math.max(0,Math.min(100,s[k]));});
   return{eixos:s,total:Math.round(Object.values(s).reduce((a,b)=>a+b,0)/6)};
@@ -82,9 +84,18 @@ async function salvarCheckinDB(pacienteId,dados){
     paciente_id:pacienteId,
     data:new Date().toISOString().slice(0,10),
     hora:new Date().toTimeString().slice(0,8),
-    sono:dados.sono,energia:dados.energia,
-    estresse:dados.estresse,humor:dados.humor,
-    sintomas:dados.sintomas,notas:dados.notas,
+    sono:dados.sono,
+    energia:dados.energia,
+    estresse:dados.estresse,
+    humor:dados.humor,
+    vinculos:dados.vinculos,
+    bem_estar:dados.bem_estar,
+    rede_apoio:dados.rede_apoio,
+    relacoes_trabalho:dados.relacoes_trabalho,
+    vida_social:dados.vida_social,
+    relacionamentos_pessoais:dados.relacionamentos_pessoais,
+    sintomas:dados.sintomas,
+    notas:dados.notas,
   },{onConflict:"paciente_id,data"});
   return!error;
 }
@@ -185,7 +196,7 @@ function Lbl({children,color}){return <div style={{fontSize:9,letterSpacing:"0.1
 export function Card({children,style={},onClick,hover=false}){const[hov,setHov]=useState(false);return <div onClick={onClick} onMouseOver={()=>hover&&setHov(true)} onMouseOut={()=>hover&&setHov(false)} style={{background:T.surface,borderRadius:12,boxShadow:hov?T.shadowHover:T.shadowCard,border:`1px solid ${T.border}`,transition:"all 0.2s",cursor:onClick?"pointer":"default",...style}}>{children}</div>;}
 export function Btn({children,onClick,variant="primary",disabled=false,style={}}){const v={primary:{background:T.ink,color:"#FFF",border:`1px solid ${T.ink}`},gold:{background:T.gold,color:"#FFF",border:`1px solid ${T.gold}`},outline:{background:"transparent",color:T.ink,border:`1px solid ${T.border}`},teal:{background:T.teal,color:"#FFF",border:`1px solid ${T.teal}`},ghost:{background:"transparent",color:T.inkLight,border:"none"}};return <button onClick={disabled?undefined:onClick} disabled={disabled} style={{padding:"11px 24px",borderRadius:8,fontFamily:T.fB,fontSize:11,letterSpacing:"0.16em",fontWeight:600,cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.4:1,transition:"all 0.2s",...v[variant],...style}}>{children}</button>;}
 function TxtInput({label,placeholder,value,onChange,type="text",unit,autoFocus,error}){const[foc,setFoc]=useState(false);return <div>{label&&<Lbl>{label}</Lbl>}<div style={{position:"relative"}}><input autoFocus={autoFocus} type={type} placeholder={placeholder} value={value||""} onChange={e=>onChange(e.target.value)} onFocus={()=>setFoc(true)} onBlur={()=>setFoc(false)} style={{width:"100%",background:T.bgWarm,border:`1.5px solid ${error?T.red:foc?T.gold:T.border}`,borderRadius:8,padding:unit?"11px 48px 11px 14px":"11px 14px",color:T.ink,fontFamily:T.fB,fontSize:13,outline:"none",transition:"border-color 0.2s",boxSizing:"border-box"}}/>{unit&&<span style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",fontSize:10,color:T.inkLight}}>{unit}</span>}</div>{error&&<div style={{fontSize:11,color:T.red,marginTop:4}}>{error}</div>}</div>;}
-function SldInput({label,value,onChange,min,max,unit,color=T.gold}){return <div><div style={{display:"flex",justifyContent:"space-between",marginBottom:7}}><Lbl>{label}</Lbl><span style={{fontSize:16,color,fontFamily:T.fD,fontWeight:700}}>{value}{unit}</span></div><input type="range" min={min} max={max} value={value} onChange={e=>onChange(Number(e.target.value))} style={{width:"100%",accentColor:color,cursor:"pointer",height:4}}/><div style={{display:"flex",justifyContent:"space-between",marginTop:4}}><span style={{fontSize:9,color:T.inkFaint}}>{min}</span><span style={{fontSize:9,color:T.inkFaint}}>{max}</span></div></div>;}
+function SldInput({label,value,onChange,min,max,unit,color=T.gold,hint}){return <div><div style={{display:"flex",justifyContent:"space-between",marginBottom:7}}><Lbl>{label}</Lbl><span style={{fontSize:16,color,fontFamily:T.fD,fontWeight:700}}>{value}{unit}</span></div><input type="range" min={min} max={max} value={value} onChange={e=>onChange(Number(e.target.value))} style={{width:"100%",accentColor:color,cursor:"pointer",height:4}}/><div style={{display:"flex",justifyContent:"space-between",marginTop:4}}><span style={{fontSize:9,color:T.inkFaint}}>{hint||min}</span><span style={{fontSize:9,color:T.inkFaint}}>{max}</span></div></div>;}
 function Chip({label,active,color=T.gold,bg,onClick}){return <button onClick={onClick} style={{padding:"8px 14px",borderRadius:6,cursor:"pointer",fontFamily:T.fB,fontSize:12,background:active?(bg||T.goldFaint):"transparent",border:`1.5px solid ${active?color:T.border}`,color:active?color:T.inkMid,transition:"all 0.18s"}}>{label}</button>;}
 function RadialScore({value,size=100}){const r=size/2-9,circ=2*Math.PI*r,dash=(value/100)*circ,color=value>=75?T.green:value>=50?T.gold:T.red;return <svg width={size} height={size}><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={T.surfaceMid} strokeWidth="7"/><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="7" strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" transform={`rotate(-90 ${size/2} ${size/2})`} style={{transition:"stroke-dasharray 1.4s cubic-bezier(0.34,1.56,0.64,1)"}}/><text x={size/2} y={size/2-6} textAnchor="middle" dominantBaseline="middle" fill={color} fontSize="20" fontFamily="Georgia,serif" fontWeight="700">{value}</text><text x={size/2} y={size/2+14} textAnchor="middle" dominantBaseline="middle" fill={T.inkFaint} fontSize="9" fontFamily="'DM Mono',monospace">/100</text></svg>;}
 
@@ -552,7 +563,7 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
     if(membro==="suporte")return `Você é a Central de Atendimento HVV. Responda dúvidas sobre o app e o programa. Seja claro e amigável. Usuário: ${nome}.`;
     // Ana — acesso total
     const laudoCtx=laudoGenetico?.analise?`\n\nLAUDO GENÉTICO (${laudoGenetico.pdfNome||"disponível"}): ${laudoGenetico.analise.resumo||""}. Risco geral: ${laudoGenetico.analise.nivel_risco_geral||"—"}. Farmacogenômica: ${laudoGenetico.analise.medicamentos||"—"}.`:"\n\nLAUDO GENÉTICO: ainda não enviado.";
-    return `Você é Ana, enfermeira coordenadora da equipe de saúde do Hospital Virtual Verde (HVV) — benefício Stone. Você é o ponto central de contato — tem acesso a TODOS os dados e conversas do paciente.\n\nSeu papel inclui: coordenar o plano integral de saúde, motivar o paciente, acompanhar a evolução dos 6 eixos MEV, fazer check-ins e orientar sobre saúde geral. Para questões específicas de nutrição, exercício, medicamentos ou genômica, você pode orientar inicialmente mas deve direcionar ao especialista correto da equipe.\n\nPERFIL: ${nome}, ${form?.cargo||"—"}, ${form?.idade||"—"} anos.\nCondições: ${(form?.condicoes||[]).filter(c=>c!=="Nenhuma").join(", ")||"nenhuma"}.\nMedicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}.\nSono: ${form?.sono||7}h qualidade ${form?.qual_sono||5}/10. Treino: ${form?.freq_treino||0}x/sem. Estresse: ${form?.estresse||5}/10.\nScores MEV+Vínculos: ${Object.entries(scores.eixos).map(([n,sc])=>`${n}: ${sc}`).join(" | ")}. Vitalidade: ${scores.total}/100.\nCheck-in hoje: ${checkinHoje?`Energia ${checkinHoje.energia}/10, Sono ${checkinHoje.sono}/10, Estresse ${checkinHoje.estresse}/10`:"Não realizado"}.${laudoCtx}\n\nTom: acolhedor, preciso e humano. Histórico de conversas está persistido — você tem memória das sessões anteriores.\n\n⚠️ IMPORTANTE: Suas respostas são orientações de IA e devem sempre ser validadas pelo seu médico pessoal antes de qualquer decisão clínica.`;
+    return `Você é Ana, enfermeira coordenadora da equipe de saúde do Hospital Virtual Verde (HVV) — benefício Stone. Você é o ponto central de contato — tem acesso a TODOS os dados e conversas do paciente.\n\nSeu papel inclui: coordenar o plano integral de saúde, motivar o paciente, acompanhar a evolução dos 6 eixos MEV, fazer check-ins e orientar sobre saúde geral. Para questões específicas de nutrição, exercício, medicamentos ou genômica, você pode orientar inicialmente mas deve direcionar ao especialista correto da equipe.\n\nPERFIL: ${nome}, ${form?.cargo||"—"}, ${form?.idade||"—"} anos.\nCondições: ${(form?.condicoes||[]).filter(c=>c!=="Nenhuma").join(", ")||"nenhuma"}.\nMedicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}.\nSono: ${form?.sono||7}h qualidade ${form?.qual_sono||5}/10. Treino: ${form?.freq_treino||0}x/sem. Estresse: ${form?.estresse||5}/10.\nScores MEV+Vínculos: ${Object.entries(scores.eixos).map(([n,sc])=>`${n}: ${sc}`).join(" | ")}. Vitalidade: ${scores.total}/100.\nCheck-in hoje: ${checkinHoje?`Energia ${checkinHoje.energia}/10, Sono ${checkinHoje.sono}/10, Estresse ${checkinHoje.estresse}/10, Vínculos ${checkinHoje.vinculos||"-"}/10, Bem-estar ${checkinHoje.bem_estar||"-"}/10`:"Não realizado"}.${laudoCtx}\n\nTom: acolhedor, preciso e humano. Histórico de conversas está persistido — você tem memória das sessões anteriores.\n\n⚠️ IMPORTANTE: Suas respostas são orientações de IA e devem sempre ser validadas pelo seu médico pessoal antes de qualquer decisão clínica.`;
   };
 
   return(
@@ -629,7 +640,7 @@ function ModuloChat({membro,form,scores,apiKey,pacienteId,systemPrompt,inicialMs
 function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,pacienteId,systemPrompt}){
   const[aba,setAba]=useState(checkinHoje?"chat":"checkin");
   const eq=EQUIPE.find(e=>e.id==="enfermeira");
-  const[ci,setCi]=useState({sono:7,energia:7,estresse:5,humor:7,sintomas:"",notas:""});
+  const[ci,setCi]=useState({sono:7,energia:7,estresse:5,humor:7,vinculos:7,bem_estar:7,rede_apoio:7,relacoes_trabalho:6,vida_social:6,relacionamentos_pessoais:7,sintomas:"",notas:""});
   const[salvando,setSalvando]=useState(false);const[salvo,setSalvo]=useState(false);
   const nome=form?.nome||"Executivo";
 
@@ -661,7 +672,7 @@ function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,p
               <Card style={{padding:"28px",textAlign:"center",background:T.greenBg,border:`1px solid ${T.green}30`}}>
                 <div style={{fontSize:48,marginBottom:16}}>✅</div>
                 <div style={{fontFamily:T.fD,fontSize:22,color:T.ink,marginBottom:8}}>Check-in concluído!</div>
-                <div style={{fontSize:13,color:T.inkMid,marginBottom:20,lineHeight:1.7}}>Energia: {checkinHoje.energia}/10 · Sono: {checkinHoje.sono}/10 · Estresse: {checkinHoje.estresse}/10</div>
+                <div style={{fontSize:13,color:T.inkMid,marginBottom:20,lineHeight:1.7}}>Energia: {checkinHoje.energia}/10 · Sono: {checkinHoje.sono}/10 · Estresse: {checkinHoje.estresse}/10{checkinHoje.vinculos?` · Vínculos: ${checkinHoje.vinculos}/10`:""}</div>
                 <Btn onClick={()=>setAba("chat")} variant="teal">CONVERSAR COM ANA →</Btn>
               </Card>
             ):(
@@ -673,6 +684,17 @@ function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,p
                   <SldInput label="Nível de energia agora" value={ci.energia} onChange={v=>setCi(p=>({...p,energia:v}))} min={1} max={10} unit="/10" color={T.teal}/>
                   <SldInput label="Nível de estresse hoje" value={ci.estresse} onChange={v=>setCi(p=>({...p,estresse:v}))} min={1} max={10} unit="/10" color={T.red}/>
                   <SldInput label="Como está seu humor?" value={ci.humor} onChange={v=>setCi(p=>({...p,humor:v}))} min={1} max={10} unit="/10" color={T.gold}/>
+                  <div style={{borderTop:`1px solid ${T.border}`,paddingTop:18,marginTop:4}}>
+                    <div style={{fontSize:11,color:T.green,fontWeight:600,letterSpacing:"0.12em",marginBottom:14}}>🤝 VÍNCULOS E RELACIONAMENTOS</div>
+                    <div style={{fontSize:12,color:T.inkLight,marginBottom:16,lineHeight:1.7}}>Como foram suas conexões hoje? Relacionamentos são determinantes de saúde tão importantes quanto sono e exercício.</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:18}}>
+                      <SldInput label="Rede de apoio (família e amigos)" value={ci.rede_apoio} onChange={v=>setCi(p=>({...p,rede_apoio:v,vinculos:Math.round((v+(p.relacoes_trabalho||6)+(p.vida_social||6)+(p.relacionamentos_pessoais||7))/4)}))} min={1} max={10} unit="/10" color={T.purple} hint="Me senti apoiado(a) hoje?"/>
+                      <SldInput label="Relações no trabalho" value={ci.relacoes_trabalho} onChange={v=>setCi(p=>({...p,relacoes_trabalho:v,vinculos:Math.round(((p.rede_apoio||7)+v+(p.vida_social||6)+(p.relacionamentos_pessoais||7))/4)}))} min={1} max={10} unit="/10" color={T.purple} hint="Ambiente colaborativo e respeitoso?"/>
+                      <SldInput label="Vida social" value={ci.vida_social} onChange={v=>setCi(p=>({...p,vida_social:v,vinculos:Math.round(((p.rede_apoio||7)+(p.relacoes_trabalho||6)+v+(p.relacionamentos_pessoais||7))/4)}))} min={1} max={10} unit="/10" color={T.purple} hint="Tive tempo para conexões fora do trabalho?"/>
+                      <SldInput label="Relacionamentos pessoais" value={ci.relacionamentos_pessoais} onChange={v=>setCi(p=>({...p,relacionamentos_pessoais:v,vinculos:Math.round(((p.rede_apoio||7)+(p.relacoes_trabalho||6)+(p.vida_social||6)+v)/4)}))} min={1} max={10} unit="/10" color={T.purple} hint="Qualidade das conexões íntimas hoje?"/>
+                      <SldInput label="Bem-estar geral" value={ci.bem_estar} onChange={v=>setCi(p=>({...p,bem_estar:v}))} min={1} max={10} unit="/10" color={T.green} hint="Como você se sente de forma geral hoje?"/>
+                    </div>
+                  </div>
                   <TxtInput label="Algum sintoma hoje?" placeholder="Dor, cansaço, tontura... ou deixe em branco" value={ci.sintomas} onChange={v=>setCi(p=>({...p,sintomas:v}))}/>
                   <TxtInput label="Observações para Ana (opcional)" placeholder="Algo que queira compartilhar..." value={ci.notas} onChange={v=>setCi(p=>({...p,notas:v}))}/>
                   <Btn onClick={salvarCheckin} variant="teal" disabled={salvando} style={{width:"100%",padding:"14px"}}>{salvando?"SALVANDO...":(salvo?"✓ SALVO!":"ENVIAR CHECK-IN →")}</Btn>
