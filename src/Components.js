@@ -100,6 +100,73 @@ async function salvarCheckinDB(pacienteId,dados){
   return!error;
 }
 
+// ─── Plano de Cuidado — Banco ─────────────────────────────────────
+async function carregarPlanoCuidado(pacienteId){
+  const{data}=await supabase.from("plano_cuidado")
+    .select("*")
+    .eq("paciente_id",pacienteId)
+    .eq("ativo",true)
+    .order("area").order("ordem");
+  return data||[];
+}
+
+async function carregarRegistrosHoje(pacienteId){
+  const hoje=new Date().toISOString().slice(0,10);
+  const{data}=await supabase.from("plano_registros")
+    .select("*")
+    .eq("paciente_id",pacienteId)
+    .eq("data",hoje);
+  return data||[];
+}
+
+async function registrarTarefa(tarefaId,pacienteId,status){
+  const hoje=new Date().toISOString().slice(0,10);
+  const{error}=await supabase.from("plano_registros").upsert({
+    tarefa_id:tarefaId,
+    paciente_id:pacienteId,
+    data:hoje,
+    status,
+  },{onConflict:"tarefa_id,data"});
+  return!error;
+}
+
+async function gerarPlanoInicial(pacienteId,form,apiKey){
+  // Gera tarefas iniciais via IA com base no perfil
+  const prompt=`Você é Ana, enfermeira coordenadora do HVV. Com base no perfil abaixo, gere um plano de cuidado inicial com tarefas concretas em JSON.
+
+PERFIL:
+- Condições: ${(form?.condicoes||[]).filter(c=>c!=="Nenhuma").join(", ")||"nenhuma"}
+- Medicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}
+- Sono: ${form?.sono||7}h, qualidade ${form?.qual_sono||5}/10
+- Estresse: ${form?.estresse||5}/10
+- Exercícios: ${form?.freq_treino||0}x/semana
+- Dieta: ${form?.dieta||"não informado"}
+- Rede de apoio: ${form?.qualidade_rede||"-"}/10
+- Vida social: ${form?.satisfacao_social||"-"}/10
+
+Retorne APENAS um array JSON com 6-10 tarefas no formato:
+[{"area":"saude_geral|nutricao|atividade|emocional|vinculos|prevencao","titulo":"...","descricao":"...","frequencia":"diario|semanal|mensal","ordem":1}]`;
+
+  try{
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content:prompt}]})
+    });
+    const data=await res.json();
+    const text=data.content?.[0]?.text||"[]";
+    const clean=text.replace(/```json|```/g,"").trim();
+    const tarefas=JSON.parse(clean);
+    // Salvar no banco
+    const inserts=tarefas.map(t=>({...t,paciente_id:pacienteId,origem:"ia",ativo:true}));
+    await supabase.from("plano_cuidado").insert(inserts);
+    return inserts;
+  }catch(e){
+    console.error("Erro ao gerar plano:",e);
+    return[];
+  }
+}
+
 async function carregarCheckinHoje(pacienteId){
   const hoje=new Date().toISOString().slice(0,10);
   const{data}=await supabase.from("checkins").select("*").eq("paciente_id",pacienteId).eq("data",hoje).single();
@@ -608,7 +675,7 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
         </div>
 
         {modulo==="dashboard"&&<ModuloDashboard form={form} scores={scores} setModulo={setModulo} checkinHoje={checkinHoje} planLog={planLog} onPlanUpdate={onPlanUpdate}/>}
-        {modulo==="plano"&&<ModuloPlano form={form} scores={scores} setModulo={setModulo} planLog={planLog} checkinHoje={checkinHoje}/>}
+        {modulo==="plano"&&<ModuloPlano form={form} scores={scores} setModulo={setModulo} planLog={planLog} checkinHoje={checkinHoje} pacienteId={pacienteId} apiKey={apiKey}/>}
         {modulo==="ana"&&<ModuloAna form={form} scores={scores} apiKey={apiKey} checkinHoje={checkinHoje} onCheckinSalvo={onCheckinSalvo} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId} systemPrompt={buildPrompt("enfermeira")}/>}
         {modulo==="nutri"&&<ModuloChat membro="nutri" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("nutri")} inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou a Dra. Lucia, sua nutricionista. Dieta atual: ${form?.dieta||"não informada"}. Score de Nutrição: ${scores.eixos["Nutrição"]}/100. Como posso ajudar?`} sugestoes={["O que devo comer antes do treino?","Como melhorar minha alimentação?","Quais suplementos são indicados para mim?","Como montar um cardápio executivo?"]}/>}
         {modulo==="personal"&&<ModuloChat membro="personal" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("personal")} inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou o Bruno, seu especialista em atividade física. Treino atual: ${form?.freq_treino||0}x/semana. Score de Atividade: ${scores.eixos["Atividade"]}/100. Como posso ajudar?`} sugestoes={["Monte um treino para minha rotina executiva","Como treinar com pouco tempo?","Qual a melhor atividade para reduzir estresse?","Como melhorar minha recuperação?"]}/>}
@@ -1074,40 +1141,146 @@ function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate
 }
 
 // ─── Plano de Cuidado ─────────────────────────────────────────────
-function ModuloPlano({form,scores,setModulo,planLog,checkinHoje}){
-  const[todoCheck,setTodoCheck]=useState({});
+function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKey}){
+  const[tarefas,setTarefas]=useState([]);
+  const[registros,setRegistros]=useState({});
+  const[loading,setLoading]=useState(true);
+  const[gerando,setGerando]=useState(false);
   const eq=EQUIPE.find(e=>e.id==="enfermeira");
-  const todos=[
-    ...((form?.meds||[]).filter(m=>m!=="Nenhum").map((m,i)=>({id:`med-${i}`,tipo:"medicamento",icon:"💊",text:`Tomar ${m}`,hora:"Conforme prescrição",cor:T.green,corBg:T.greenBg}))),
-    scores.eixos["Sono"]<75&&{id:"sono-1",tipo:"hábito",icon:"🌙",text:"Desligar telas até 22h",hora:"22:00",cor:T.purple,corBg:T.purpleBg},
-    scores.eixos["Atividade"]<75&&{id:"atv-1",tipo:"hábito",icon:"🏃",text:`Treino — ${(form?.exercicios||["atividade física"])[0]||"atividade física"}`,hora:"Manhã",cor:T.teal,corBg:T.tealBg},
-    scores.eixos["Estresse"]<75&&{id:"est-1",tipo:"hábito",icon:"🌿",text:"Respiração 4-7-8 pós-reunião",hora:"Após reuniões",cor:T.red,corBg:T.redBg},
-    {id:"agua-1",tipo:"hábito",icon:"💧",text:"2L de água ao longo do dia",hora:"Durante o dia",cor:T.blue,corBg:T.blueBg},
-  ].filter(Boolean);
-  const todosDone=todos.filter(t=>todoCheck[t.id]).length;
-  const plano=[
-    scores.eixos["Sono"]<70&&{tag:"Sono",color:T.purple,bg:T.purpleBg,action:`Sono de ${form?.sono||7}h — alvo 7–9h.`},
-    scores.eixos["Atividade"]<70&&{tag:"Atividade",color:T.teal,bg:T.tealBg,action:`${form?.freq_treino||0}x/sem — alvo 4x.`},
-    scores.eixos["Estresse"]<70&&{tag:"Estresse",color:T.red,bg:T.redBg,action:`Estresse ${form?.estresse||5}/10 — técnicas de respiração.`},
-  ].filter(Boolean);
-  if(!plano.length)plano.push({tag:"Geral",color:T.gold,bg:T.goldFaint,action:"Excelente! Mantenha a consistência."});
+
+  const AREA_CONFIG={
+    saude_geral:{label:"Saúde Geral",icon:"🩺",cor:T.green,bg:T.greenBg},
+    nutricao:{label:"Nutrição",icon:"🥗",cor:T.gold,bg:T.goldFaint},
+    atividade:{label:"Atividade Física",icon:"🏃",cor:T.teal,bg:T.tealBg},
+    emocional:{label:"Saúde Emocional",icon:"🧘",cor:T.purple,bg:T.purpleBg},
+    vinculos:{label:"Vínculos",icon:"🤝",cor:T.blue,bg:T.blueBg},
+    prevencao:{label:"Prevenção",icon:"🔬",cor:T.orange,bg:T.orangeBg},
+  };
+
+  useEffect(()=>{
+    if(!pacienteId)return;
+    (async()=>{
+      setLoading(true);
+      const[ts,rs]=await Promise.all([
+        carregarPlanoCuidado(pacienteId),
+        carregarRegistrosHoje(pacienteId),
+      ]);
+      setTarefas(ts);
+      // Mapear registros por tarefa_id
+      const mapa={};
+      rs.forEach(r=>{mapa[r.tarefa_id]=r.status;});
+      setRegistros(mapa);
+      setLoading(false);
+    })();
+  },[pacienteId]);
+
+  const toggleTarefa=async(tarefa)=>{
+    const atual=registros[tarefa.id];
+    const novoStatus=atual==="concluido"?"pendente":"concluido";
+    setRegistros(prev=>({...prev,[tarefa.id]:novoStatus}));
+    await registrarTarefa(tarefa.id,pacienteId,novoStatus);
+  };
+
+  const handleGerarPlano=async()=>{
+    setGerando(true);
+    const novas=await gerarPlanoInicial(pacienteId,form,apiKey);
+    if(novas.length>0){
+      const ts=await carregarPlanoCuidado(pacienteId);
+      setTarefas(ts);
+    }
+    setGerando(false);
+  };
+
+  const concluidas=Object.values(registros).filter(s=>s==="concluido").length;
+  const areas=[...new Set(tarefas.map(t=>t.area))];
+
+  if(loading)return(
+    <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <Spinner/>
+    </div>
+  );
+
   return(
     <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
       <div style={{maxWidth:1000,margin:"0 auto"}}>
         <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:24}}>
           <div style={{width:50,height:50,borderRadius:"50%",background:eq.bg,border:`1.5px solid ${eq.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{eq.icon}</div>
-          <div><div style={{fontFamily:T.fD,fontSize:26,color:T.ink}}>{eq.nome} · Plano de Cuidado Integral</div><div style={{fontSize:11,color:T.inkFaint}}>Coordenado pela enfermeira Ana · {new Date().toLocaleDateString("pt-BR")} · Dados sincronizados com Supabase</div></div>
-          <div style={{marginLeft:"auto",textAlign:"right"}}><div style={{fontSize:9,color:T.inkFaint}}>SCORE GERAL</div><div style={{fontFamily:T.fD,fontSize:30,color:scores.total>=75?T.green:scores.total>=50?T.gold:T.red,fontWeight:700}}>{scores.total}<span style={{fontSize:14,color:T.inkFaint}}>/100</span></div></div>
+          <div><div style={{fontFamily:T.fD,fontSize:26,color:T.ink}}>Plano de Cuidado</div><div style={{fontSize:11,color:T.inkFaint}}>Coordenado pela Ana · {tarefas.length} tarefas ativas · {concluidas} concluídas hoje</div></div>
+          <div style={{marginLeft:"auto",textAlign:"right"}}><div style={{fontSize:9,color:T.inkFaint}}>VITALIDADE</div><div style={{fontFamily:T.fD,fontSize:30,color:scores.total>=75?T.green:scores.total>=50?T.gold:T.red,fontWeight:700}}>{scores.total}<span style={{fontSize:14,color:T.inkFaint}}>/100</span></div></div>
         </div>
-        <Card style={{padding:"24px",marginBottom:16}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>To-Do de Hoje</div><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{fontSize:12,color:T.inkMid}}>{todosDone}/{todos.length} concluídos</div><div style={{height:6,width:120,background:T.surfaceMid,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${todos.length?(todosDone/todos.length)*100:0}%`,background:`linear-gradient(90deg,${T.gold},${T.green})`}}/></div></div></div>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>{todos.map(todo=>{const done=todoCheck[todo.id];return(<div key={todo.id} onClick={()=>setTodoCheck(prev=>({...prev,[todo.id]:!prev[todo.id]}))} style={{display:"flex",gap:12,alignItems:"center",padding:"12px 16px",background:done?T.surfaceMid:T.bgWarm,border:`1px solid ${done?T.border:todo.corBg}`,borderRadius:8,cursor:"pointer",transition:"all 0.2s",opacity:done?0.6:1}}><div style={{width:22,height:22,borderRadius:6,border:`2px solid ${done?T.green:todo.cor}`,background:done?T.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{done&&<span style={{fontSize:11,color:"#FFF",fontWeight:700}}>✓</span>}</div><span style={{fontSize:16,flexShrink:0}}>{todo.icon}</span><div style={{flex:1}}><div style={{fontSize:13,color:done?T.inkFaint:T.ink,fontWeight:500,textDecoration:done?"line-through":"none"}}>{todo.text}</div><div style={{fontSize:10,color:T.inkFaint}}>{todo.hora}</div></div><span style={{fontSize:9,padding:"3px 8px",borderRadius:4,background:todo.corBg,color:todo.cor,fontWeight:700}}>{todo.tipo.toUpperCase()}</span></div>);})}</div>
-        </Card>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-          <Card style={{padding:"20px"}}><Lbl>6 Eixos MEV</Lbl><div style={{display:"flex",flexDirection:"column",gap:10,marginTop:12}}>{Object.entries(scores.eixos).map(([n,sc],i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:T.inkMid,width:120,flexShrink:0}}>{n}</span><div style={{flex:1,height:5,background:T.surfaceMid,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${sc}%`,background:AXIS_COLORS[n],borderRadius:3}}/></div><span style={{fontSize:13,color:AXIS_COLORS[n],fontFamily:T.fD,fontWeight:700,width:28,textAlign:"right"}}>{sc}</span></div>))}</div></Card>
-          <Card style={{padding:"20px"}}><Lbl color={T.teal}>Prioridades da Semana</Lbl><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>{plano.map((p,i)=>(<div key={i} style={{padding:"11px 14px",background:p.bg,borderRadius:8,borderLeft:`3px solid ${p.color}`,display:"flex",gap:10}}><span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:"rgba(255,255,255,0.6)",color:p.color,fontWeight:700,flexShrink:0,marginTop:1}}>{p.tag.toUpperCase()}</span><span style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>{p.action}</span></div>))}</div></Card>
-        </div>
-        {planLog&&planLog.length>0&&<Card style={{padding:"20px 24px"}}><Lbl color={T.blue}>Histórico de Atualizações</Lbl><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>{planLog.slice(0,8).map((log,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 12px",background:T.bgWarm,borderRadius:8,border:`1px solid ${T.border}`}}><div style={{width:28,height:28,borderRadius:6,background:`${log.cor||T.blue}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{log.icon||"📋"}</div><div style={{flex:1}}><div style={{fontSize:12,color:T.ink,fontWeight:500,marginBottom:2}}>{log.titulo}</div><div style={{fontSize:11,color:T.inkMid,lineHeight:1.5}}>{log.descricao}</div></div><span style={{fontSize:9,color:T.inkFaint,flexShrink:0}}>{log.data}</span></div>))}</div></Card>}
+
+        {tarefas.length===0?(
+          <Card style={{padding:"40px",textAlign:"center"}}>
+            <div style={{fontSize:48,marginBottom:16}}>📋</div>
+            <div style={{fontFamily:T.fD,fontSize:22,color:T.ink,marginBottom:8}}>Seu plano ainda não foi gerado</div>
+            <div style={{fontSize:13,color:T.inkMid,lineHeight:1.9,maxWidth:420,margin:"0 auto 24px"}}>A Ana vai criar um plano personalizado com base no seu perfil de saúde. Leva menos de 30 segundos.</div>
+            <Btn onClick={handleGerarPlano} variant="gold" disabled={gerando} style={{padding:"13px 28px"}}>
+              {gerando?"Gerando seu plano...":"✦ Gerar meu plano com IA →"}
+            </Btn>
+          </Card>
+        ):(
+          <>
+            {/* Progresso geral */}
+            <Card style={{padding:"20px 24px",marginBottom:16}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                <div style={{fontFamily:T.fD,fontSize:18,color:T.ink}}>Progresso de hoje</div>
+                <div style={{fontSize:13,color:T.inkMid}}>{concluidas}/{tarefas.length} concluídas</div>
+              </div>
+              <div style={{height:8,background:T.surfaceMid,borderRadius:4,overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${tarefas.length?(concluidas/tarefas.length)*100:0}%`,background:`linear-gradient(90deg,${T.gold},${T.green})`,transition:"width 0.3s",borderRadius:4}}/>
+              </div>
+            </Card>
+
+            {/* Tarefas por área */}
+            {areas.map(area=>{
+              const cfg=AREA_CONFIG[area]||{label:area,icon:"📋",cor:T.gold,bg:T.goldFaint};
+              const ts=tarefas.filter(t=>t.area===area);
+              const done=ts.filter(t=>registros[t.id]==="concluido").length;
+              return(
+                <Card key={area} style={{padding:"0",overflow:"hidden",marginBottom:12}}>
+                  <div style={{padding:"12px 18px",background:cfg.bg,borderBottom:`1px solid ${cfg.cor}20`,display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:18}}>{cfg.icon}</span>
+                    <span style={{fontFamily:T.fD,fontSize:16,color:T.ink}}>{cfg.label}</span>
+                    <span style={{marginLeft:"auto",fontSize:11,color:cfg.cor,fontWeight:600}}>{done}/{ts.length}</span>
+                  </div>
+                  {ts.map(tarefa=>{
+                    const feita=registros[tarefa.id]==="concluido";
+                    return(
+                      <div key={tarefa.id} onClick={()=>toggleTarefa(tarefa)}
+                        style={{display:"flex",gap:12,alignItems:"flex-start",padding:"12px 18px",borderBottom:`1px solid ${T.border}`,cursor:"pointer",background:feita?T.surfaceMid:"transparent",transition:"background 0.15s"}}
+                      >
+                        <div style={{width:22,height:22,borderRadius:6,border:`2px solid ${feita?T.green:cfg.cor}`,background:feita?T.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
+                          {feita&&<span style={{fontSize:11,color:"#FFF",fontWeight:700}}>✓</span>}
+                        </div>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:13,color:feita?T.inkFaint:T.ink,fontWeight:500,textDecoration:feita?"line-through":"none",marginBottom:2}}>{tarefa.titulo}</div>
+                          {tarefa.descricao&&<div style={{fontSize:11,color:T.inkFaint,lineHeight:1.5}}>{tarefa.descricao}</div>}
+                        </div>
+                        <span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:cfg.bg,color:cfg.cor,fontWeight:700,flexShrink:0,marginTop:2}}>{tarefa.frequencia?.toUpperCase()||"DIÁRIO"}</span>
+                      </div>
+                    );
+                  })}
+                </Card>
+              );
+            })}
+
+            {/* Scores por eixo */}
+            <Card style={{padding:"20px",marginBottom:16}}>
+              <Lbl>Vitalidade por eixo</Lbl>
+              <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:12}}>
+                {Object.entries(scores.eixos).map(([n,sc],i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:12}}>
+                    <span style={{fontSize:11,color:T.inkMid,width:120,flexShrink:0}}>{n}</span>
+                    <div style={{flex:1,height:5,background:T.surfaceMid,borderRadius:3,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${sc}%`,background:AXIS_COLORS[n]||T.gold,borderRadius:3}}/>
+                    </div>
+                    <span style={{fontSize:13,color:AXIS_COLORS[n]||T.gold,fontFamily:T.fD,fontWeight:700,width:28,textAlign:"right"}}>{sc}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </>
+        )}
       </div>
     </div>
   );
