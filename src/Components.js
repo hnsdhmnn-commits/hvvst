@@ -38,6 +38,8 @@ export const EQUIPE=[
   {id:"farmaceutico",nome:"Rafael",titulo:"Farmacêutico Clínico",cor:T.green,bg:T.greenBg,icon:"💊",descricao:"Medicamentos, interações e posologia. Alerta o seu médico pessoal em caso de risco."},
 ];
 
+export function Spinner(){return <div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTop:`3px solid ${T.green}`,borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/>;};
+
 export const MODULOS=[
   {id:"dashboard",label:"Painel",icon:"◈"},
   {id:"plano",label:"Plano de Cuidado",icon:"📋",membro:"enfermeira"},
