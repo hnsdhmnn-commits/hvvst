@@ -375,11 +375,11 @@ export function ScreenApiKey({user,onConfirm}){
 export function ScreenBoasVindas({onStart}){
   const[slide,setSlide]=useState(0);
   const slides=[
-    {icon:"🏥",titulo:"Saúde não é ausência de doença",texto:"O HVV existe para desenvolver sua saúde e produtividade — complementar ao seu médico atual.",cor:T.gold},
-    {icon:"👥",titulo:"Sua equipe de saúde dedicada",texto:"Ana coordena seu plano. O Coach te motiva. Rafael cuida dos medicamentos. Dra. Clara interpreta seu DNA.",cor:T.teal},
-    {icon:"🧬",titulo:"Personalizado até o DNA",texto:"Seu plano usa dados genéticos, biométricos e histórico clínico para criar recomendações únicas.",cor:T.purple},
-    {icon:"📊",titulo:"Plano sempre atualizado",texto:"Gadgets, documentos e check-in diário recalibram seu plano automaticamente em tempo real.",cor:T.green},
-    {icon:"⏱",titulo:"5 minutos para começar",texto:"Vamos montar seu perfil agora — 7 etapas simples para personalizar seu plano.",cor:T.red},
+    {icon:"🩺",titulo:"Seu médico pessoal te conhece de verdade",texto:"No HVV você escolhe um médico que acompanha sua saúde ao longo do tempo — não uma consulta avulsa sem histórico.",cor:T.green},
+    {icon:"🤝",titulo:"Sua equipe de saúde com IA",texto:"Ana coordena seu plano. Dra. Lucia cuida da nutrição. Bruno orienta sua atividade física. Rafael verifica seus medicamentos.",cor:T.teal},
+    {icon:"✅",titulo:"Check-in de 2 minutos por dia",texto:"Todo dia você registra como está — energia, sono, estresse, humor e vínculos. Sua equipe usa isso para personalizar o cuidado.",cor:T.purple},
+    {icon:"📋",titulo:"Plano de cuidado no seu ritmo",texto:"A Ana gera um plano com tarefas concretas para cada área da sua saúde — e acompanha se você está realizando.",cor:T.gold},
+    {icon:"⏱",titulo:"3 minutos para começar",texto:"Vamos montar seu perfil de saúde agora — as informações que sua equipe precisa para te conhecer desde o primeiro dia.",cor:T.green},
   ];
   const s=slides[slide];
   return(
@@ -406,7 +406,7 @@ export function ScreenBoasVindas({onStart}){
 }
 
 // ─── ONBOARDING ───────────────────────────────────────────────────
-const OB_STEPS=["Identidade","Saúde Atual","Histórico Clínico","Estilo de Vida","Objetivos","Gadgets","Kit Genômico"];
+const OB_STEPS=["Identidade","Condições de Saúde","Histórico Clínico","Estilo de Vida","Rede de Apoio","Objetivos","Gadgets"];
 
 export function ScreenOnboarding({user,onComplete}){
   const[step,setStep]=useState(0);
@@ -467,13 +467,13 @@ export function ScreenOnboarding({user,onComplete}){
         {[{icon:"⌚",t:"Gadgets",d:"Apple Watch, Oura, Garmin enviam dados em tempo real."},{icon:"📄",t:"Documentos",d:"Novos exames ou laudos são incorporados imediatamente."},{icon:"✅",t:"Check-in diário",d:"Ana faz um check-in rápido todo dia."}].map((item,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:10}}><span style={{fontSize:20,flexShrink:0}}>{item.icon}</span><div><div style={{fontSize:12,color:T.ink,fontWeight:600}}>{item.t}</div><div style={{fontSize:11,color:T.inkMid,lineHeight:1.7}}>{item.d}</div></div></div>))}
       </Card>
     </div>,
-    <div style={{display:"flex",flexDirection:"column",gap:24}}>
-      <div style={{textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>🧬</div><div style={{fontFamily:T.fD,fontSize:24,color:T.ink,marginBottom:8}}>Análise Genômica HVV</div><div style={{fontSize:13,color:T.inkMid,lineHeight:1.9,maxWidth:480,margin:"0 auto"}}>Mais de 30 variantes em 6 categorias clínicas integradas ao seu plano.</div></div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>{[{icon:"📦",t:"Kit em casa",d:"Correios em 3–5 dias úteis"},{icon:"🧪",t:"Coleta simples",d:"Swab oral — 2 minutos"},{icon:"📊",t:"Laudo em 30 dias",d:"Analisado pela Dra. Clara"}].map((fi,i)=>(<Card key={i} style={{padding:"18px",textAlign:"center"}}><div style={{fontSize:28,marginBottom:10}}>{fi.icon}</div><div style={{fontSize:13,color:T.ink,fontWeight:600,marginBottom:6}}>{fi.t}</div><div style={{fontSize:11,color:T.inkLight,lineHeight:1.6}}>{fi.d}</div></Card>))}</div>
-      <div><Lbl>Deseja solicitar o Kit Genômico?</Lbl><div style={{display:"flex",gap:12}}>
-        <button onClick={()=>set("quer_kit",true)} style={{flex:1,padding:"16px",background:f.quer_kit===true?T.goldFaint:"transparent",border:`1.5px solid ${f.quer_kit===true?T.gold:T.border}`,borderRadius:10,cursor:"pointer",fontFamily:T.fB,fontSize:12,color:f.quer_kit===true?T.gold:T.inkMid,transition:"all 0.18s"}}>✓ Sim, quero o kit</button>
-        <button onClick={()=>set("quer_kit",false)} style={{flex:1,padding:"16px",background:f.quer_kit===false?T.surfaceMid:"transparent",border:`1.5px solid ${f.quer_kit===false?T.borderMid:T.border}`,borderRadius:10,cursor:"pointer",fontFamily:T.fB,fontSize:12,color:T.inkMid,transition:"all 0.18s"}}>Não por enquanto</button>
-      </div>{f.quer_kit===true&&<div style={{marginTop:12,padding:"12px 16px",background:T.tealBg,borderRadius:8}}><div style={{fontSize:12,color:T.teal}}>✓ A equipe entrará em contato para confirmar o endereço.</div></div>}</div>
+    <div style={{display:"flex",flexDirection:"column",gap:20}}>
+      <div style={{padding:"16px 18px",background:T.goldFaint,borderRadius:10,border:`1px solid ${T.goldBorder}`}}><div style={{fontSize:13,color:T.gold,fontWeight:600,marginBottom:4}}>Por que perguntamos sobre relacionamentos?</div><div style={{fontSize:12,color:T.inkMid,lineHeight:1.7}}>Vínculos e rede de apoio são determinantes de saúde tão importantes quanto sono e exercício. A Ana usa essas informações para personalizar o acompanhamento.</div></div>
+      <div><Lbl>Estado civil</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{["Casado(a)","Solteiro(a)","União estável","Divorciado(a)","Prefiro não informar"].map(o=><Chip key={o} label={o} active={f.estado_civil===o} onClick={()=>set("estado_civil",o)}/>)}</div></div>
+      <div><Lbl>Tem filhos?</Lbl><div style={{display:"flex",gap:8}}>{["Não","Sim — 1 a 2","Sim — 3 ou mais","Prefiro não informar"].map(o=><Chip key={o} label={o} active={f.filhos===o} onClick={()=>set("filhos",o)}/>)}</div></div>
+      <SldInput label="Qualidade da rede de apoio (família e amigos próximos)" value={f.qualidade_rede||5} onChange={v=>set("qualidade_rede",v)} min={1} max={10} unit="/10" color={T.purple}/>
+      <SldInput label="Satisfação com a vida social" value={f.satisfacao_social||5} onChange={v=>set("satisfacao_social",v)} min={1} max={10} unit="/10" color={T.teal}/>
+      <div><Lbl>Com que frequência você tem conexões sociais significativas?</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{["Raramente","Algumas vezes por semana","Todo dia","Prefiro não informar"].map(o=><Chip key={o} label={o} active={f.freq_social===o} onClick={()=>set("freq_social",o)}/>)}</div></div>
     </div>,
   ];
 
