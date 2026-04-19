@@ -150,7 +150,7 @@ Retorne APENAS um array JSON com 6-10 tarefas no formato:
 [{"area":"saude_geral|nutricao|atividade|emocional|vinculos|prevencao","titulo":"...","descricao":"...","frequencia":"diario|semanal|mensal","ordem":1}]`;
 
   try{
-    const res=await fetch("https://api.anthropic.com/v1/messages",{
+    const res=await fetch("/.netlify/functions/claude",{
       method:"POST",
       headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},
       body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content:prompt}]})
@@ -311,7 +311,7 @@ function ChatIA({membro,systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pdf
         if(i===0&&pdfB64&&m.role==="user")return{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:m.content}]};
         return{role:m.role,content:m.content};
       });
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:modeloUsado,max_tokens:900,system:systemPrompt,messages:history})});
+      const res=await fetch("/.netlify/functions/claude",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:modeloUsado,max_tokens:900,system:systemPrompt,messages:history})});
       if(res.status===429&&tentativa<3){await new Promise(r=>setTimeout(r,3000*tentativa));return enviarMensagem(tentativa+1);}
       const data=await res.json();
       const resposta=data.content?.[0]?.text||"Erro ao processar.";
@@ -809,7 +809,7 @@ Responda com precisão clínica baseada nestes achados.`;
     const tentarEnviar=async(tentativa=1)=>{
       try{
         const history=msgs.concat(userMsg).filter(m=>!m.loading).map(m=>({role:m.role,content:m.content}));
-        const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,system,messages:history})});
+        const res=await fetch("/.netlify/functions/claude",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,system,messages:history})});
         if(res.status===429&&tentativa<4){
           await new Promise(r=>setTimeout(r,5000*tentativa));
           return tentarEnviar(tentativa+1);
@@ -873,7 +873,7 @@ function ModuloGeneticista({form,scores,apiKey,pacienteId,systemPrompt,laudoStat
     setPdfNome(file.name);setAnalisando(true);setAba("risco");
     const toB64=(f)=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});
     const chamarAPI=async(b64,tentativa=1)=>{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,system:`Analise o laudo genético. Retorne SOMENTE um objeto JSON válido, sem markdown, sem texto antes ou depois. Formato: {"resumo":"2 frases resumindo","nivel_risco_geral":"alto|moderado|baixo","achados":[{"gene":"nome","impacto":"alto|moderado|baixo","orientacao":"orientação em 1 frase"}],"nutricao":"recomendação em 1 frase","atividade":"recomendação em 1 frase","sono":"orientação em 1 frase","medicamentos":"resumo farmacogenômico em 2 frases","rastreamento":"exames prioritários em 1 frase","alertas":[{"nivel":"critico|atencao|informativo","msg":"mensagem curta"}]}. Inclua no máximo 10 achados. RETORNE APENAS O JSON.`,messages:[{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:"Analise este laudo genético."}]}]})});
+      const res=await fetch("/.netlify/functions/claude",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,system:`Analise o laudo genético. Retorne SOMENTE um objeto JSON válido, sem markdown, sem texto antes ou depois. Formato: {"resumo":"2 frases resumindo","nivel_risco_geral":"alto|moderado|baixo","achados":[{"gene":"nome","impacto":"alto|moderado|baixo","orientacao":"orientação em 1 frase"}],"nutricao":"recomendação em 1 frase","atividade":"recomendação em 1 frase","sono":"orientação em 1 frase","medicamentos":"resumo farmacogenômico em 2 frases","rastreamento":"exames prioritários em 1 frase","alertas":[{"nivel":"critico|atencao|informativo","msg":"mensagem curta"}]}. Inclua no máximo 10 achados. RETORNE APENAS O JSON.`,messages:[{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:"Analise este laudo genético."}]}]})});
       if((res.status===429||res.status===529)&&tentativa<5){
         const espera=res.status===529?10000:3000;
         console.log(`Status ${res.status} — aguardando ${espera/1000}s (tentativa ${tentativa}/5)...`);
@@ -980,7 +980,7 @@ function ModuloDocumentos({apiKey,pacienteId,onPlanUpdate}){
       const toB64=(f)=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});
       try{
         const b64=await toB64(file);
-        const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,system:`Analise o documento de saúde e retorne APENAS JSON sem markdown: {"tipo":"genetico|imagem|clinico|receita|atestado|relatorio|consulta|outro","titulo":"título","profissional":"nome","resumo":"resumo 2-3 frases","diagnosticos":["lista"],"medicamentos":[{"nome":"","dose":"","frequencia":""}],"checklist":[{"item":"","urgencia":"alta|media|baixa"}],"alertas":[{"nivel":"critico|atencao|informativo","mensagem":""}],"impacto_plano":"impacto no plano"}`,messages:[{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:"Analise este documento."}]}]})});
+        const res=await fetch("/.netlify/functions/claude",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,system:`Analise o documento de saúde e retorne APENAS JSON sem markdown: {"tipo":"genetico|imagem|clinico|receita|atestado|relatorio|consulta|outro","titulo":"título","profissional":"nome","resumo":"resumo 2-3 frases","diagnosticos":["lista"],"medicamentos":[{"nome":"","dose":"","frequencia":""}],"checklist":[{"item":"","urgencia":"alta|media|baixa"}],"alertas":[{"nivel":"critico|atencao|informativo","mensagem":""}],"impacto_plano":"impacto no plano"}`,messages:[{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:"Analise este documento."}]}]})});
         const data=await res.json();
         const parsed=JSON.parse((data.content?.[0]?.text||"{}").replace(/```json|```/g,"").trim());
         // Salvar no Supabase
