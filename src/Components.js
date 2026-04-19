@@ -314,7 +314,7 @@ export function ScreenLogin({onLogin}){
     <div style={{minHeight:"100vh",background:T.bg,display:"flex",fontFamily:T.fB,color:T.ink}}>
       <div style={{width:"44%",flexShrink:0,background:T.surface,borderRight:`1px solid ${T.border}`,padding:"52px",display:"flex",flexDirection:"column",justifyContent:"space-between",boxShadow:"4px 0 24px rgba(60,50,30,0.06)"}}>
         <div>
-          <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:52}}><span style={{fontFamily:T.fD,fontSize:38,color:T.ink,lineHeight:1}}>H</span><span style={{fontFamily:T.fD,fontSize:38,color:T.gold,lineHeight:1}}>Dohmann</span><span style={{fontSize:8,letterSpacing:"0.3em",color:T.inkFaint,marginLeft:4,alignSelf:"flex-end",marginBottom:4}}>HEALTH</span></div>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:52}}><div style={{width:44,height:44,borderRadius:10,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:700,fontSize:20}}>V</div><span style={{fontFamily:T.fD,fontSize:22,fontWeight:600,color:T.ink}}>Hospital Virtual Verde</span></div>
           <div style={{width:72,height:72,borderRadius:16,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:20,boxShadow:`0 4px 20px ${T.green}40`}}><span style={{fontSize:28,color:"#FFF",fontWeight:700}}>V</span></div>
           <div style={{fontFamily:T.fD,fontSize:24,color:T.ink,marginBottom:4}}>Hospital Virtual Verde</div>
           <div style={{fontSize:11,color:T.green,letterSpacing:"0.18em",marginBottom:28,fontWeight:600}}>BENEFÍCIO STONE · SAÚDE CONTÍNUA</div>
@@ -348,7 +348,7 @@ export function ScreenApiKey({user,onConfirm}){
   return(
     <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.fB,padding:24}}>
       <div style={{width:"100%",maxWidth:520}}>
-        <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:40}}><span style={{fontFamily:T.fD,fontSize:32,color:T.ink}}>H</span><span style={{fontFamily:T.fD,fontSize:32,color:T.gold}}>Dohmann</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:40}}><div style={{width:36,height:36,borderRadius:8,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:700,fontSize:16}}>V</div><span style={{fontFamily:T.fD,fontSize:20,fontWeight:600,color:T.ink}}>Hospital Virtual Verde</span></div>
         <Card style={{padding:"0",overflow:"hidden"}}>
           <div style={{background:`linear-gradient(135deg,${T.goldFaint},${T.surface})`,padding:"28px 32px",borderBottom:`1px solid ${T.border}`}}>
             <div style={{fontFamily:T.fD,fontSize:24,color:T.ink,marginBottom:8}}>Olá, {user.name.split(" ")[0]}! Um último passo.</div>
@@ -385,7 +385,7 @@ export function ScreenBoasVindas({onStart}){
   return(
     <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.fB,padding:40}}>
       <div style={{width:"100%",maxWidth:560}}>
-        <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:48,justifyContent:"center"}}><span style={{fontFamily:T.fD,fontSize:32,color:T.ink}}>H</span><span style={{fontFamily:T.fD,fontSize:32,color:T.gold}}>Dohmann</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:48,justifyContent:"center"}}><div style={{width:36,height:36,borderRadius:8,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:700,fontSize:16}}>V</div><span style={{fontFamily:T.fD,fontSize:20,fontWeight:600,color:T.ink}}>Hospital Virtual Verde</span></div>
         <Card style={{padding:"0",overflow:"hidden",marginBottom:24}}>
           <div style={{height:4,background:`linear-gradient(90deg,${s.cor},${s.cor}60)`}}/>
           <div style={{padding:"40px",textAlign:"center"}}>
@@ -481,7 +481,7 @@ export function ScreenOnboarding({user,onComplete}){
   return(
     <div style={{minHeight:"100vh",display:"flex",background:T.bg,fontFamily:T.fB,color:T.ink}}>
       <div style={{width:220,flexShrink:0,borderRight:`1px solid ${T.border}`,padding:"32px 24px",display:"flex",flexDirection:"column",background:T.surface}}>
-        <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:44}}><span style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>H</span><span style={{fontFamily:T.fD,fontSize:24,color:T.gold}}>Dohmann</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:44}}><div style={{width:28,height:28,borderRadius:6,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:700,fontSize:13}}>V</div><span style={{fontFamily:T.fD,fontSize:15,fontWeight:600,color:T.ink}}>Hospital Virtual Verde</span></div>
         <div style={{flex:1,display:"flex",flexDirection:"column",gap:2}}>
           {OB_STEPS.map((s,i)=>{const done=i<step,active=i===step;return(<div key={i} style={{display:"flex",gap:14,alignItems:"flex-start",padding:"9px 0",cursor:done?"pointer":"default"}} onClick={()=>done&&setStep(i)}><div style={{display:"flex",flexDirection:"column",alignItems:"center"}}><div style={{width:24,height:24,borderRadius:"50%",border:`2px solid ${done?T.green:active?T.gold:T.border}`,background:done?T.green:active?T.goldFaint:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:done?"#FFF":active?T.gold:T.inkFaint,fontWeight:700,transition:"all 0.3s"}}>{done?"✓":i+1}</div>{i<OB_STEPS.length-1&&<div style={{width:1.5,height:28,background:done?T.green:T.border,marginTop:3}}/>}</div><span style={{fontSize:11,color:active?T.gold:done?T.ink:T.inkFaint,paddingTop:3,fontWeight:active?600:400}}>{s}</span></div>);})}
         </div>
