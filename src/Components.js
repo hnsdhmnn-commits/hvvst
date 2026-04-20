@@ -19,22 +19,64 @@ function horaAgora(){
 
 // ─── Design Tokens ────────────────────────────────────────────────
 export const T = {
-  bg:"#F7F6F2",bgWarm:"#FAFAF7",surface:"#FFFFFF",
-  surfaceMid:"#F1EFE8",surfaceHi:"#E8F5EE",
-  border:"#D0E8D8",borderMid:"#A8D4B8",
-  shadowCard:"0 2px 8px rgba(0,100,60,0.07)",
-  shadowHover:"0 4px 16px rgba(0,100,60,0.12)",
-  ink:"#1B2A1E",inkMid:"#3A4A3E",inkLight:"#6A7A6E",inkFaint:"#A8B8AE",
-  gold:"#00A868",goldFaint:"#E8F5EE",goldBorder:"#C7E6D0",
-  teal:"#00875A",tealBg:"#E0F2EA",
-  green:"#00A868",greenBg:"#E8F5EE",
-  red:"#C0392B",redBg:"#FBEAEA",
-  purple:"#5C7AEA",purpleBg:"#EEF2FD",
-  blue:"#1A6B8A",blueBg:"#E8F4FA",
-  orange:"#E07020",orangeBg:"#FEF3E8",
-  fD:"'DM Sans',system-ui,sans-serif",
-  fB:"'DM Mono','Courier New',monospace",
+  // ── Cores base (fiel ao protótipo) ───────────────────────────
+  bg:          "#F7F6F2",   // --bg-page
+  bgWarm:      "#F1EFE8",   // --bg-secondary
+  surface:     "#FFFFFF",   // --bg-card
+  surfaceMid:  "#F1EFE8",
+  bgWarm2:     "#E8E6DF",
+
+  // ── Texto ─────────────────────────────────────────────────────
+  ink:         "#2C2C2A",   // --text-primary
+  inkMid:      "#5F5E5A",   // --text-secondary
+  inkLight:    "#888780",   // --text-tertiary
+  inkFaint:    "#AEACA5",
+
+  // ── Stone green ───────────────────────────────────────────────
+  green:       "#00A868",
+  greenDark:   "#1B5E20",
+  greenText:   "#2E7D32",
+  greenBg:     "#F0F9F4",
+  greenBorder: "#C7E6D0",
+
+  // ── Bordas ────────────────────────────────────────────────────
+  border:      "rgba(0,0,0,0.10)",
+  borderMid:   "rgba(0,0,0,0.18)",
+
+  // ── Status ────────────────────────────────────────────────────
+  blue:        "#185FA5",
+  blueBg:      "#E6F1FB",
+  teal:        "#0B7B6B",
+  tealBg:      "#E6F4F1",
+  purple:      "#5B3FA6",
+  purpleBg:    "#F0EBFB",
+  red:         "#A32D2D",
+  redBg:       "#FCEBEB",
+  orange:      "#854F0B",
+  orangeBg:    "#FAEEDA",
+  gold:        "#00A868",   // usar green como gold no HVV
+  goldFaint:   "#F0F9F4",
+  goldBorder:  "#C7E6D0",
+
+  // ── Sombras ───────────────────────────────────────────────────
+  shadowCard:  "0 1px 3px rgba(0,0,0,0.06)",
+  shadowMd:    "0 2px 8px rgba(0,0,0,0.08)",
+
+  // ── Raio ──────────────────────────────────────────────────────
+  rMd:  "8px",
+  rLg:  "12px",
+  rXl:  "16px",
+
+  // ── Tipografia ────────────────────────────────────────────────
+  fB:   "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+  fD:   "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+  fS:   "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+
+  // ── Navy (manter para app médico) ─────────────────────────────
+  navy:    "#1A3A6B",
+  navyBg:  "#EEF2F9",
 };
+
 
 export const AXIS_COLORS={"Sono":T.purple,"Energia":T.teal,"Estresse":T.red,"Humor":T.gold,"Vínculos":T.blue,"Bem-estar":T.green};
 
@@ -409,21 +451,19 @@ async function carregarAnaliseGenetica(pacienteId){
 // ─── UI Primitives ────────────────────────────────────────────────
 function Lbl({children,color}){return <div style={{fontSize:9,letterSpacing:"0.18em",color:color||T.inkLight,textTransform:"uppercase",marginBottom:8,fontFamily:T.fB,fontWeight:600}}>{children}</div>;}
 export function Card({children,style={},onClick,hover=false}){const[hov,setHov]=useState(false);return <div onClick={onClick} onMouseOver={()=>hover&&setHov(true)} onMouseOut={()=>hover&&setHov(false)} style={{background:T.surface,borderRadius:12,boxShadow:hov?T.shadowHover:T.shadowCard,border:`1px solid ${T.border}`,transition:"all 0.2s",cursor:onClick?"pointer":"default",...style}}>{children}</div>;}
-export function Btn({children,onClick,variant="primary",disabled=false,style={}}){const v={primary:{background:T.ink,color:"#FFF",border:`1px solid ${T.ink}`},gold:{background:T.gold,color:"#FFF",border:`1px solid ${T.gold}`},outline:{background:"transparent",color:T.ink,border:`1px solid ${T.border}`},teal:{background:T.teal,color:"#FFF",border:`1px solid ${T.teal}`},ghost:{background:"transparent",color:T.inkLight,border:"none"}};return <button onClick={disabled?undefined:onClick} disabled={disabled} style={{padding:"11px 24px",borderRadius:8,fontFamily:T.fB,fontSize:11,letterSpacing:"0.16em",fontWeight:600,cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.4:1,transition:"all 0.2s",...v[variant],...style}}>{children}</button>;}
-function TxtInput({label,placeholder,value,onChange,type="text",unit,autoFocus,error}){const[foc,setFoc]=useState(false);return <div>{label&&<Lbl>{label}</Lbl>}<div style={{position:"relative"}}><input autoFocus={autoFocus} type={type} placeholder={placeholder} value={value||""} onChange={e=>onChange(e.target.value)} onFocus={()=>setFoc(true)} onBlur={()=>setFoc(false)} style={{width:"100%",background:T.bgWarm,border:`1.5px solid ${error?T.red:foc?T.gold:T.border}`,borderRadius:8,padding:unit?"11px 48px 11px 14px":"11px 14px",color:T.ink,fontFamily:T.fB,fontSize:13,outline:"none",transition:"border-color 0.2s",boxSizing:"border-box"}}/>{unit&&<span style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",fontSize:10,color:T.inkLight}}>{unit}</span>}</div>{error&&<div style={{fontSize:11,color:T.red,marginTop:4}}>{error}</div>}</div>;}
-function SldInput({label,value,onChange,min,max,unit,color=T.gold,hint}){return <div><div style={{display:"flex",justifyContent:"space-between",marginBottom:7}}><Lbl>{label}</Lbl><span style={{fontSize:16,color,fontFamily:T.fD,fontWeight:700}}>{value}{unit}</span></div><input type="range" min={min} max={max} value={value} onChange={e=>onChange(Number(e.target.value))} style={{width:"100%",accentColor:color,cursor:"pointer",height:4}}/><div style={{display:"flex",justifyContent:"space-between",marginTop:4}}><span style={{fontSize:9,color:T.inkFaint}}>{hint||min}</span><span style={{fontSize:9,color:T.inkFaint}}>{max}</span></div></div>;}
-function Chip({label,active,color=T.gold,bg,onClick}){return <button onClick={onClick} style={{padding:"8px 14px",borderRadius:6,cursor:"pointer",fontFamily:T.fB,fontSize:12,background:active?(bg||T.goldFaint):"transparent",border:`1.5px solid ${active?color:T.border}`,color:active?color:T.inkMid,transition:"all 0.18s"}}>{label}</button>;}
-function RadialScore({value,size=100}){const r=size/2-9,circ=2*Math.PI*r,dash=(value/100)*circ,color=value>=75?T.green:value>=50?T.gold:T.red;return <svg width={size} height={size}><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={T.surfaceMid} strokeWidth="7"/><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="7" strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" transform={`rotate(-90 ${size/2} ${size/2})`} style={{transition:"stroke-dasharray 1.4s cubic-bezier(0.34,1.56,0.64,1)"}}/><text x={size/2} y={size/2-6} textAnchor="middle" dominantBaseline="middle" fill={color} fontSize="20" fontFamily="Georgia,serif" fontWeight="700">{value}</text><text x={size/2} y={size/2+14} textAnchor="middle" dominantBaseline="middle" fill={T.inkFaint} fontSize="9" fontFamily="'DM Mono',monospace">/100</text></svg>;}
-
-// ─── ChatIA com persistência ──────────────────────────────────────
-function ChatIA({membro,systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pdfB64,pacienteId}){
-  const eq=EQUIPE.find(e=>e.id===membro);
-  const[msgs,setMsgs]=useState([{role:"assistant",content:inicialMsg}]);
-  const[input,setInput]=useState("");
-  const[loading,setLoading]=useState(false);
-  const[carregando,setCarregando]=useState(true);
-  const bottomRef=useRef(null);
-  const inputRef=useRef(null);
+export function Btn({children,onClick,variant="primary",disabled=false,style={}}){
+  const v={
+    primary:{background:T.green,color:"#FFF",border:"none"},
+    gold:{background:T.green,color:"#FFF",border:"none"},
+    teal:{background:T.green,color:"#FFF",border:"none"},
+    outline:{background:T.surface,color:T.inkMid,border:`0.5px solid ${T.borderMid}`},
+    ghost:{background:"transparent",color:T.inkLight,border:"none"},
+    red:{background:T.red,color:"#FFF",border:"none"},
+    blue:{background:T.blue,color:"#FFF",border:"none"},
+    purple:{background:T.purple,color:"#FFF",border:"none"},
+  };
+  return <button onClick={disabled?undefined:onClick} disabled={disabled} style={{padding:"9px 18px",borderRadius:"8px",fontFamily:T.fB,fontSize:"13px",fontWeight:500,cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.4:1,transition:"all 0.15s",...v[variant],...style}}>{children}</button>;
+}
 
   // Carregar histórico do Supabase
   useEffect(()=>{
@@ -818,43 +858,63 @@ Tom: acolhedor, preciso e humano. Histórico persistido — você tem memória d
 
   return(
     <div style={{display:"flex",height:"100vh",background:T.bg,fontFamily:T.fB,color:T.ink,overflow:"hidden"}}>
-      {/* Sidebar */}
-      <div style={{width:222,flexShrink:0,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",background:T.surface,height:"100vh",position:"sticky",top:0,overflow:"hidden",boxShadow:"2px 0 12px rgba(60,50,30,0.04)"}}>
-        <div style={{padding:"20px 20px 16px",borderBottom:`1px solid ${T.border}`}}><div style={{display:"flex",alignItems:"baseline",gap:6}}><div style={{width:28,height:28,borderRadius:6,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:700,fontSize:13}}>V</div><span style={{fontFamily:T.fD,fontSize:15,color:T.ink,fontWeight:600}}>Hospital Virtual Verde</span></div><div style={{fontSize:8,letterSpacing:"0.18em",color:T.inkFaint,marginTop:2}}>BENEFÍCIO STONE</div></div>
-        <div style={{padding:"12px 16px 10px",borderBottom:`1px solid ${T.border}`,display:"flex",gap:10,alignItems:"center"}}>
-          <div style={{width:34,height:34,borderRadius:"50%",background:T.goldFaint,border:`1.5px solid ${T.goldBorder}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:T.gold,fontWeight:700,flexShrink:0}}>{initials}</div>
-          <div style={{minWidth:0}}><div style={{fontSize:12,color:T.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:500}}>{nome.split(" ")[0]}</div><div style={{fontSize:9,color:T.inkFaint}}>{form?.cargo||"Executivo"}</div></div>
+
+      {/* Sidebar — estilo protótipo */}
+      <div style={{width:220,flexShrink:0,borderRight:`0.5px solid ${T.border}`,display:"flex",flexDirection:"column",background:T.surface,height:"100vh",position:"sticky",top:0,overflow:"hidden"}}>
+
+        {/* Logo */}
+        <div style={{padding:"14px 20px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:28,height:28,borderRadius:6,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:500,fontSize:13}}>V</div>
+          <span style={{fontSize:15,color:T.ink,fontWeight:500}}>Hospital Virtual Verde</span>
         </div>
-        <div style={{flex:1,overflowY:"auto",padding:"10px 10px"}}>
-          <div style={{fontSize:8,letterSpacing:"0.2em",color:T.inkFaint,padding:"6px 10px 8px"}}>NAVEGAÇÃO</div>
+
+        {/* Nav */}
+        <nav style={{flex:1,overflowY:"auto",padding:"8px"}}>
           {MODULOS.map(m=>{
-            const eq=m.membro?EQUIPE.find(e=>e.id===m.membro):null;
             const active=modulo===m.id;
             const showDot=m.id==="ana"&&checkinPendente;
             const showMsg=m.id==="mensagens"&&mensagensNaoLidas>0;
-            return(<button key={m.id} onClick={()=>{if(m.id==="home")setHomeKey(k=>k+1);setModulo(m.id);if(m.id==="mensagens"){setMensagensNaoLidas(0);if(pacienteId)marcarMensagensLidas(pacienteId);}}} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:8,background:active?T.goldFaint:"transparent",border:`1px solid ${active?T.goldBorder:"transparent"}`,cursor:"pointer",transition:"all 0.18s",fontFamily:T.fB,textAlign:"left",marginBottom:2,boxShadow:active?T.shadowCard:"none"}} onMouseOver={e=>{if(!active)e.currentTarget.style.background=T.surfaceMid;}} onMouseOut={e=>{if(!active)e.currentTarget.style.background="transparent";}}>
-              <span style={{fontSize:15,flexShrink:0}}>{m.icon}</span>
-              <span style={{fontSize:12,color:active?T.gold:T.inkMid,fontWeight:active?600:400}}>{m.label}</span>
-              {showDot&&<span style={{marginLeft:"auto",width:8,height:8,borderRadius:"50%",background:T.orange,display:"inline-block",animation:"pulse 1.5s ease infinite",flexShrink:0}}/>}
-              {showMsg&&<span style={{marginLeft:"auto",fontSize:9,padding:"2px 6px",borderRadius:10,background:T.teal,color:"#FFF",fontWeight:700}}>{mensagensNaoLidas}</span>}
-              {!showDot&&!showMsg&&eq&&<div style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:eq.cor,boxShadow:`0 0 6px ${eq.cor}60`}}/>}
-            </button>);
+            return(
+              <button key={m.id}
+                onClick={()=>{if(m.id==="home")setHomeKey(k=>k+1);setModulo(m.id);if(m.id==="mensagens"){setMensagensNaoLidas(0);if(pacienteId)marcarMensagensLidas(pacienteId);}}}
+                style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:8,background:active?T.greenBg:"transparent",border:"none",cursor:"pointer",transition:"all 0.15s",fontFamily:T.fB,textAlign:"left",marginBottom:1}}
+                onMouseOver={e=>{if(!active)e.currentTarget.style.background=T.bgWarm;}}
+                onMouseOut={e=>{if(!active)e.currentTarget.style.background="transparent";}}>
+                <span style={{fontSize:14,flexShrink:0,width:20,textAlign:"center"}}>{m.icon}</span>
+                <span style={{fontSize:13,color:active?T.greenDark:T.inkMid,fontWeight:active?500:400}}>{m.label}</span>
+                {showDot&&<span style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:"#E07020",flexShrink:0}}/>}
+                {showMsg&&<span style={{marginLeft:"auto",fontSize:10,padding:"1px 6px",borderRadius:10,background:T.green,color:"#FFF",fontWeight:600}}>{mensagensNaoLidas}</span>}
+              </button>
+            );
           })}
-          <div style={{fontSize:8,letterSpacing:"0.2em",color:T.inkFaint,padding:"14px 10px 8px"}}>SUA EQUIPE</div>
-          {EQUIPE.map(e=>(<div key={e.id} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 12px",borderRadius:8}}><div style={{width:30,height:30,borderRadius:"50%",background:e.bg,border:`1.5px solid ${e.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{e.icon}</div><div style={{minWidth:0}}><div style={{fontSize:11,color:T.inkMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.nome}</div><div style={{fontSize:8,color:T.inkFaint,letterSpacing:"0.08em"}}>{e.titulo}</div></div><div style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:T.green,boxShadow:`0 0 6px ${T.green}60`,flexShrink:0}}/></div>))}
-        </div>
-        <div style={{padding:"14px 16px",borderTop:`1px solid ${T.border}`}}>
-          <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:10,color:T.inkFaint}}>VITALIDADE</span><span style={{fontSize:13,color:T.gold,fontFamily:T.fD,fontWeight:700}}>{scores.total}/100</span></div>
-          <div style={{height:3,background:T.surfaceMid,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${scores.total}%`,background:`linear-gradient(90deg,${T.gold},${T.teal})`}}/></div>
-          <button onClick={onLogout} style={{marginTop:12,width:"100%",padding:"7px",background:"transparent",border:`1px solid ${T.border}`,borderRadius:6,color:T.inkFaint,fontFamily:T.fB,fontSize:9,letterSpacing:"0.12em",cursor:"pointer"}}>SAIR</button>
+        </nav>
+
+        {/* Footer — usuário + sair */}
+        <div style={{padding:"12px 16px",borderTop:`0.5px solid ${T.border}`}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+            <div style={{width:32,height:32,borderRadius:"50%",background:T.greenBg,border:`1px solid ${T.greenBorder}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:T.greenDark,fontWeight:600,flexShrink:0}}>{initials}</div>
+            <div style={{minWidth:0,flex:1}}>
+              <div style={{fontSize:13,color:T.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:500}}>{nome.split(" ")[0]}</div>
+              <div style={{fontSize:11,color:T.inkLight}}>Vitalidade: {scores.total}/100</div>
+            </div>
+          </div>
+          <button onClick={onLogout} style={{width:"100%",padding:"7px",background:"transparent",border:`0.5px solid ${T.borderMid}`,borderRadius:6,color:T.inkLight,fontFamily:T.fB,fontSize:12,cursor:"pointer"}}>Sair</button>
         </div>
       </div>
 
       {/* Content */}
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-        <div style={{borderBottom:`1px solid ${T.border}`,padding:"0 28px",height:48,display:"flex",alignItems:"center",justifyContent:"space-between",background:T.surface,flexShrink:0,boxShadow:T.shadowCard}}>
-          <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:10,color:T.inkFaint,letterSpacing:"0.15em"}}>Hospital Virtual Verde</span><span style={{color:T.border}}>›</span><span style={{fontSize:11,color:T.inkMid,letterSpacing:"0.12em",fontWeight:500}}>{MODULOS.find(m=>m.id===modulo)?.label}</span></div>
-          <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:6,height:6,borderRadius:"50%",background:T.green,boxShadow:`0 0 8px ${T.green}60`,animation:"pulse 2s ease infinite"}}/><span style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.12em"}}>EQUIPE ONLINE</span></div>
+        {/* Topbar */}
+        <div style={{borderBottom:`0.5px solid ${T.border}`,padding:"0 24px",height:48,display:"flex",alignItems:"center",justifyContent:"space-between",background:T.surface,flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:13,color:T.inkLight}}>Hospital Virtual Verde</span>
+            <span style={{color:T.border}}>›</span>
+            <span style={{fontSize:13,color:T.ink,fontWeight:500}}>{MODULOS.find(m=>m.id===modulo)?.label||""}</span>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <div style={{width:6,height:6,borderRadius:"50%",background:T.green}}/>
+            <span style={{fontSize:12,color:T.inkLight}}>Equipe online</span>
+          </div>
         </div>
 
         {modulo==="home"&&<ModuloHome key={`home-${homeKey}`} form={form} scores={scores} setModulo={setModulo} pacienteId={pacienteId}/>}
