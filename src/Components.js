@@ -182,7 +182,12 @@ Retorne APENAS um array JSON com 6-10 tarefas no formato:
 
 async function carregarCheckinHoje(pacienteId){
   const hoje=dataHoje();
-  const{data}=await supabase.from("checkins").select("*").eq("paciente_id",pacienteId).eq("data",hoje).single();
+  const{data}=await supabase.from("checkins").select("*")
+    .eq("paciente_id",pacienteId)
+    .eq("data",hoje)
+    .order("created_at",{ascending:false})
+    .limit(1)
+    .maybeSingle();
   return data;
 }
 
@@ -607,7 +612,7 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
   useEffect(()=>{
     if(!pacienteId)return;
     const hoje=dataHoje();
-    carregarCheckinHoje(pacienteId).then(ci=>{if(ci)setCheckinHoje(ci);});
+    carregarCheckinHoje(pacienteId).then(ci=>{ if(ci) setCheckinHoje(ci); });
     carregarPlanLog(pacienteId).then(log=>setPlanLog(log));
     supabase.from("mensagens").select("id",{count:"exact"}).eq("paciente_id",pacienteId).eq("lida",false).eq("remetente","ana").then(({count})=>setMensagensNaoLidas(count||0));
     // Carregar análise genética salva
@@ -647,21 +652,12 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
     if(membro==="suporte")return `Você é a Central de Atendimento HVV. Responda dúvidas sobre o app e o programa. Seja claro e amigável. Usuário: ${nome}.`;
     // Ana — acesso total
     const laudoCtx=laudoGenetico?.analise?`\n\nLAUDO GENÉTICO (${laudoGenetico.pdfNome||"disponível"}): ${laudoGenetico.analise.resumo||""}. Risco geral: ${laudoGenetico.analise.nivel_risco_geral||"—"}. Farmacogenômica: ${laudoGenetico.analise.medicamentos||"—"}.`:"\n\nLAUDO GENÉTICO: ainda não enviado.";
-    const checkinCtx=checkinHoje?`\nCHECK-IN DE HOJE — ${new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"})} (dados reais salvos agora há pouco):
-- Energia: ${checkinHoje.energia}/10
-- Sono: ${checkinHoje.sono}/10
-- Estresse: ${checkinHoje.estresse}/10
-- Humor: ${checkinHoje.humor||"-"}/10
-- Vínculos (média): ${checkinHoje.vinculos||"-"}/10
-  → Rede de apoio: ${checkinHoje.rede_apoio||"-"}/10
-  → Relações no trabalho: ${checkinHoje.relacoes_trabalho||"-"}/10
-  → Vida social: ${checkinHoje.vida_social||"-"}/10
-  → Relacionamentos pessoais: ${checkinHoje.relacionamentos_pessoais||"-"}/10
-- Bem-estar geral: ${checkinHoje.bem_estar||"-"}/10
-${checkinHoje.sintomas?`- Sintomas relatados: ${checkinHoje.sintomas}`:""}
-${checkinHoje.notas?`- Observações: ${checkinHoje.notas}`:""}
+    const checkinCtx=checkinHoje?`\n\nCHECK-IN REGISTRADO AGORA — ESTES SÃO OS DADOS REAIS DE HOJE:
+Energia: ${checkinHoje.energia}/10 | Sono: ${checkinHoje.sono}/10 | Estresse: ${checkinHoje.estresse}/10 | Humor: ${checkinHoje.humor||"-"}/10
+Vínculos: ${checkinHoje.vinculos||"-"}/10 (rede apoio: ${checkinHoje.rede_apoio||"-"}, trabalho: ${checkinHoje.relacoes_trabalho||"-"}, social: ${checkinHoje.vida_social||"-"}, pessoal: ${checkinHoje.relacionamentos_pessoais||"-"})
+Bem-estar: ${checkinHoje.bem_estar||"-"}/10${checkinHoje.sintomas?`\nSintomas: ${checkinHoje.sintomas}`:""}${checkinHoje.notas?`\nObservações do paciente: ${checkinHoje.notas}`:""}
 
-IMPORTANTE: O paciente acabou de fazer o check-in. Use esses dados para personalizar TODA a conversa. Comente proativamente sobre os pontos mais críticos — especialmente se estresse > 7, vínculos < 5, ou sono < 6.`:"\nCheck-in de hoje: não realizado ainda.";
+INSTRUÇÃO CRÍTICA: Estes dados ACABARAM de ser salvos. Você TEM acesso ao check-in de hoje. NÃO diga que não consegue ver os dados. Abra a conversa comentando diretamente sobre estes números — especialmente os pontos mais críticos. Se estresse >= 7, comente. Se sono <= 4, comente. Se vínculos <= 4, comente. Se o paciente deixou observações, responda a elas diretamente.`:"\nCheck-in de hoje: ainda não realizado.";
 
     return `Você é Ana, enfermeira coordenadora da equipe de saúde do Hospital Virtual Verde (HVV) — benefício Stone. Você é o ponto central de contato e tem acesso a TODOS os dados do paciente.
 
@@ -786,7 +782,7 @@ function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,p
       <div style={{borderBottom:`1px solid ${T.border}`,padding:"0 28px",display:"flex",background:T.bgWarm,flexShrink:0}}>
         {[{id:"chat",label:"Conversar com Ana"},{id:"checkin",label:"Check-in Diário"}].map(t=>(<button key={t.id} onClick={()=>setAba(t.id)} style={{background:"none",border:"none",borderBottom:`2px solid ${aba===t.id?T.teal:"transparent"}`,padding:"13px 22px",fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",color:aba===t.id?T.teal:T.inkFaint,cursor:"pointer",fontFamily:T.fB,transition:"all 0.2s",display:"flex",alignItems:"center",gap:6}}>{t.label}{t.id==="checkin"&&!checkinHoje&&<span style={{width:7,height:7,borderRadius:"50%",background:T.orange,display:"inline-block",animation:"pulse 1.5s ease infinite"}}/>}</button>))}
       </div>
-      {aba==="chat"&&<ChatIA key={checkinHoje?`checkin-${checkinHoje.energia}-${checkinHoje.sono}`:"sem-checkin"} membro="enfermeira" apiKey={apiKey} placeholder="Fale com Ana sobre qualquer assunto de saúde..." inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou a Ana, sua enfermeira coordenadora.\n\n${checkinHoje?`Acabei de ver seu check-in de hoje:\n• Energia: ${checkinHoje.energia}/10\n• Sono: ${checkinHoje.sono}/10\n• Estresse: ${checkinHoje.estresse}/10${checkinHoje.vinculos?`\n• Vínculos: ${checkinHoje.vinculos}/10`:""}${checkinHoje.bem_estar?`\n• Bem-estar: ${checkinHoje.bem_estar}/10`:""}${checkinHoje.sintomas?`\n• Sintomas: ${checkinHoje.sintomas}`:""}${checkinHoje.notas?`\n• Observações: ${checkinHoje.notas}`:""}\n\nO que mais te preocupa hoje?`:"Você ainda não fez seu check-in de hoje. Como está se sentindo?"}`} sugestoes={["Comente sobre meus dados de hoje","O que devo priorizar agora?","Como estão meus vínculos?","Algum alerta no meu check-in?"]} systemPrompt={getBuildPrompt("enfermeira")} pacienteId={pacienteId}/>}
+      {aba==="chat"&&<ChatIA key={checkinHoje?`checkin-${checkinHoje.energia}-${checkinHoje.sono}`:"sem-checkin"} membro="enfermeira" apiKey={apiKey} placeholder="Fale com Ana sobre qualquer assunto de saúde..." inicialMsg={`Olá, ${nome.split(" ")[0]}! Recebi seu check-in de hoje.\n\n${checkinHoje?`📊 Seus dados de agora:\n• Energia: ${checkinHoje.energia}/10\n• Sono: ${checkinHoje.sono}/10\n• Estresse: ${checkinHoje.estresse}/10${checkinHoje.vinculos?`\n• Vínculos: ${checkinHoje.vinculos}/10`:""}${checkinHoje.bem_estar?`\n• Bem-estar: ${checkinHoje.bem_estar}/10`:""}${checkinHoje.sintomas?`\n• Sintomas relatados: ${checkinHoje.sintomas}`:""}${checkinHoje.notas?`\n• Você escreveu: "${checkinHoje.notas}"`:""}\n\nBaseado nesses dados, o que mais te preocupa agora?`:"Você ainda não fez seu check-in de hoje. Como está se sentindo?"}`} sugestoes={["Comente sobre meus dados de hoje","O que devo priorizar agora?","Como estão meus vínculos?","Algum alerta no meu check-in?"]} systemPrompt={getBuildPrompt("enfermeira")} pacienteId={pacienteId}/>}
       {aba==="checkin"&&(
         <div style={{flex:1,overflowY:"auto",padding:"28px"}}>
           <div style={{maxWidth:580,margin:"0 auto"}}>
