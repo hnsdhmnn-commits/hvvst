@@ -5,6 +5,16 @@ const SUPABASE_URL = "https://ahznewkkcyakkilaatas.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoem5ld2trY3lha2tpbGFhdGFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTQzMTIsImV4cCI6MjA5MTg3MDMxMn0.4nFFkuhRTNCXFnkSQDjc_JNi0yoHUBUfT4mgcQ2-3ak";
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ─── Data local (resolve problema de fuso UTC vs Brasília) ────────
+function dataHoje(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function horaAgora(){
+  const d=new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+}
+
 
 
 // ─── Design Tokens ────────────────────────────────────────────────
@@ -84,8 +94,8 @@ async function getPacienteId(userId){
 async function salvarCheckinDB(pacienteId,dados){
   const{error}=await supabase.from("checkins").upsert({
     paciente_id:pacienteId,
-    data:new Date().toISOString().slice(0,10),
-    hora:new Date().toTimeString().slice(0,8),
+    data:dataHoje(),
+    hora:horaAgora(),
     sono:dados.sono,
     energia:dados.energia,
     estresse:dados.estresse,
@@ -113,7 +123,7 @@ async function carregarPlanoCuidado(pacienteId){
 }
 
 async function carregarRegistrosHoje(pacienteId){
-  const hoje=new Date().toISOString().slice(0,10);
+  const hoje=dataHoje();
   const{data}=await supabase.from("plano_registros")
     .select("*")
     .eq("paciente_id",pacienteId)
@@ -122,7 +132,7 @@ async function carregarRegistrosHoje(pacienteId){
 }
 
 async function registrarTarefa(tarefaId,pacienteId,status){
-  const hoje=new Date().toISOString().slice(0,10);
+  const hoje=dataHoje();
   const{error}=await supabase.from("plano_registros").upsert({
     tarefa_id:tarefaId,
     paciente_id:pacienteId,
@@ -171,7 +181,7 @@ Retorne APENAS um array JSON com 6-10 tarefas no formato:
 }
 
 async function carregarCheckinHoje(pacienteId){
-  const hoje=new Date().toISOString().slice(0,10);
+  const hoje=dataHoje();
   const{data}=await supabase.from("checkins").select("*").eq("paciente_id",pacienteId).eq("data",hoje).single();
   return data;
 }
@@ -181,7 +191,7 @@ async function salvarPlanLog(pacienteId,evento){
     paciente_id:pacienteId,
     icon:evento.icon,cor:evento.cor,
     titulo:evento.titulo,descricao:evento.descricao,
-    data:new Date().toISOString().slice(0,10),
+    data:dataHoje(),
   });
 }
 
@@ -204,7 +214,7 @@ async function salvarDocumento(pacienteId,doc){
     paciente_id:pacienteId,
     titulo:doc.titulo,tipo:doc.tipo,origem:"paciente",
     resumo:doc.resumo,conteudo_json:doc.analise,
-    data:new Date().toISOString().slice(0,10),
+    data:dataHoje(),
   }).select().single();
   return data;
 }
@@ -237,7 +247,7 @@ async function salvarAnaliseGenetica(pacienteId,analise,pdfNome){
       tipo:"genetico",origem:"paciente",
       resumo:analise?.resumo||"",
       conteudo_json:{...analise,pdfNome},
-      data:new Date().toISOString().slice(0,10),
+      data:dataHoje(),
     });
     if(error)console.error("Erro ao salvar laudo:",error);
     else console.log("Laudo salvo com sucesso");
@@ -596,7 +606,7 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
 
   useEffect(()=>{
     if(!pacienteId)return;
-    const hoje=new Date().toISOString().slice(0,10);
+    const hoje=dataHoje();
     carregarCheckinHoje(pacienteId).then(ci=>{if(ci&&ci.data===hoje)setCheckinHoje(ci);});
     carregarPlanLog(pacienteId).then(log=>setPlanLog(log));
     supabase.from("mensagens").select("id",{count:"exact"}).eq("paciente_id",pacienteId).eq("lida",false).eq("remetente","ana").then(({count})=>setMensagensNaoLidas(count||0));
