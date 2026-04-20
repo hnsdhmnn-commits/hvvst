@@ -643,7 +643,45 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
     if(membro==="suporte")return `Você é a Central de Atendimento HVV. Responda dúvidas sobre o app e o programa. Seja claro e amigável. Usuário: ${nome}.`;
     // Ana — acesso total
     const laudoCtx=laudoGenetico?.analise?`\n\nLAUDO GENÉTICO (${laudoGenetico.pdfNome||"disponível"}): ${laudoGenetico.analise.resumo||""}. Risco geral: ${laudoGenetico.analise.nivel_risco_geral||"—"}. Farmacogenômica: ${laudoGenetico.analise.medicamentos||"—"}.`:"\n\nLAUDO GENÉTICO: ainda não enviado.";
-    return `Você é Ana, enfermeira coordenadora da equipe de saúde do Hospital Virtual Verde (HVV) — benefício Stone. Você é o ponto central de contato — tem acesso a TODOS os dados e conversas do paciente.\n\nSeu papel inclui: coordenar o plano integral de saúde, motivar o paciente, acompanhar a evolução dos 6 eixos MEV, fazer check-ins e orientar sobre saúde geral. Para questões específicas de nutrição, exercício, medicamentos ou genômica, você pode orientar inicialmente mas deve direcionar ao especialista correto da equipe.\n\nPERFIL: ${nome}, ${form?.cargo||"—"}, ${form?.idade||"—"} anos.\nCondições: ${(form?.condicoes||[]).filter(c=>c!=="Nenhuma").join(", ")||"nenhuma"}.\nMedicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}.\nSono: ${form?.sono||7}h qualidade ${form?.qual_sono||5}/10. Treino: ${form?.freq_treino||0}x/sem. Estresse: ${form?.estresse||5}/10.\nScores MEV+Vínculos: ${Object.entries(scores.eixos).map(([n,sc])=>`${n}: ${sc}`).join(" | ")}. Vitalidade: ${scores.total}/100.\nCheck-in hoje: ${checkinHoje?`Energia ${checkinHoje.energia}/10, Sono ${checkinHoje.sono}/10, Estresse ${checkinHoje.estresse}/10, Vínculos ${checkinHoje.vinculos||"-"}/10, Bem-estar ${checkinHoje.bem_estar||"-"}/10`:"Não realizado"}.${laudoCtx}\n\nTom: acolhedor, preciso e humano. Histórico de conversas está persistido — você tem memória das sessões anteriores.\n\n⚠️ IMPORTANTE: Suas respostas são orientações de IA e devem sempre ser validadas pelo seu médico pessoal antes de qualquer decisão clínica.`;
+    const checkinCtx=checkinHoje?`\nCHECK-IN DE HOJE (dados reais salvos pelo paciente):
+- Energia: ${checkinHoje.energia}/10
+- Sono: ${checkinHoje.sono}/10
+- Estresse: ${checkinHoje.estresse}/10
+- Humor: ${checkinHoje.humor||"-"}/10
+- Vínculos (média): ${checkinHoje.vinculos||"-"}/10
+  → Rede de apoio: ${checkinHoje.rede_apoio||"-"}/10
+  → Relações no trabalho: ${checkinHoje.relacoes_trabalho||"-"}/10
+  → Vida social: ${checkinHoje.vida_social||"-"}/10
+  → Relacionamentos pessoais: ${checkinHoje.relacionamentos_pessoais||"-"}/10
+- Bem-estar geral: ${checkinHoje.bem_estar||"-"}/10
+${checkinHoje.sintomas?`- Sintomas relatados: ${checkinHoje.sintomas}`:""}
+${checkinHoje.notas?`- Observações: ${checkinHoje.notas}`:""}
+
+IMPORTANTE: O paciente acabou de fazer o check-in. Use esses dados para personalizar TODA a conversa. Comente proativamente sobre os pontos mais críticos — especialmente se estresse > 7, vínculos < 5, ou sono < 6.`:"\nCheck-in de hoje: não realizado ainda.";
+
+    return `Você é Ana, enfermeira coordenadora da equipe de saúde do Hospital Virtual Verde (HVV) — benefício Stone. Você é o ponto central de contato e tem acesso a TODOS os dados do paciente.
+
+Seu papel: coordenar o plano integral de saúde, motivar o paciente, acompanhar os 6 eixos de vitalidade e orientar sobre saúde geral. Para nutrição, exercício ou medicamentos, direcione ao especialista correto da equipe.
+
+PERFIL DO PACIENTE:
+- Nome: ${nome}
+- Condições: ${(form?.condicoes||[]).filter(c=>c!=="Nenhuma").join(", ")||"nenhuma"}
+- Medicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}
+- Sono habitual: ${form?.sono||7}h, qualidade ${form?.qual_sono||5}/10
+- Estresse habitual: ${form?.estresse||5}/10
+- Treino: ${form?.freq_treino||0}x/semana
+- Dieta: ${form?.dieta||"não informada"}
+- Rede de apoio: ${form?.qualidade_rede||"-"}/10
+- Vida social: ${form?.satisfacao_social||"-"}/10
+
+SCORES DE VITALIDADE:
+${Object.entries(scores.eixos).map(([n,sc])=>`- ${n}: ${sc}/100`).join("\n")}
+- TOTAL: ${scores.total}/100
+${checkinCtx}${laudoCtx}
+
+Tom: acolhedor, preciso e humano. Histórico persistido — você tem memória das sessões anteriores.
+
+⚠️ Suas respostas são orientações de IA — sempre validar com o médico pessoal antes de decisões clínicas.`;
   };
 
   return(
@@ -689,7 +727,7 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
 
         {modulo==="dashboard"&&<ModuloDashboard form={form} scores={scores} setModulo={setModulo} checkinHoje={checkinHoje} planLog={planLog} onPlanUpdate={onPlanUpdate}/>}
         {modulo==="plano"&&<ModuloPlano form={form} scores={scores} setModulo={setModulo} planLog={planLog} checkinHoje={checkinHoje} pacienteId={pacienteId} apiKey={apiKey}/>}
-        {modulo==="ana"&&<ModuloAna form={form} scores={scores} apiKey={apiKey} checkinHoje={checkinHoje} onCheckinSalvo={onCheckinSalvo} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId} systemPrompt={buildPrompt("enfermeira")}/>}
+        {modulo==="ana"&&<ModuloAna form={form} scores={scores} apiKey={apiKey} checkinHoje={checkinHoje} onCheckinSalvo={onCheckinSalvo} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId} getBuildPrompt={buildPrompt}/>}
         {modulo==="nutri"&&<ModuloChat membro="nutri" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("nutri")} inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou a Dra. Lucia, sua nutricionista. Dieta atual: ${form?.dieta||"não informada"}. Score de Nutrição: ${scores.eixos["Nutrição"]}/100. Como posso ajudar?`} sugestoes={["O que devo comer antes do treino?","Como melhorar minha alimentação?","Quais suplementos são indicados para mim?","Como montar um cardápio executivo?"]}/>}
         {modulo==="personal"&&<ModuloChat membro="personal" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("personal")} inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou o Bruno, seu especialista em atividade física. Treino atual: ${form?.freq_treino||0}x/semana. Score de Atividade: ${scores.eixos["Atividade"]}/100. Como posso ajudar?`} sugestoes={["Monte um treino para minha rotina executiva","Como treinar com pouco tempo?","Qual a melhor atividade para reduzir estresse?","Como melhorar minha recuperação?"]}/>}
         {modulo==="farmaceutico"&&<ModuloChat membro="farmaceutico" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("farmaceutico")} inicialMsg={`Olá! Sou Rafael. Medicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}. Em que posso ajudar?`} sugestoes={["Verificar interações","Como tomar minha medicação?","Posso tomar vitaminas junto?"]}/>}
@@ -717,7 +755,7 @@ function ModuloChat({membro,form,scores,apiKey,pacienteId,systemPrompt,inicialMs
 }
 
 // ─── Módulo Ana ───────────────────────────────────────────────────
-function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,pacienteId,systemPrompt}){
+function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,pacienteId,getBuildPrompt}){
   const[aba,setAba]=useState(checkinHoje?"chat":"checkin");
   const eq=EQUIPE.find(e=>e.id==="enfermeira");
   const[ci,setCi]=useState({sono:7,energia:7,estresse:5,humor:7,vinculos:7,bem_estar:7,rede_apoio:7,relacoes_trabalho:6,vida_social:6,relacionamentos_pessoais:7,sintomas:"",notas:""});
@@ -744,7 +782,7 @@ function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,p
       <div style={{borderBottom:`1px solid ${T.border}`,padding:"0 28px",display:"flex",background:T.bgWarm,flexShrink:0}}>
         {[{id:"chat",label:"Conversar com Ana"},{id:"checkin",label:"Check-in Diário"}].map(t=>(<button key={t.id} onClick={()=>setAba(t.id)} style={{background:"none",border:"none",borderBottom:`2px solid ${aba===t.id?T.teal:"transparent"}`,padding:"13px 22px",fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",color:aba===t.id?T.teal:T.inkFaint,cursor:"pointer",fontFamily:T.fB,transition:"all 0.2s",display:"flex",alignItems:"center",gap:6}}>{t.label}{t.id==="checkin"&&!checkinHoje&&<span style={{width:7,height:7,borderRadius:"50%",background:T.orange,display:"inline-block",animation:"pulse 1.5s ease infinite"}}/>}</button>))}
       </div>
-      {aba==="chat"&&<ChatIA membro="enfermeira" apiKey={apiKey} placeholder="Fale com Ana sobre qualquer assunto de saúde..." inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou a Ana, sua enfermeira coordenadora. Tenho acesso a todo o seu histórico — conversas anteriores, check-ins, documentos e plano de cuidado.\n\n${checkinHoje?`Vi seu check-in de hoje — energia ${checkinHoje.energia}/10. `:"Você ainda não fez seu check-in de hoje. "}Como posso ajudar?`} sugestoes={["Como está meu plano?","O que devo priorizar?","Como uso o app?","Preciso ajustar meus medicamentos"]} systemPrompt={systemPrompt} pacienteId={pacienteId}/>}
+      {aba==="chat"&&<ChatIA membro="enfermeira" apiKey={apiKey} placeholder="Fale com Ana sobre qualquer assunto de saúde..." inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou a Ana, sua enfermeira coordenadora. Tenho acesso a todo o seu histórico — conversas anteriores, check-ins, documentos e plano de cuidado.\n\n${checkinHoje?`Vi seu check-in de hoje — energia ${checkinHoje.energia}/10, sono ${checkinHoje.sono}/10, estresse ${checkinHoje.estresse}/10${checkinHoje.vinculos?`, vínculos ${checkinHoje.vinculos}/10`:""}${checkinHoje.bem_estar?`, bem-estar ${checkinHoje.bem_estar}/10`:""}. `:"Você ainda não fez seu check-in de hoje. "}Como posso ajudar?`} sugestoes={["Como estão meus dados de hoje?","O que devo priorizar?","Como estão meus vínculos?","Preciso ajustar meus medicamentos"]} systemPrompt={getBuildPrompt("enfermeira")} pacienteId={pacienteId}/>}
       {aba==="checkin"&&(
         <div style={{flex:1,overflowY:"auto",padding:"28px"}}>
           <div style={{maxWidth:580,margin:"0 auto"}}>
