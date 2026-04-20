@@ -104,8 +104,16 @@ export default function HVV(){
     }
     if(pid){
       try{
-        await supabase.from("perfis").upsert({paciente_id:pid,...f,hvv_onboarding_completo:true},{onConflict:"paciente_id"});
-        await supabase.from("pacientes").update({nome:f.nome,cargo:f.cargo||""}).eq("id",pid);
+        // Filtrar apenas campos que existem na tabela perfis
+        const{nome,cargo,setor,...perfilData}=f;
+        await supabase.from("perfis").upsert({
+          paciente_id:pid,
+          ...perfilData,
+          hvv_onboarding_completo:true,
+          hvv_onboarding_data:new Date().toISOString()
+        },{onConflict:"paciente_id"});
+        // Nome e cargo ficam na tabela pacientes
+        if(nome)await supabase.from("pacientes").update({nome,cargo:cargo||""}).eq("id",pid);
         // Gerar plano de cuidado inicial automaticamente
         const chave=localStorage.getItem("hvv_api_key")||apiKey||"";
         if(chave.startsWith("sk-")){
