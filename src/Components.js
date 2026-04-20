@@ -75,6 +75,12 @@ export const T = {
   // ── Navy (manter para app médico) ─────────────────────────────
   navy:    "#1A3A6B",
   navyBg:  "#EEF2F9",
+
+  // ── Aliases de compatibilidade ────────────────────────────────
+  borderMid:   "rgba(0,0,0,0.18)",
+  goldFaint:   "#F0F9F4",
+  goldBorder:  "#C7E6D0",
+  shadowHover: "0 2px 8px rgba(0,0,0,0.08)",
 };
 
 
@@ -464,6 +470,15 @@ export function Btn({children,onClick,variant="primary",disabled=false,style={}}
   };
   return <button onClick={disabled?undefined:onClick} disabled={disabled} style={{padding:"9px 18px",borderRadius:"8px",fontFamily:T.fB,fontSize:"13px",fontWeight:500,cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.4:1,transition:"all 0.15s",...v[variant],...style}}>{children}</button>;
 }
+
+function ChatIA({membro,systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pdfB64,pacienteId}){
+  const eq=EQUIPE.find(e=>e.id===membro);
+  const[msgs,setMsgs]=useState([{role:"assistant",content:inicialMsg}]);
+  const[input,setInput]=useState("");
+  const[loading,setLoading]=useState(false);
+  const[carregando,setCarregando]=useState(true);
+  const bottomRef=useRef(null);
+  const inputRef=useRef(null);
 
   // Carregar histórico do Supabase
   useEffect(()=>{
