@@ -24,8 +24,14 @@ export default function HVV(){
         if(pid){
           setPacienteId(pid);
           const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).single();
-          if(perfil && perfil.hvv_onboarding_completo===true){setForm(perfil);setScreen("apikey");}
-          else setScreen("apikey");
+          const chaveSalva=localStorage.getItem("hvv_api_key")||"";
+          if(perfil && perfil.hvv_onboarding_completo===true && chaveSalva.startsWith("sk-")){
+            setForm(perfil);setApiKey(chaveSalva);setScreen("app");
+          } else if(perfil && perfil.hvv_onboarding_completo===true){
+            setForm(perfil);setScreen("apikey");
+          } else {
+            setScreen("apikey");
+          }
         }else{
           setScreen("apikey");
         }
@@ -57,8 +63,14 @@ export default function HVV(){
     if(pid){
       setPacienteId(pid);
       const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).maybeSingle();
-      if(perfil){setForm(perfil);setScreen("apikey");}
-      else{setForm(null);setScreen("apikey");}
+      const chaveSalva=localStorage.getItem("hvv_api_key")||"";
+      if(perfil && perfil.hvv_onboarding_completo===true && chaveSalva.startsWith("sk-")){
+        setForm(perfil);setApiKey(chaveSalva);setScreen("app");
+      } else if(perfil){
+        setForm(perfil);setScreen("apikey");
+      } else {
+        setForm(null);setScreen("apikey");
+      }
     }else{
       setForm(null);setScreen("apikey");
     }
