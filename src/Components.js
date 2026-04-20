@@ -1482,9 +1482,19 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
 
   useEffect(()=>{
     if(!pacienteId)return;
-    supabase.from("pacientes").select("empresa_id").eq("id",pacienteId).single().then(({data})=>{
-      if(data?.empresa_id)carregarProgramas(data.empresa_id).then(setProgramas);
+    supabase.from("pacientes").select("empresa_id").eq("id",pacienteId).single().then(async({data})=>{
+      let empId=data?.empresa_id;
+      if(!empId){
+        // Fallback — buscar empresa Stone
+        const{data:emp}=await supabase.from("empresas").select("id").eq("slug","stone").single();
+        empId=emp?.id;
+      }
+      if(empId){
+        const progs=await carregarProgramas(empId);
+        setProgramas(progs);
+      }
     });
+    carregarMedicos().then(setMedicos);
   },[pacienteId]);
 
   const handleSelecionarPrograma=async(prog)=>{
@@ -1531,8 +1541,8 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
 
   // ── TELA HOME ──────────────────────────────────────────────────
   if(tela==="home")return(
-    <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",background:T.bg,padding:40}}>
-      <div style={{width:"100%",maxWidth:600}}>
+    <div style={{flex:1,overflowY:"auto",background:T.bg,padding:40}}>
+      <div style={{width:"100%",maxWidth:600,margin:"0 auto"}}>
         {/* Logo */}
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:48,justifyContent:"center"}}>
           <div style={{width:40,height:40,borderRadius:10,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:700,fontSize:18}}>V</div>
