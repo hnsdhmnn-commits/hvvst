@@ -607,7 +607,7 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
   useEffect(()=>{
     if(!pacienteId)return;
     const hoje=dataHoje();
-    carregarCheckinHoje(pacienteId).then(ci=>{if(ci&&ci.data===hoje)setCheckinHoje(ci);});
+    carregarCheckinHoje(pacienteId).then(ci=>{if(ci)setCheckinHoje(ci);});
     carregarPlanLog(pacienteId).then(log=>setPlanLog(log));
     supabase.from("mensagens").select("id",{count:"exact"}).eq("paciente_id",pacienteId).eq("lida",false).eq("remetente","ana").then(({count})=>setMensagensNaoLidas(count||0));
     // Carregar análise genética salva
@@ -622,10 +622,14 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
   },[pacienteId]);
 
   const onCheckinSalvo=useCallback(async(dados)=>{
-    setCheckinHoje(dados);
     if(pacienteId){
       await salvarCheckinDB(pacienteId,dados);
-      await onPlanUpdate({icon:"✅",cor:T.teal,titulo:"Check-in diário realizado",descricao:`Energia ${dados.energia}/10 · Sono ${dados.sono}/10 · Estresse ${dados.estresse}/10. Scores recalibrados.`,data:new Date().toLocaleDateString("pt-BR")});
+      // Recarregar do banco para garantir dados completos incluindo sintomas e notas
+      const ciAtualizado=await carregarCheckinHoje(pacienteId);
+      setCheckinHoje(ciAtualizado||dados);
+      await onPlanUpdate({icon:"✅",cor:T.teal,titulo:"Check-in diário realizado",descricao:`Energia ${dados.energia}/10 · Sono ${dados.sono}/10 · Estresse ${dados.estresse}/10 · Vínculos ${dados.vinculos||"-"}/10. Scores recalibrados.`,data:new Date().toLocaleDateString("pt-BR")});
+    } else {
+      setCheckinHoje(dados);
     }
   },[pacienteId,onPlanUpdate]);
 
@@ -643,7 +647,7 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
     if(membro==="suporte")return `Você é a Central de Atendimento HVV. Responda dúvidas sobre o app e o programa. Seja claro e amigável. Usuário: ${nome}.`;
     // Ana — acesso total
     const laudoCtx=laudoGenetico?.analise?`\n\nLAUDO GENÉTICO (${laudoGenetico.pdfNome||"disponível"}): ${laudoGenetico.analise.resumo||""}. Risco geral: ${laudoGenetico.analise.nivel_risco_geral||"—"}. Farmacogenômica: ${laudoGenetico.analise.medicamentos||"—"}.`:"\n\nLAUDO GENÉTICO: ainda não enviado.";
-    const checkinCtx=checkinHoje?`\nCHECK-IN DE HOJE (dados reais salvos pelo paciente):
+    const checkinCtx=checkinHoje?`\nCHECK-IN DE HOJE — ${new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"})} (dados reais salvos agora há pouco):
 - Energia: ${checkinHoje.energia}/10
 - Sono: ${checkinHoje.sono}/10
 - Estresse: ${checkinHoje.estresse}/10
