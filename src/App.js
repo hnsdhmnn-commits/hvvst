@@ -11,7 +11,7 @@ async function getPacienteId(userId){
 export default function HVV(){
   const[screen,setScreen]=useState("loading");
   const[user,setUser]=useState(null);
-  const[apiKey,setApiKey]=useState("");
+  const[apiKey,setApiKey]=useState(()=>sessionStorage.getItem("hvv_api_key")||"");
   const[form,setForm]=useState(null);
   const[pacienteId,setPacienteId]=useState(null);
 
@@ -66,6 +66,7 @@ export default function HVV(){
 
   const handleApiKey=async(key)=>{
     setApiKey(key);
+    sessionStorage.setItem("hvv_api_key", key);
     if(user){
       const pid=await getPacienteId(user.userId);
       if(pid){
@@ -109,6 +110,7 @@ export default function HVV(){
 
   const handleLogout=async()=>{
     await supabase.auth.signOut();
+    sessionStorage.removeItem("hvv_api_key");
     setUser(null);setForm(null);setPacienteId(null);setApiKey("");setScreen("login");
   };
 
