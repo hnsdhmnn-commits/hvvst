@@ -103,7 +103,8 @@ async function salvarCheckinDB(pacienteId,dados){
     vinculos:dados.vinculos,
     bem_estar:dados.bem_estar,
     rede_apoio:dados.rede_apoio,
-    relacoes_trabalho:dados.relacoes_trabalho,
+    relacoes_colegas:dados.relacoes_colegas,
+    relacoes_lider:dados.relacoes_lider,
     vida_social:dados.vida_social,
     relacionamentos_pessoais:dados.relacionamentos_pessoais,
     sintomas:dados.sintomas,
@@ -758,7 +759,7 @@ function ModuloChat({membro,form,scores,apiKey,pacienteId,systemPrompt,inicialMs
 function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,pacienteId,getBuildPrompt}){
   const[aba,setAba]=useState(checkinHoje?"chat":"checkin");
   const eq=EQUIPE.find(e=>e.id==="enfermeira");
-  const[ci,setCi]=useState({sono:7,energia:7,estresse:5,humor:7,vinculos:7,bem_estar:7,rede_apoio:7,relacoes_trabalho:6,vida_social:6,relacionamentos_pessoais:7,sintomas:"",notas:""});
+  const[ci,setCi]=useState({sono:7,energia:7,estresse:5,humor:7,vinculos:7,bem_estar:7,rede_apoio:7,relacoes_colegas:6,relacoes_lider:6,vida_social:6,relacionamentos_pessoais:7,sintomas:"",notas:""});
   const[salvando,setSalvando]=useState(false);const[salvo,setSalvo]=useState(false);
   const nome=form?.nome||"Executivo";
 
@@ -807,7 +808,8 @@ function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,p
                     <div style={{fontSize:12,color:T.inkLight,marginBottom:16,lineHeight:1.7}}>Como foram suas conexões hoje? Relacionamentos são determinantes de saúde tão importantes quanto sono e exercício.</div>
                     <div style={{display:"flex",flexDirection:"column",gap:18}}>
                       <SldInput label="Rede de apoio (família e amigos)" value={ci.rede_apoio} onChange={v=>setCi(p=>({...p,rede_apoio:v,vinculos:Math.round((v+(p.relacoes_trabalho||6)+(p.vida_social||6)+(p.relacionamentos_pessoais||7))/4)}))} min={1} max={10} unit="/10" color={T.purple} hint="Me senti apoiado(a) hoje?"/>
-                      <SldInput label="Relações no trabalho" value={ci.relacoes_trabalho} onChange={v=>setCi(p=>({...p,relacoes_trabalho:v,vinculos:Math.round(((p.rede_apoio||7)+v+(p.vida_social||6)+(p.relacionamentos_pessoais||7))/4)}))} min={1} max={10} unit="/10" color={T.purple} hint="Ambiente colaborativo e respeitoso?"/>
+                      <SldInput label="Relacionamento com colegas" value={ci.relacoes_colegas} onChange={v=>setCi(p=>({...p,relacoes_colegas:v,vinculos:Math.round(((p.rede_apoio||7)+v+(p.relacoes_lider||6)+(p.vida_social||6)+(p.relacionamentos_pessoais||7))/5)}))} min={1} max={10} unit="/10" color={T.purple} hint="Ambiente colaborativo e respeitoso com a equipe?"/>
+                      <SldInput label="Relacionamento com meu líder" value={ci.relacoes_lider} onChange={v=>setCi(p=>({...p,relacoes_lider:v,vinculos:Math.round(((p.rede_apoio||7)+(p.relacoes_colegas||6)+v+(p.vida_social||6)+(p.relacionamentos_pessoais||7))/5)}))} min={1} max={10} unit="/10" color={T.purple} hint="Me sinto respeitado e apoiado pela liderança?"/>
                       <SldInput label="Vida social" value={ci.vida_social} onChange={v=>setCi(p=>({...p,vida_social:v,vinculos:Math.round(((p.rede_apoio||7)+(p.relacoes_trabalho||6)+v+(p.relacionamentos_pessoais||7))/4)}))} min={1} max={10} unit="/10" color={T.purple} hint="Tive tempo para conexões fora do trabalho?"/>
                       <SldInput label="Relacionamentos pessoais" value={ci.relacionamentos_pessoais} onChange={v=>setCi(p=>({...p,relacionamentos_pessoais:v,vinculos:Math.round(((p.rede_apoio||7)+(p.relacoes_trabalho||6)+(p.vida_social||6)+v)/4)}))} min={1} max={10} unit="/10" color={T.purple} hint="Qualidade das conexões íntimas hoje?"/>
                       <SldInput label="Bem-estar geral" value={ci.bem_estar} onChange={v=>setCi(p=>({...p,bem_estar:v}))} min={1} max={10} unit="/10" color={T.green} hint="Como você se sente de forma geral hoje?"/>
