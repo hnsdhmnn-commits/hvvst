@@ -48,7 +48,8 @@ export const EQUIPE=[
 export function Spinner(){return <div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTop:`3px solid ${T.green}`,borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/>;};
 
 export const MODULOS=[
-  {id:"dashboard",label:"Painel",icon:"◈"},
+  {id:"home",label:"Início",icon:"🏠"},
+  {id:"dashboard",label:"Minha Saúde",icon:"◈"},
   {id:"plano",label:"Plano de Cuidado",icon:"📋",membro:"enfermeira"},
   {id:"ana",label:"Falar com Ana",icon:"🩺",membro:"enfermeira"},
   {id:"nutri",label:"Nutrição",icon:"🥗",membro:"nutri"},
@@ -729,7 +730,7 @@ export function ScreenOnboarding({user,onComplete}){
 
 // ─── APP PRINCIPAL ────────────────────────────────────────────────
 export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
-  const[modulo,setModulo]=useState("dashboard");
+  const[modulo,setModulo]=useState("home");
   const[checkinHoje,setCheckinHoje]=useState(null);
   const[planLog,setPlanLog]=useState([]);
   const[planoRefresh,setPlanoRefresh]=useState(0);
@@ -855,6 +856,7 @@ Tom: acolhedor, preciso e humano. Histórico persistido — você tem memória d
           <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:6,height:6,borderRadius:"50%",background:T.green,boxShadow:`0 0 8px ${T.green}60`,animation:"pulse 2s ease infinite"}}/><span style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.12em"}}>EQUIPE ONLINE</span></div>
         </div>
 
+        {modulo==="home"&&<ModuloHome form={form} scores={scores} setModulo={setModulo} pacienteId={pacienteId}/>}
         {modulo==="dashboard"&&<ModuloDashboard form={form} scores={scores} setModulo={setModulo} checkinHoje={checkinHoje} planLog={planLog} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId}/>}
         {modulo==="plano"&&<ModuloPlano key={planoRefresh} form={form} scores={scores} setModulo={setModulo} planLog={planLog} checkinHoje={checkinHoje} pacienteId={pacienteId} apiKey={apiKey}/>}
         {modulo==="ana"&&<ModuloAna form={form} scores={scores} apiKey={apiKey} checkinHoje={checkinHoje} onCheckinSalvo={onCheckinSalvo} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId} getBuildPrompt={buildPrompt} onPlanChange={()=>{setPlanoRefresh(r=>r+1);setModulo("plano");}}/>}
@@ -1464,6 +1466,251 @@ function ModuloMensagens({pacienteId,nome}){
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────
+// ─── Home Principal ───────────────────────────────────────────────
+function ModuloHome({form,scores,setModulo,pacienteId}){
+  const nome=form?.nome||"Colaborador";
+  const primeiroNome=nome.split(" ")[0];
+  const hora=new Date().getHours();
+  const saudacao=hora<12?"Bom dia":hora<18?"Boa tarde":"Boa noite";
+  const[tela,setTela]=useState("home"); // home | programas | medicos | horarios | confirmado
+  const[programas,setProgramas]=useState([]);
+  const[programaSelecionado,setProgramaSelecionado]=useState(null);
+  const[medicos,setMedicos]=useState([]);
+  const[medicoSelecionado,setMedicoSelecionado]=useState(null);
+  const[horarioSelecionado,setHorarioSelecionado]=useState(null);
+  const[agendando,setAgendando]=useState(false);
+
+  useEffect(()=>{
+    if(!pacienteId)return;
+    supabase.from("pacientes").select("empresa_id").eq("id",pacienteId).single().then(({data})=>{
+      if(data?.empresa_id)carregarProgramas(data.empresa_id).then(setProgramas);
+    });
+  },[pacienteId]);
+
+  const handleSelecionarPrograma=async(prog)=>{
+    setProgramaSelecionado(prog);
+    const ms=await carregarMedicos();
+    setMedicos(ms);
+    setTela("medicos");
+  };
+
+  const handleSelecionarMedico=(medico)=>{
+    setMedicoSelecionado(medico);
+    setTela("horarios");
+  };
+
+  // Horários simulados — virão do banco quando a agenda estiver implementada
+  const HORARIOS=[
+    {data:"Ter, 22 abr",slots:["09h00","10h00","14h00","15h30"]},
+    {data:"Qua, 23 abr",slots:["08h30","11h00","14h30","16h00"]},
+    {data:"Qui, 24 abr",slots:["09h30","10h30","15h00"]},
+    {data:"Sex, 25 abr",slots:["08h00","09h00","14h00","15h00"]},
+  ];
+
+  const handleAgendar=async()=>{
+    if(!horarioSelecionado||!medicoSelecionado||!programaSelecionado)return;
+    setAgendando(true);
+    // Salvar agendamento no banco
+    const medicoId=await supabase.from("medicos").select("id").eq("nome",medicoSelecionado.nome).single().then(({data})=>data?.id);
+    if(medicoId){
+      await supabase.from("agendamentos").insert({
+        paciente_id:pacienteId,
+        medico_id:medicoId,
+        tipo:"teleconsulta",
+        data:horarioSelecionado.dataISO,
+        hora:horarioSelecionado.hora+":00",
+        status:"agendado",
+        resumo:`Programa: ${programaSelecionado.nome}`
+      });
+      // Inscrever no programa se ainda não estiver
+      await inscreverPrograma(pacienteId,programaSelecionado.id,medicoId);
+    }
+    setAgendando(false);
+    setTela("confirmado");
+  };
+
+  // ── TELA HOME ──────────────────────────────────────────────────
+  if(tela==="home")return(
+    <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",background:T.bg,padding:40}}>
+      <div style={{width:"100%",maxWidth:600}}>
+        {/* Logo */}
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:48,justifyContent:"center"}}>
+          <div style={{width:40,height:40,borderRadius:10,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:700,fontSize:18}}>V</div>
+          <span style={{fontFamily:T.fD,fontSize:22,fontWeight:600,color:T.ink}}>Hospital Virtual Verde</span>
+        </div>
+
+        {/* Saudação */}
+        <div style={{textAlign:"center",marginBottom:40}}>
+          <div style={{fontFamily:T.fD,fontSize:36,color:T.ink,marginBottom:8}}>{saudacao}, {primeiroNome}.</div>
+          <div style={{fontSize:14,color:T.inkMid}}>Como posso te ajudar hoje?</div>
+        </div>
+
+        {/* Dois caminhos */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:32}}>
+          <button onClick={()=>setTela("programas")} style={{padding:"32px 24px",background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:16,cursor:"pointer",textAlign:"left",transition:"all 0.2s",boxShadow:T.shadowCard,fontFamily:T.fB}}
+            onMouseOver={e=>{e.currentTarget.style.borderColor=T.green;e.currentTarget.style.background=T.greenBg;}}
+            onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
+            <div style={{fontSize:36,marginBottom:14}}>📅</div>
+            <div style={{fontFamily:T.fD,fontSize:20,color:T.ink,marginBottom:8}}>Agendar consulta</div>
+            <div style={{fontSize:13,color:T.inkMid,lineHeight:1.7}}>Escolha um programa de saúde e marque uma consulta com seu médico pessoal.</div>
+          </button>
+
+          <button onClick={()=>setModulo("dashboard")} style={{padding:"32px 24px",background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:16,cursor:"pointer",textAlign:"left",transition:"all 0.2s",boxShadow:T.shadowCard,fontFamily:T.fB}}
+            onMouseOver={e=>{e.currentTarget.style.borderColor=T.teal;e.currentTarget.style.background=T.tealBg;}}
+            onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
+            <div style={{fontSize:36,marginBottom:14}}>❤️</div>
+            <div style={{fontFamily:T.fD,fontSize:20,color:T.ink,marginBottom:8}}>Minha saúde</div>
+            <div style={{fontSize:13,color:T.inkMid,lineHeight:1.7}}>Acesse seu painel, check-in diário, plano de cuidado e converse com a Ana.</div>
+          </button>
+        </div>
+
+        {/* Score resumido */}
+        <Card style={{padding:"16px 20px",display:"flex",alignItems:"center",gap:16}}>
+          <RadialScore value={scores.total} size={48}/>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,color:T.ink,fontWeight:500}}>Sua vitalidade hoje</div>
+            <div style={{fontSize:11,color:T.inkMid}}>{scores.total>=75?"Ótimo desempenho — continue assim!":scores.total>=50?"Em progresso — seu plano está ativo.":"Atenção — converse com a Ana hoje."}</div>
+          </div>
+          <Btn onClick={()=>setModulo("ana")} variant="outline" style={{fontSize:11,flexShrink:0}}>Falar com Ana →</Btn>
+        </Card>
+      </div>
+    </div>
+  );
+
+  // ── TELA PROGRAMAS ─────────────────────────────────────────────
+  if(tela==="programas")return(
+    <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
+      <div style={{maxWidth:800,margin:"0 auto"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:28}}>
+          <button onClick={()=>setTela("home")} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:T.inkMid}}>←</button>
+          <div>
+            <div style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>Escolha um programa</div>
+            <div style={{fontSize:13,color:T.inkMid}}>Selecione a área de saúde para a sua consulta</div>
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:14}}>
+          {programas.map(p=>(
+            <button key={p.id} onClick={()=>handleSelecionarPrograma(p)}
+              style={{padding:"22px",background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:14,cursor:"pointer",textAlign:"left",transition:"all 0.2s",boxShadow:T.shadowCard,fontFamily:T.fB,borderLeft:`4px solid ${p.cor||T.green}`}}
+              onMouseOver={e=>{e.currentTarget.style.background=`${p.cor||T.green}08`;e.currentTarget.style.borderColor=p.cor||T.green;}}
+              onMouseOut={e=>{e.currentTarget.style.background=T.surface;e.currentTarget.style.borderColor=T.border;e.currentTarget.style.borderLeftColor=p.cor||T.green;}}>
+              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+                <div style={{width:40,height:40,borderRadius:10,background:`${p.cor||T.green}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{p.icone||"🩺"}</div>
+                <div style={{fontFamily:T.fD,fontSize:16,color:T.ink}}>{p.nome}</div>
+              </div>
+              <div style={{fontSize:12,color:T.inkMid,lineHeight:1.7}}>{p.descricao}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── TELA MÉDICOS ───────────────────────────────────────────────
+  if(tela==="medicos")return(
+    <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
+      <div style={{maxWidth:700,margin:"0 auto"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
+          <button onClick={()=>setTela("programas")} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:T.inkMid}}>←</button>
+          <div>
+            <div style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>Escolha seu médico</div>
+            <div style={{fontSize:13,color:T.inkMid}}>{programaSelecionado?.nome} · Este será seu médico pessoal neste programa</div>
+          </div>
+        </div>
+        <div style={{padding:"10px 14px",background:T.goldFaint,border:`1px solid ${T.goldBorder}`,borderRadius:8,marginBottom:24,fontSize:12,color:T.inkMid}}>
+          💡 Seu médico pessoal acompanha sua saúde ao longo do tempo — não é uma consulta avulsa. Escolha alguém com quem você queira construir um vínculo.
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          {medicos.map(m=>(
+            <button key={m.id} onClick={()=>handleSelecionarMedico(m)}
+              style={{padding:"18px 20px",background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:12,cursor:"pointer",display:"flex",alignItems:"center",gap:16,textAlign:"left",transition:"all 0.18s",fontFamily:T.fB}}
+              onMouseOver={e=>{e.currentTarget.style.borderColor=T.green;e.currentTarget.style.background=T.greenBg;}}
+              onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
+              <div style={{width:48,height:48,borderRadius:"50%",background:T.greenBg,border:`1.5px solid ${T.green}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👨‍⚕️</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:14,color:T.ink,fontWeight:600,marginBottom:2}}>{m.nome}</div>
+                <div style={{fontSize:12,color:T.inkMid}}>{m.especialidade||"Clínica Geral"} · CRM {m.crm}</div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+                <div style={{width:6,height:6,borderRadius:"50%",background:T.green}}/>
+                <span style={{fontSize:10,color:T.green}}>Disponível</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── TELA HORÁRIOS ──────────────────────────────────────────────
+  if(tela==="horarios")return(
+    <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
+      <div style={{maxWidth:700,margin:"0 auto"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:28}}>
+          <button onClick={()=>setTela("medicos")} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:T.inkMid}}>←</button>
+          <div>
+            <div style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>Escolha o horário</div>
+            <div style={{fontSize:13,color:T.inkMid}}>{medicoSelecionado?.nome} · {programaSelecionado?.nome}</div>
+          </div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:16}}>
+          {HORARIOS.map((dia,di)=>(
+            <Card key={di} style={{padding:"18px 20px"}}>
+              <div style={{fontSize:12,color:T.inkMid,fontWeight:600,letterSpacing:"0.08em",marginBottom:12}}>{dia.data.toUpperCase()}</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {dia.slots.map((slot,si)=>{
+                  const key=`${di}-${si}`;
+                  const sel=horarioSelecionado?.key===key;
+                  return(
+                    <button key={si} onClick={()=>setHorarioSelecionado({key,hora:slot,data:dia.data,dataISO:`2026-04-${21+di}`})}
+                      style={{padding:"8px 18px",borderRadius:8,border:`1.5px solid ${sel?T.green:T.border}`,background:sel?T.greenBg:T.surface,color:sel?T.green:T.inkMid,fontSize:13,cursor:"pointer",fontFamily:T.fB,fontWeight:sel?600:400,transition:"all 0.15s"}}>
+                      {slot}
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+          ))}
+        </div>
+        {horarioSelecionado&&(
+          <div style={{marginTop:20,padding:"16px 20px",background:T.greenBg,border:`1px solid ${T.green}30`,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div>
+              <div style={{fontSize:13,color:T.ink,fontWeight:500}}>Teleconsulta com {medicoSelecionado?.nome?.split(" ").slice(-1)[0]}</div>
+              <div style={{fontSize:12,color:T.inkMid}}>{horarioSelecionado.data} às {horarioSelecionado.hora} · {programaSelecionado?.nome}</div>
+            </div>
+            <Btn onClick={handleAgendar} variant="gold" disabled={agendando}>{agendando?"Agendando...":"CONFIRMAR →"}</Btn>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // ── TELA CONFIRMADO ────────────────────────────────────────────
+  if(tela==="confirmado")return(
+    <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:40}}>
+      <div style={{maxWidth:500,textAlign:"center"}}>
+        <div style={{fontSize:64,marginBottom:20}}>✅</div>
+        <div style={{fontFamily:T.fD,fontSize:28,color:T.ink,marginBottom:8}}>Consulta agendada!</div>
+        <div style={{fontSize:14,color:T.inkMid,lineHeight:1.8,marginBottom:8}}>
+          {horarioSelecionado?.data} às {horarioSelecionado?.hora}
+        </div>
+        <div style={{fontSize:13,color:T.inkMid,marginBottom:32}}>
+          com {medicoSelecionado?.nome} · {programaSelecionado?.nome}
+        </div>
+        <div style={{padding:"16px 20px",background:T.tealBg,borderRadius:12,fontSize:13,color:T.inkMid,lineHeight:1.7,marginBottom:24}}>
+          Você receberá o link da teleconsulta por e-mail. A Ana já foi notificada e preparará um resumo do seu perfil para o médico.
+        </div>
+        <div style={{display:"flex",gap:12,justifyContent:"center"}}>
+          <Btn onClick={()=>setTela("home")} variant="outline">← Voltar ao início</Btn>
+          <Btn onClick={()=>setModulo("dashboard")} variant="teal">Ver minha saúde →</Btn>
+        </div>
+      </div>
+    </div>
+  );
+
+  return null;
+}
+
 function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate,pacienteId}){
   const nome=form?.nome||"Colaborador";
   const primeiroNome=nome.split(" ")[0];
