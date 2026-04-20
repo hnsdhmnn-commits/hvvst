@@ -231,6 +231,72 @@ async function registrarTarefa(tarefaId,pacienteId,status){
   return!error;
 }
 
+// ─── Programas ────────────────────────────────────────────────────
+async function carregarProgramas(empresaId){
+  const{data}=await supabase.from("programas")
+    .select("*")
+    .eq("empresa_id",empresaId)
+    .eq("ativo",true)
+    .order("ordem");
+  return data||[];
+}
+
+async function carregarInscricoes(pacienteId){
+  const{data}=await supabase.from("inscricoes_programas")
+    .select("*,programas(*),medicos(id,nome,especialidade,foto_url)")
+    .eq("paciente_id",pacienteId)
+    .eq("status","ativo");
+  return data||[];
+}
+
+async function inscreverPrograma(pacienteId,programaId,medicoId){
+  const{error}=await supabase.from("inscricoes_programas").upsert({
+    paciente_id:pacienteId,
+    programa_id:programaId,
+    medico_id:medicoId||null,
+    status:"ativo",
+  },{onConflict:"paciente_id,programa_id"});
+  return!error;
+}
+
+async function carregarMedicos(){
+  const{data}=await supabase.from("medicos").select("id,nome,especialidade,foto_url").eq("ativo",true);
+  return data||[];
+}
+
+// ─── Programas ────────────────────────────────────────────────────
+async function carregarProgramas(empresaId){
+  const{data}=await supabase.from("programas")
+    .select("*")
+    .eq("empresa_id",empresaId)
+    .eq("ativo",true)
+    .order("ordem");
+  return data||[];
+}
+
+async function carregarInscricoes(pacienteId){
+  const{data}=await supabase.from("inscricoes_programas")
+    .select("*,programas(*),medicos(id,nome,crm,especialidade)")
+    .eq("paciente_id",pacienteId)
+    .eq("status","ativo");
+  return data||[];
+}
+
+async function inscreverPrograma(pacienteId,programaId,medicoId){
+  const{error}=await supabase.from("inscricoes_programas").upsert({
+    paciente_id:pacienteId,
+    programa_id:programaId,
+    medico_id:medicoId||null,
+    status:"ativo",
+  },{onConflict:"paciente_id,programa_id"});
+  return!error;
+}
+
+async function carregarMedicos(){
+  const{data}=await supabase.from("medicos").select("id,nome,crm,especialidade").eq("ativo",true);
+  return data||[];
+}
+
 async function gerarPlanoInicial(pacienteId,form,apiKey){
   // Gera tarefas iniciais via IA com base no perfil
   const prompt=`Você é Ana, enfermeira coordenadora do HVV. Com base no perfil abaixo, gere um plano de cuidado inicial com tarefas concretas em JSON.
@@ -822,7 +888,7 @@ Tom: acolhedor, preciso e humano. Histórico persistido — você tem memória d
           <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:6,height:6,borderRadius:"50%",background:T.green,boxShadow:`0 0 8px ${T.green}60`,animation:"pulse 2s ease infinite"}}/><span style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.12em"}}>EQUIPE ONLINE</span></div>
         </div>
 
-        {modulo==="dashboard"&&<ModuloDashboard form={form} scores={scores} setModulo={setModulo} checkinHoje={checkinHoje} planLog={planLog} onPlanUpdate={onPlanUpdate}/>}
+        {modulo==="dashboard"&&<ModuloDashboard form={form} scores={scores} setModulo={setModulo} checkinHoje={checkinHoje} planLog={planLog} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId}/>}
         {modulo==="plano"&&<ModuloPlano key={planoRefresh} form={form} scores={scores} setModulo={setModulo} planLog={planLog} checkinHoje={checkinHoje} pacienteId={pacienteId} apiKey={apiKey}/>}
         {modulo==="ana"&&<ModuloAna form={form} scores={scores} apiKey={apiKey} checkinHoje={checkinHoje} onCheckinSalvo={onCheckinSalvo} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId} getBuildPrompt={buildPrompt} onPlanChange={()=>{setPlanoRefresh(r=>r+1);setModulo("plano");}}/>}
         {modulo==="nutri"&&<ModuloChat membro="nutri" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("nutri")} inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou a Dra. Lucia, sua nutricionista. Dieta atual: ${form?.dieta||"não informada"}. Score de Nutrição: ${scores.eixos["Nutrição"]}/100. Como posso ajudar?`} sugestoes={["O que devo comer antes do treino?","Como melhorar minha alimentação?","Quais suplementos são indicados para mim?","Como montar um cardápio executivo?"]}/>}
@@ -1431,21 +1497,40 @@ function ModuloMensagens({pacienteId,nome}){
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────
-function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate}){
+function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate,pacienteId}){
   const nome=form?.nome||"Colaborador";
   const primeiroNome=nome.split(" ")[0];
   const hora=new Date().getHours();
   const saudacao=hora<12?"Bom dia":hora<18?"Boa tarde":"Boa noite";
   const lowAxis=Object.entries(scores.eixos).sort((a,b)=>a[1]-b[1])[0];
+  const[programas,setProgramas]=useState([]);
+  const[inscricoes,setInscricoes]=useState([]);
+  const[medicos,setMedicos]=useState([]);
+  const[modalPrograma,setModalPrograma]=useState(null);
+  const[medicoSelecionado,setMedicoSelecionado]=useState("");
+  const[inscrevendo,setInscrevendo]=useState(false);
 
-  const PROGRAMAS=[
-    {id:"saude_geral",icon:"🩺",titulo:"Saúde Geral",desc:"Acompanhamento clínico contínuo com seu médico pessoal",cor:T.green,bg:T.greenBg,modulo:"ana"},
-    {id:"emocional",icon:"🧘",titulo:"Saúde Emocional",desc:"Estresse, humor e bem-estar mental com suporte especializado",cor:T.purple,bg:T.purpleBg,modulo:"ana"},
-    {id:"nutricao",icon:"🥗",titulo:"Nutrição",desc:"Plano alimentar personalizado com a Dra. Lucia",cor:T.gold,bg:T.goldFaint,modulo:"nutri"},
-    {id:"atividade",icon:"🏃",titulo:"Atividade Física",desc:"Treino sob medida para sua rotina executiva com Bruno",cor:T.teal,bg:T.tealBg,modulo:"personal"},
-    {id:"vinculos",icon:"🤝",titulo:"Vínculos e Relações",desc:"Rede de apoio, relacionamentos e vida social",cor:T.blue,bg:T.blueBg,modulo:"ana"},
-    {id:"prevencao",icon:"🔬",titulo:"Prevenção",desc:"Rastreamento de exames e doenças crônicas",cor:T.orange,bg:T.orangeBg,modulo:"plano"},
-  ];
+  useEffect(()=>{
+    if(!pacienteId)return;
+    supabase.from("pacientes").select("empresa_id").eq("id",pacienteId).single().then(({data})=>{
+      if(data?.empresa_id)carregarProgramas(data.empresa_id).then(setProgramas);
+    });
+    carregarInscricoes(pacienteId).then(setInscricoes);
+    carregarMedicos().then(setMedicos);
+  },[pacienteId]);
+
+  const isInscrito=(programaId)=>inscricoes.some(i=>i.programa_id===programaId);
+
+  const handleInscrever=async()=>{
+    if(!modalPrograma||!medicoSelecionado)return;
+    setInscrevendo(true);
+    await inscreverPrograma(pacienteId,modalPrograma.id,medicoSelecionado);
+    const novas=await carregarInscricoes(pacienteId);
+    setInscricoes(novas);
+    setInscrevendo(false);
+    setModalPrograma(null);
+    setMedicoSelecionado("");
+  };
 
   return(
     <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
@@ -1455,9 +1540,7 @@ function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div>
             <div style={{fontFamily:T.fD,fontSize:32,color:T.ink,marginBottom:4}}>{saudacao}, {primeiroNome}.</div>
-            <div style={{fontSize:13,color:T.inkMid}}>
-              {new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"})} · Sua equipe HVV está ativa.
-            </div>
+            <div style={{fontSize:13,color:T.inkMid}}>{new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"})} · Sua equipe HVV está ativa.</div>
           </div>
           <div style={{textAlign:"right"}}>
             <div style={{fontSize:10,color:T.inkFaint,letterSpacing:"0.1em",marginBottom:4}}>VITALIDADE</div>
@@ -1468,10 +1551,7 @@ function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate
         {/* Check-in */}
         {!checkinHoje?(
           <Card style={{padding:"20px 24px",background:T.tealBg,border:`1px solid ${T.teal}30`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <div>
-              <div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginBottom:4}}>Check-in diário pendente</div>
-              <div style={{fontSize:12,color:T.inkMid}}>2 minutos para atualizar seu plano. A Ana está esperando.</div>
-            </div>
+            <div><div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginBottom:4}}>Check-in diário pendente</div><div style={{fontSize:12,color:T.inkMid}}>2 minutos para atualizar seu plano. A Ana está esperando.</div></div>
             <Btn onClick={()=>setModulo("ana")} variant="teal">FAZER CHECK-IN →</Btn>
           </Card>
         ):(
@@ -1481,10 +1561,7 @@ function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate
               <div style={{fontSize:13,color:T.ink,fontWeight:500,marginBottom:3}}>Check-in concluído hoje</div>
               <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
                 {[["Energia",checkinHoje.energia,T.teal],["Sono",checkinHoje.sono,T.purple],["Estresse",checkinHoje.estresse,T.red],["Vínculos",checkinHoje.vinculos,T.blue]].filter(([,v])=>v).map(([label,val,cor])=>(
-                  <div key={label} style={{display:"flex",alignItems:"center",gap:5}}>
-                    <div style={{width:4,height:4,borderRadius:"50%",background:cor}}/>
-                    <span style={{fontSize:11,color:T.inkMid}}>{label}: <strong style={{color:cor}}>{val}/10</strong></span>
-                  </div>
+                  <div key={label} style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:4,height:4,borderRadius:"50%",background:cor}}/><span style={{fontSize:11,color:T.inkMid}}>{label}: <strong style={{color:cor}}>{val}/10</strong></span></div>
                 ))}
               </div>
             </div>
@@ -1498,51 +1575,64 @@ function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate
             <Card key={n} style={{padding:"14px 12px",textAlign:"center"}}>
               <div style={{fontSize:22,fontFamily:T.fD,fontWeight:700,color:AXIS_COLORS[n]||T.gold,lineHeight:1,marginBottom:4}}>{sc}</div>
               <div style={{fontSize:10,color:T.inkMid,marginBottom:6}}>{n}</div>
-              <div style={{height:3,background:T.surfaceMid,borderRadius:2,overflow:"hidden"}}>
-                <div style={{height:"100%",width:`${sc}%`,background:AXIS_COLORS[n]||T.gold}}/>
-              </div>
+              <div style={{height:3,background:T.surfaceMid,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${sc}%`,background:AXIS_COLORS[n]||T.gold}}/></div>
             </Card>
           ))}
         </div>
 
-        {/* Programas */}
-        <div>
-          <Lbl style={{marginBottom:12}}>Seus programas de saúde</Lbl>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
-            {PROGRAMAS.map(p=>(
-              <Card key={p.id} onClick={()=>setModulo(p.modulo)}
-                style={{padding:"20px",cursor:"pointer",borderLeft:`3px solid ${p.cor}`,transition:"all 0.18s"}}
-                onMouseOver={e=>e.currentTarget.style.background=p.bg}
-                onMouseOut={e=>e.currentTarget.style.background=""}
-              >
-                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                  <div style={{width:38,height:38,borderRadius:10,background:p.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{p.icon}</div>
-                  <div style={{fontFamily:T.fD,fontSize:15,color:T.ink}}>{p.titulo}</div>
-                </div>
-                <div style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>{p.desc}</div>
-              </Card>
-            ))}
+        {/* Programas ativos */}
+        {inscricoes.length>0&&(
+          <div>
+            <Lbl style={{marginBottom:12}}>Meus programas ativos</Lbl>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+              {inscricoes.map(insc=>{
+                const prog=insc.programas;
+                return(
+                  <Card key={insc.id} style={{padding:"18px",borderLeft:`3px solid ${prog?.cor||T.green}`,cursor:"pointer"}} onClick={()=>setModulo("ana")}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                      <div style={{width:36,height:36,borderRadius:10,background:`${prog?.cor||T.green}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{prog?.icone||"🩺"}</div>
+                      <div>
+                        <div style={{fontFamily:T.fD,fontSize:14,color:T.ink}}>{prog?.nome}</div>
+                        {insc.medicos&&<div style={{fontSize:10,color:T.inkFaint}}>Dr(a). {insc.medicos.nome}</div>}
+                      </div>
+                      <span style={{marginLeft:"auto",fontSize:9,padding:"2px 8px",borderRadius:8,background:T.greenBg,color:T.green,fontWeight:600}}>ATIVO</span>
+                    </div>
+                    <div style={{fontSize:11,color:T.inkMid,lineHeight:1.6}}>{prog?.descricao?.slice(0,80)}...</div>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Equipe */}
-        <div>
-          <Lbl style={{marginBottom:12}}>Sua equipe de cuidado</Lbl>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
-            {EQUIPE.slice(0,4).map(e=>(
-              <Card key={e.id} onClick={()=>setModulo(e.id==="farmaceutico"?"farmaceutico":e.id==="nutri"?"nutri":e.id==="personal"?"personal":"ana")}
-                style={{padding:"16px",cursor:"pointer",textAlign:"center"}}>
-                <div style={{width:44,height:44,borderRadius:"50%",background:e.bg,border:`1.5px solid ${e.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,margin:"0 auto 10px"}}>{e.icon}</div>
-                <div style={{fontSize:12,color:e.cor,fontWeight:600,marginBottom:2}}>{e.nome}</div>
-                <div style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.08em",marginBottom:8}}>{e.titulo}</div>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
-                  <div style={{width:6,height:6,borderRadius:"50%",background:T.green}}/>
-                  <span style={{fontSize:9,color:T.green}}>ONLINE</span>
-                </div>
-              </Card>
-            ))}
+        {/* Programas disponíveis */}
+        {programas.filter(p=>!isInscrito(p.id)).length>0&&(
+          <div>
+            <Lbl style={{marginBottom:12}}>{inscricoes.length>0?"Outros programas disponíveis":"Programas de saúde disponíveis"}</Lbl>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+              {programas.filter(p=>!isInscrito(p.id)).map(p=>(
+                <Card key={p.id} style={{padding:"18px",borderLeft:`3px solid ${p.cor||T.green}`}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                    <div style={{width:36,height:36,borderRadius:10,background:`${p.cor||T.green}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{p.icone||"🩺"}</div>
+                    <div style={{fontFamily:T.fD,fontSize:14,color:T.ink,flex:1}}>{p.nome}</div>
+                  </div>
+                  <div style={{fontSize:11,color:T.inkMid,lineHeight:1.6,marginBottom:12}}>{p.descricao?.slice(0,90)}...</div>
+                  <Btn onClick={()=>{setModalPrograma(p);setMedicoSelecionado("");}} variant="outline" style={{width:"100%",fontSize:11}}>PARTICIPAR →</Btn>
+                </Card>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Ana */}
+        <Card style={{padding:"20px 24px",background:T.tealBg,border:`1px solid ${T.teal}30`,display:"flex",alignItems:"center",gap:16}}>
+          <div style={{width:48,height:48,borderRadius:"50%",background:T.teal,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>🩺</div>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginBottom:3}}>Ana · Enfermeira Coordenadora</div>
+            <div style={{fontSize:12,color:T.inkMid}}>Coordena todos os seus programas, lê seu plano e está disponível a qualquer momento.</div>
+          </div>
+          <Btn onClick={()=>setModulo("ana")} variant="teal">FALAR COM ANA →</Btn>
+        </Card>
 
         {/* Prioridade da semana */}
         <Card style={{padding:"20px 24px",background:T.goldFaint,border:`1px solid ${T.goldBorder}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -1557,11 +1647,42 @@ function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate
         </Card>
 
       </div>
+
+      {/* Modal inscrição */}
+      {modalPrograma&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:24}}>
+          <Card style={{width:"100%",maxWidth:480,padding:"32px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+              <div style={{width:48,height:48,borderRadius:12,background:`${modalPrograma.cor}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{modalPrograma.icone}</div>
+              <div>
+                <div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>{modalPrograma.nome}</div>
+                <div style={{fontSize:12,color:T.inkMid}}>Escolha seu médico para começar</div>
+              </div>
+            </div>
+            <div style={{fontSize:13,color:T.inkMid,lineHeight:1.8,marginBottom:20}}>{modalPrograma.descricao}</div>
+            <div style={{marginBottom:20}}>
+              <Lbl>Escolha seu médico pessoal</Lbl>
+              <select value={medicoSelecionado} onChange={e=>setMedicoSelecionado(e.target.value)}
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${T.border}`,borderRadius:8,fontFamily:T.fB,fontSize:13,background:T.surface,color:T.ink,marginTop:6}}>
+                <option value="">Selecionar médico...</option>
+                {medicos.map(m=>(<option key={m.id} value={m.id}>{m.nome} — {m.especialidade||"Clínica Geral"}</option>))}
+              </select>
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <Btn onClick={()=>setModalPrograma(null)} variant="outline" style={{flex:1}}>Cancelar</Btn>
+              <Btn onClick={handleInscrever} variant="gold" disabled={!medicoSelecionado||inscrevendo} style={{flex:2}}>
+                {inscrevendo?"Inscrevendo...":"PARTICIPAR →"}
+              </Btn>
+            </div>
+          </Card>
+        </div>
+      )}
+
     </div>
   );
 }
 
-// ─── Plano de Cuidado ─────────────────────────────────────────────
+
 function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKey}){
   const[tarefas,setTarefas]=useState([]);
   const[registros,setRegistros]=useState({});
