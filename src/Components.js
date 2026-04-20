@@ -150,9 +150,10 @@ Retorne APENAS um array JSON com 6-10 tarefas no formato:
 [{"area":"saude_geral|nutricao|atividade|emocional|vinculos|prevencao","titulo":"...","descricao":"...","frequencia":"diario|semanal|mensal","ordem":1}]`;
 
   try{
+    const chave=apiKey||localStorage.getItem("hvv_api_key")||"";
     const res=await fetch("/.netlify/functions/claude",{
       method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},
+      headers:{"Content-Type":"application/json","x-api-key":chave,"anthropic-version":"2023-06-01"},
       body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content:prompt}]})
     });
     const data=await res.json();
