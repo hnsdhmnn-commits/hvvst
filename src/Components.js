@@ -734,6 +734,7 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
   const[checkinHoje,setCheckinHoje]=useState(null);
   const[planLog,setPlanLog]=useState([]);
   const[planoRefresh,setPlanoRefresh]=useState(0);
+  const[homeKey,setHomeKey]=useState(0);
   const[mensagensNaoLidas,setMensagensNaoLidas]=useState(0);
   const[laudoGenetico,setLaudoGenetico]=useState({pdfB64:null,pdfNome:null,analise:null});
   const scores=calcScores(form,checkinHoje);
@@ -856,7 +857,7 @@ Tom: acolhedor, preciso e humano. Histórico persistido — você tem memória d
           <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:6,height:6,borderRadius:"50%",background:T.green,boxShadow:`0 0 8px ${T.green}60`,animation:"pulse 2s ease infinite"}}/><span style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.12em"}}>EQUIPE ONLINE</span></div>
         </div>
 
-        {modulo==="home"&&<ModuloHome key="home" form={form} scores={scores} setModulo={setModulo} pacienteId={pacienteId}/>}
+        {modulo==="home"&&<ModuloHome key={`home-${homeKey}`} form={form} scores={scores} setModulo={setModulo} pacienteId={pacienteId}/>}
         {modulo==="dashboard"&&<ModuloDashboard form={form} scores={scores} setModulo={setModulo} checkinHoje={checkinHoje} planLog={planLog} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId}/>}
         {modulo==="plano"&&<ModuloPlano key={planoRefresh} form={form} scores={scores} setModulo={setModulo} planLog={planLog} checkinHoje={checkinHoje} pacienteId={pacienteId} apiKey={apiKey}/>}
         {modulo==="ana"&&<ModuloAna form={form} scores={scores} apiKey={apiKey} checkinHoje={checkinHoje} onCheckinSalvo={onCheckinSalvo} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId} getBuildPrompt={buildPrompt} onPlanChange={()=>{setPlanoRefresh(r=>r+1);setModulo("plano");}}/>}
