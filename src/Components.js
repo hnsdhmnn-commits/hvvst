@@ -456,6 +456,25 @@ async function carregarAnaliseGenetica(pacienteId){
 
 // ─── UI Primitives ────────────────────────────────────────────────
 function Lbl({children,color}){return <div style={{fontSize:9,letterSpacing:"0.18em",color:color||T.inkLight,textTransform:"uppercase",marginBottom:8,fontFamily:T.fB,fontWeight:600}}>{children}</div>;}
+
+function RadialScore({value,size=80}){
+  const r=size*0.38;const circ=2*Math.PI*r;
+  const prog=Math.max(0,Math.min(100,value));
+  const offset=circ-(prog/100)*circ;
+  const cor=prog>=75?T.green:prog>=50?"#E07020":T.red;
+  return(
+    <div style={{position:"relative",width:size,height:size,flexShrink:0}}>
+      <svg width={size} height={size} style={{transform:"rotate(-90deg)"}}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={T.bgWarm} strokeWidth={size*0.08}/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={cor} strokeWidth={size*0.08}
+          strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"/>
+      </svg>
+      <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"}}>
+        <span style={{fontSize:size*0.28,fontWeight:700,color:cor,lineHeight:1}}>{prog}</span>
+      </div>
+    </div>
+  );
+}
 export function Card({children,style={},onClick,hover=false}){const[hov,setHov]=useState(false);return <div onClick={onClick} onMouseOver={()=>hover&&setHov(true)} onMouseOut={()=>hover&&setHov(false)} style={{background:T.surface,borderRadius:12,boxShadow:hov?T.shadowHover:T.shadowCard,border:`1px solid ${T.border}`,transition:"all 0.2s",cursor:onClick?"pointer":"default",...style}}>{children}</div>;}
 export function Btn({children,onClick,variant="primary",disabled=false,style={}}){
   const v={
@@ -469,6 +488,54 @@ export function Btn({children,onClick,variant="primary",disabled=false,style={}}
     purple:{background:T.purple,color:"#FFF",border:"none"},
   };
   return <button onClick={disabled?undefined:onClick} disabled={disabled} style={{padding:"9px 18px",borderRadius:"8px",fontFamily:T.fB,fontSize:"13px",fontWeight:500,cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.4:1,transition:"all 0.15s",...v[variant],...style}}>{children}</button>;
+}
+
+function TxtInput({label,placeholder,value,onChange,type="text",unit,error}){
+  return(
+    <div>
+      {label&&<Lbl>{label}</Lbl>}
+      <div style={{position:"relative"}}>
+        <input type={type} placeholder={placeholder} value={value} onChange={e=>onChange(e.target.value)}
+          style={{width:"100%",padding:"10px 14px",border:`1px solid ${error?T.red:T.border}`,borderRadius:8,fontFamily:T.fB,fontSize:13,color:T.ink,background:T.surface,outline:"none",boxSizing:"border-box"}}/>
+        {unit&&<span style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",fontSize:11,color:T.inkLight}}>{unit}</span>}
+      </div>
+      {error&&<div style={{fontSize:11,color:T.red,marginTop:4}}>{error}</div>}
+    </div>
+  );
+}
+
+function SldInput({label,value,onChange,min,max,unit,color=T.green,hint}){
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+        <Lbl>{label}</Lbl>
+        <span style={{fontSize:16,color,fontWeight:700}}>{value}{unit}</span>
+      </div>
+      <input type="range" min={min} max={max} value={value} onChange={e=>onChange(Number(e.target.value))}
+        style={{width:"100%",accentColor:color,cursor:"pointer",height:4}}/>
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+        <span style={{fontSize:9,color:T.inkFaint}}>{hint||min}</span>
+        <span style={{fontSize:9,color:T.inkFaint}}>{max}</span>
+      </div>
+    </div>
+  );
+}
+
+function Chip({label,active,onClick,color=T.green,bg}){
+  return(
+    <button onClick={onClick} style={{padding:"6px 12px",borderRadius:20,border:`1px solid ${active?color:T.border}`,background:active?(bg||`${color}15`):T.surface,color:active?color:T.inkMid,fontSize:12,cursor:"pointer",fontFamily:T.fB,transition:"all 0.15s"}}>{label}</button>
+  );
+}
+
+function OB({step,label,active,done}){
+  return(
+    <div style={{display:"flex",alignItems:"center",gap:6}}>
+      <div style={{width:22,height:22,borderRadius:"50%",background:done?T.green:active?T.greenBg:T.bgWarm,border:`1.5px solid ${done?T.green:active?T.green:T.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:done?"#FFF":active?T.green:T.inkFaint,fontWeight:600,flexShrink:0}}>
+        {done?"✓":step}
+      </div>
+      <span style={{fontSize:11,color:active?T.ink:T.inkFaint,fontWeight:active?500:400}}>{label}</span>
+    </div>
+  );
 }
 
 function ChatIA({membro,systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pdfB64,pacienteId}){
