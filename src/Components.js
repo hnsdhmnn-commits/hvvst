@@ -36,10 +36,7 @@ export const T = {
   fB:"'DM Mono','Courier New',monospace",
 };
 
-export const AXIS_COLORS={
-  "Nutrição":T.gold,"Atividade":T.teal,"Sono":T.purple,
-  "Estresse":T.red,"Vínculos":T.purple,"Bem-estar":T.green,
-};
+export const AXIS_COLORS={"Sono":T.purple,"Energia":T.teal,"Estresse":T.red,"Humor":T.gold,"Vínculos":T.blue,"Bem-estar":T.green};
 
 export const EQUIPE=[
   {id:"enfermeira",nome:"Ana",titulo:"Enfermeira Coordenadora",cor:T.teal,bg:T.tealBg,icon:"🩺",descricao:"Coordena seu plano integral, motivação e acompanhamento MEV."},
@@ -65,24 +62,109 @@ export const MODULOS=[
 // ─── Score ────────────────────────────────────────────────────────
 function calcScores(form,checkin){
   const f=form;
-  if(!f)return{eixos:{"Nutrição":72,"Atividade":65,"Sono":80,"Estresse":60,"Relacionamentos":55,"Substâncias":88},total:70};
-  const s={"Nutrição":55,"Atividade":50,"Sono":55,"Estresse":55,"Relacionamentos":55,"Substâncias":80};
-  s["Sono"]=Math.min(100,(Number(f.sono)>=7?82:Number(f.sono)>=6?62:42)+(Number(f.qual_sono)||5)*1.5);
-  s["Atividade"]=Math.min(100,35+(Number(f.freq_treino)||0)*11);
-  s["Estresse"]=Math.max(20,100-(Number(f.estresse)||5)*8+(f.meditacao===1?10:0));
-  s["Nutrição"]={"Mediterrâneo":84,"Low-carb":76,"Vegetariano":78,"Vegano":80}[f.dieta]||58;
-  s["Substâncias"]={"Nunca":96,"Ocasional":82,"Semanal":64,"Diário":38}[f.alcool]||70;
-  s["Relacionamentos"]=Math.max(30,65+(Number(f.horas_trab)>60?-12:8));
+
+  // Valores padrão quando não há perfil
+  if(!f)return{eixos:{"Sono":70,"Energia":70,"Estresse":60,"Humor":70,"Vínculos":65,"Bem-estar":70},total:68};
+
+  // ── Base do perfil (dados do onboarding) ──────────────────────
+  // Sono: horas + qualidade declarada
+  let sono=Math.min(100,
+    (Number(f.sono)>=8?85:Number(f.sono)>=7?75:Number(f.sono)>=6?60:40)
+    +(Number(f.qual_sono)||5)*1.5
+  );
+
+  // Energia: proxy via freq_treino e horas de trabalho
+  let energia=Math.min(100,
+    40+(Number(f.freq_treino)||0)*8
+    -(Number(f.horas_trab)>60?10:0)
+    +(Number(f.horas_descanso)||2)*3
+  );
+
+  // Estresse: invertido — estresse alto = score baixo
+  let estresse=Math.max(10,
+    100-(Number(f.estresse)||5)*9
+    +(f.meditacao>=1?8:0)
+    -(Number(f.horas_trab)>55?5:0)
+  );
+
+  // Humor: proxy via qualidade de vida declarada
+  let humor=Math.min(100,
+    (Number(f.qualidade_vida)||6)*9
+    +({Mediterrâneo:5,"Low-carb":3,Vegetariano:4,Vegano:4}[f.dieta]||0)
+  );
+
+  // Vínculos: rede de apoio e satisfação social do perfil
+  let vinculos=Math.min(100,
+    (Number(f.qualidade_rede)||5)*7
+    +(Number(f.satisfacao_social)||5)*5
+    -(Number(f.horas_trab)>60?8:0)
+  );
+
+  // Bem-estar: combinação de múltiplos fatores
+  let bemestar=Math.min(100,
+    (Number(f.qualidade_vida)||6)*8
+    +{"Nunca":8,"Ocasional":4,"Semanal":-2,"Diário":-12}[f.alcool||"Ocasional"]
+    +(f.tabaco==="Nunca"||!f.tabaco?5:-10)
+  );
+
+  const s={
+    "Sono": Math.round(Math.max(0,Math.min(100,sono))),
+    "Energia": Math.round(Math.max(0,Math.min(100,energia))),
+    "Estresse": Math.round(Math.max(0,Math.min(100,estresse))),
+    "Humor": Math.round(Math.max(0,Math.min(100,humor))),
+    "Vínculos": Math.round(Math.max(0,Math.min(100,vinculos))),
+    "Bem-estar": Math.round(Math.max(0,Math.min(100,bemestar))),
+  };
+
+  // ── Check-in do dia sobrescreve com peso maior ─────────────────
+  // Dados reais do check-in têm prioridade sobre estimativas do perfil
   if(checkin){
-    if(checkin.sono)s["Sono"]=Math.round(s["Sono"]*0.4+Number(checkin.sono)*10*0.6);
-    if(checkin.energia)s["Atividade"]=Math.round(s["Atividade"]*0.7+Number(checkin.energia)*10*0.3);
-    if(checkin.estresse)s["Estresse"]=Math.max(10,Math.round(s["Estresse"]*0.5+(10-Number(checkin.estresse))*10*0.5));
-    if(checkin.humor)s["Bem-estar"]=Math.round((s["Bem-estar"]||60)*0.6+Number(checkin.humor)*10*0.4);
-    if(checkin.vinculos)s["Vínculos"]=Math.round((s["Vínculos"]||60)*0.4+Number(checkin.vinculos)*10*0.6);
-    if(checkin.bem_estar)s["Bem-estar"]=Math.round((s["Bem-estar"]||60)*0.5+Number(checkin.bem_estar)*10*0.5);
+    // Sono: check-in tem peso 70%, perfil 30%
+    if(checkin.sono)
+      s["Sono"]=Math.round(Math.max(0,Math.min(100,
+        s["Sono"]*0.3 + Number(checkin.sono)*10*0.7
+      )));
+
+    // Energia: check-in tem peso 80%
+    if(checkin.energia)
+      s["Energia"]=Math.round(Math.max(0,Math.min(100,
+        s["Energia"]*0.2 + Number(checkin.energia)*10*0.8
+      )));
+
+    // Estresse: check-in invertido — estresse 8/10 = score 20
+    if(checkin.estresse)
+      s["Estresse"]=Math.round(Math.max(0,Math.min(100,
+        s["Estresse"]*0.3 + (10-Number(checkin.estresse))*10*0.7
+      )));
+
+    // Humor: check-in tem peso 80%
+    if(checkin.humor)
+      s["Humor"]=Math.round(Math.max(0,Math.min(100,
+        s["Humor"]*0.2 + Number(checkin.humor)*10*0.8
+      )));
+
+    // Vínculos: média dos sub-eixos do check-in quando disponíveis
+    const subVinculos=[checkin.rede_apoio,checkin.relacoes_colegas,checkin.relacoes_lider,checkin.vida_social,checkin.relacionamentos_pessoais].filter(Boolean);
+    if(subVinculos.length>0){
+      const mediaVinculos=subVinculos.reduce((a,b)=>a+Number(b),0)/subVinculos.length;
+      s["Vínculos"]=Math.round(Math.max(0,Math.min(100,
+        s["Vínculos"]*0.2 + mediaVinculos*10*0.8
+      )));
+    } else if(checkin.vinculos){
+      s["Vínculos"]=Math.round(Math.max(0,Math.min(100,
+        s["Vínculos"]*0.2 + Number(checkin.vinculos)*10*0.8
+      )));
+    }
+
+    // Bem-estar: check-in tem peso 80%
+    if(checkin.bem_estar)
+      s["Bem-estar"]=Math.round(Math.max(0,Math.min(100,
+        s["Bem-estar"]*0.2 + Number(checkin.bem_estar)*10*0.8
+      )));
   }
-  Object.keys(s).forEach(k=>{s[k]=Math.max(0,Math.min(100,s[k]));});
-  return{eixos:s,total:Math.round(Object.values(s).reduce((a,b)=>a+b,0)/6)};
+
+  const total=Math.round(Object.values(s).reduce((a,b)=>a+b,0)/Object.keys(s).length);
+  return{eixos:s,total};
 }
 
 // ─── Supabase Helpers ─────────────────────────────────────────────
