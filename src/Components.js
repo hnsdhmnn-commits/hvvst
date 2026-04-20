@@ -1432,33 +1432,130 @@ function ModuloMensagens({pacienteId,nome}){
 
 // ─── Dashboard ────────────────────────────────────────────────────
 function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate}){
-  const nome=form?.nome||"Executivo";
+  const nome=form?.nome||"Colaborador";
+  const primeiroNome=nome.split(" ")[0];
+  const hora=new Date().getHours();
+  const saudacao=hora<12?"Bom dia":"hora<18?"Boa tarde":"Boa noite";
   const lowAxis=Object.entries(scores.eixos).sort((a,b)=>a[1]-b[1])[0];
+
+  const PROGRAMAS=[
+    {id:"saude_geral",icon:"🩺",titulo:"Saúde Geral",desc:"Acompanhamento clínico contínuo com seu médico pessoal",cor:T.green,bg:T.greenBg,modulo:"ana"},
+    {id:"emocional",icon:"🧘",titulo:"Saúde Emocional",desc:"Estresse, humor e bem-estar mental com suporte especializado",cor:T.purple,bg:T.purpleBg,modulo:"ana"},
+    {id:"nutricao",icon:"🥗",titulo:"Nutrição",desc:"Plano alimentar personalizado com a Dra. Lucia",cor:T.gold,bg:T.goldFaint,modulo:"nutri"},
+    {id:"atividade",icon:"🏃",titulo:"Atividade Física",desc:"Treino sob medida para sua rotina executiva com Bruno",cor:T.teal,bg:T.tealBg,modulo:"personal"},
+    {id:"vinculos",icon:"🤝",titulo:"Vínculos e Relações",desc:"Rede de apoio, relacionamentos e vida social",cor:T.blue,bg:T.blueBg,modulo:"ana"},
+    {id:"prevencao",icon:"🔬",titulo:"Prevenção",desc:"Rastreamento de exames e doenças crônicas",cor:T.orange,bg:T.orangeBg,modulo:"plano"},
+  ];
+
   return(
     <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
       <div style={{maxWidth:980,margin:"0 auto",display:"flex",flexDirection:"column",gap:20}}>
+
+        {/* Cabeçalho */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div><div style={{fontFamily:T.fD,fontSize:32,color:T.ink,marginBottom:4}}>Bom dia, {nome.split(" ")[0]}.</div><div style={{fontSize:13,color:T.inkMid}}>Sua equipe HVV está ativa e seus dados estão salvos com segurança.</div></div>
-          <div style={{fontSize:10,color:T.inkFaint,letterSpacing:"0.12em"}}>{new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"}).toUpperCase()}</div>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:16}}>
-          <Card style={{padding:"24px 20px",display:"flex",flexDirection:"column",alignItems:"center",gap:12}}>
-            <Lbl>Score de Vitalidade</Lbl>
-            <RadialScore value={scores.total} size={100}/>
-            <div style={{fontSize:11,color:scores.total>=75?T.green:scores.total>=50?T.gold:T.red,letterSpacing:"0.12em",fontWeight:700}}>{scores.total>=75?"ALTO DESEMPENHO":scores.total>=50?"EM PROGRESSO":"ATENÇÃO"}</div>
-          </Card>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
-            {Object.entries(scores.eixos).map(([n,sc],i)=>(<Card key={i} style={{padding:"16px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}><span style={{fontSize:11,color:T.inkMid}}>{n}</span><span style={{fontSize:20,color:AXIS_COLORS[n],fontFamily:T.fD,fontWeight:700}}>{sc}</span></div><div style={{height:4,background:T.surfaceMid,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${sc}%`,background:AXIS_COLORS[n]}}/></div><div style={{marginTop:6,fontSize:10,color:T.inkFaint}}>{sc>=80?"Excelente":sc>=65?"Bom":sc>=50?"Regular":"Atenção"}</div></Card>))}
+          <div>
+            <div style={{fontFamily:T.fD,fontSize:32,color:T.ink,marginBottom:4}}>{saudacao}, {primeiroNome}.</div>
+            <div style={{fontSize:13,color:T.inkMid}}>
+              {new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"})} · Sua equipe HVV está ativa.
+            </div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:10,color:T.inkFaint,letterSpacing:"0.1em",marginBottom:4}}>VITALIDADE</div>
+            <RadialScore value={scores.total} size={64}/>
           </div>
         </div>
-        {!checkinHoje&&<Card style={{padding:"20px 24px",background:T.tealBg,border:`1px solid ${T.teal}30`,display:"flex",alignItems:"center",justifyContent:"space-between"}}><div><div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginBottom:4}}>Check-in diário pendente</div><div style={{fontSize:12,color:T.inkMid}}>A Ana está esperando seu check-in de hoje — 2 minutos.</div></div><Btn onClick={()=>setModulo("ana")} variant="teal">FAZER CHECK-IN →</Btn></Card>}
-        {checkinHoje&&<Card style={{padding:"16px 20px",background:T.greenBg,border:`1px solid ${T.green}30`,display:"flex",alignItems:"center",gap:14}}><div style={{width:36,height:36,borderRadius:"50%",background:T.green,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>✓</div><div><div style={{fontSize:13,color:T.ink,fontWeight:500}}>Check-in concluído hoje</div><div style={{fontSize:11,color:T.inkMid}}>Energia {checkinHoje.energia}/10 · Sono {checkinHoje.sono}/10 · Estresse {checkinHoje.estresse}/10</div></div></Card>}
-        <div><Lbl>Sua equipe de cuidado</Lbl><div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>{EQUIPE.map(e=>(<Card key={e.id} hover onClick={()=>setModulo(e.id==="coach"?"coach":e.id==="farmaceutico"?"farmaceutico":e.id==="geneticista"?"geneticista":"ana")} style={{padding:"18px"}}><div style={{width:44,height:44,borderRadius:"50%",background:e.bg,border:`1.5px solid ${e.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,marginBottom:12}}>{e.icon}</div><div style={{fontSize:13,color:e.cor,marginBottom:3,fontWeight:600}}>{e.nome}</div><div style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.1em",marginBottom:8}}>{e.titulo}</div><div style={{display:"flex",alignItems:"center",gap:5,marginTop:12}}><div style={{width:7,height:7,borderRadius:"50%",background:T.green,boxShadow:`0 0 6px ${T.green}60`}}/><span style={{fontSize:9,color:T.green,letterSpacing:"0.12em"}}>ONLINE</span></div></Card>))}</div></div>
-        {planLog&&planLog.length>0&&<Card style={{padding:"20px 24px"}}><Lbl color={T.blue}>Histórico de Atualizações do Plano</Lbl><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>{planLog.slice(0,6).map((log,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 12px",background:T.bgWarm,borderRadius:8,border:`1px solid ${T.border}`}}><div style={{width:28,height:28,borderRadius:6,background:`${log.cor||T.blue}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{log.icon||"📋"}</div><div style={{flex:1}}><div style={{fontSize:12,color:T.ink,fontWeight:500,marginBottom:2}}>{log.titulo}</div><div style={{fontSize:11,color:T.inkMid,lineHeight:1.5}}>{log.descricao}</div></div><span style={{fontSize:9,color:T.inkFaint,flexShrink:0}}>{log.data}</span></div>))}</div></Card>}
+
+        {/* Check-in */}
+        {!checkinHoje?(
+          <Card style={{padding:"20px 24px",background:T.tealBg,border:`1px solid ${T.teal}30`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div>
+              <div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginBottom:4}}>Check-in diário pendente</div>
+              <div style={{fontSize:12,color:T.inkMid}}>2 minutos para atualizar seu plano. A Ana está esperando.</div>
+            </div>
+            <Btn onClick={()=>setModulo("ana")} variant="teal">FAZER CHECK-IN →</Btn>
+          </Card>
+        ):(
+          <Card style={{padding:"16px 20px",background:T.greenBg,border:`1px solid ${T.green}30`,display:"flex",alignItems:"center",gap:14}}>
+            <div style={{width:36,height:36,borderRadius:"50%",background:T.green,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>✓</div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,color:T.ink,fontWeight:500,marginBottom:3}}>Check-in concluído hoje</div>
+              <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
+                {[["Energia",checkinHoje.energia,T.teal],["Sono",checkinHoje.sono,T.purple],["Estresse",checkinHoje.estresse,T.red],["Vínculos",checkinHoje.vinculos,T.blue]].filter(([,v])=>v).map(([label,val,cor])=>(
+                  <div key={label} style={{display:"flex",alignItems:"center",gap:5}}>
+                    <div style={{width:4,height:4,borderRadius:"50%",background:cor}}/>
+                    <span style={{fontSize:11,color:T.inkMid}}>{label}: <strong style={{color:cor}}>{val}/10</strong></span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <Btn onClick={()=>setModulo("ana")} variant="outline" style={{fontSize:11}}>Ver detalhes →</Btn>
+          </Card>
+        )}
+
+        {/* Score por eixo */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:10}}>
+          {Object.entries(scores.eixos).map(([n,sc])=>(
+            <Card key={n} style={{padding:"14px 12px",textAlign:"center"}}>
+              <div style={{fontSize:22,fontFamily:T.fD,fontWeight:700,color:AXIS_COLORS[n]||T.gold,lineHeight:1,marginBottom:4}}>{sc}</div>
+              <div style={{fontSize:10,color:T.inkMid,marginBottom:6}}>{n}</div>
+              <div style={{height:3,background:T.surfaceMid,borderRadius:2,overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${sc}%`,background:AXIS_COLORS[n]||T.gold}}/>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Programas */}
+        <div>
+          <Lbl style={{marginBottom:12}}>Seus programas de saúde</Lbl>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+            {PROGRAMAS.map(p=>(
+              <Card key={p.id} onClick={()=>setModulo(p.modulo)}
+                style={{padding:"20px",cursor:"pointer",borderLeft:`3px solid ${p.cor}`,transition:"all 0.18s"}}
+                onMouseOver={e=>e.currentTarget.style.background=p.bg}
+                onMouseOut={e=>e.currentTarget.style.background=""}
+              >
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                  <div style={{width:38,height:38,borderRadius:10,background:p.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{p.icon}</div>
+                  <div style={{fontFamily:T.fD,fontSize:15,color:T.ink}}>{p.titulo}</div>
+                </div>
+                <div style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>{p.desc}</div>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Equipe */}
+        <div>
+          <Lbl style={{marginBottom:12}}>Sua equipe de cuidado</Lbl>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+            {EQUIPE.slice(0,4).map(e=>(
+              <Card key={e.id} onClick={()=>setModulo(e.id==="farmaceutico"?"farmaceutico":e.id==="nutri"?"nutri":e.id==="personal"?"personal":"ana")}
+                style={{padding:"16px",cursor:"pointer",textAlign:"center"}}>
+                <div style={{width:44,height:44,borderRadius:"50%",background:e.bg,border:`1.5px solid ${e.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,margin:"0 auto 10px"}}>{e.icon}</div>
+                <div style={{fontSize:12,color:e.cor,fontWeight:600,marginBottom:2}}>{e.nome}</div>
+                <div style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.08em",marginBottom:8}}>{e.titulo}</div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:T.green}}/>
+                  <span style={{fontSize:9,color:T.green}}>ONLINE</span>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Prioridade da semana */}
         <Card style={{padding:"20px 24px",background:T.goldFaint,border:`1px solid ${T.goldBorder}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div><Lbl color={T.gold}>Prioridade da semana</Lbl><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>Foco em <span style={{color:AXIS_COLORS[lowAxis[0]]}}>{lowAxis[0]}</span> — score: {lowAxis[1]}/100</div></div>
-          <Btn onClick={()=>setModulo("coach")} variant="gold">FALAR COM O COACH →</Btn>
+          <div>
+            <Lbl color={T.gold}>Prioridade da semana</Lbl>
+            <div style={{fontFamily:T.fD,fontSize:20,color:T.ink,marginTop:4}}>
+              Foco em <span style={{color:AXIS_COLORS[lowAxis[0]]||T.gold}}>{lowAxis[0]}</span>
+              <span style={{fontSize:13,color:T.inkMid,fontFamily:T.fB,marginLeft:8}}>score atual: {lowAxis[1]}/100</span>
+            </div>
+          </div>
+          <Btn onClick={()=>setModulo("plano")} variant="gold">VER PLANO DE CUIDADO →</Btn>
         </Card>
+
       </div>
     </div>
   );
