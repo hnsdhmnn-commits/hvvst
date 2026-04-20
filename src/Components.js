@@ -856,7 +856,7 @@ Tom: acolhedor, preciso e humano. Histórico persistido — você tem memória d
           <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:6,height:6,borderRadius:"50%",background:T.green,boxShadow:`0 0 8px ${T.green}60`,animation:"pulse 2s ease infinite"}}/><span style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.12em"}}>EQUIPE ONLINE</span></div>
         </div>
 
-        {modulo==="home"&&<ModuloHome form={form} scores={scores} setModulo={setModulo} pacienteId={pacienteId}/>}
+        {modulo==="home"&&<ModuloHome key="home" form={form} scores={scores} setModulo={setModulo} pacienteId={pacienteId}/>}
         {modulo==="dashboard"&&<ModuloDashboard form={form} scores={scores} setModulo={setModulo} checkinHoje={checkinHoje} planLog={planLog} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId}/>}
         {modulo==="plano"&&<ModuloPlano key={planoRefresh} form={form} scores={scores} setModulo={setModulo} planLog={planLog} checkinHoje={checkinHoje} pacienteId={pacienteId} apiKey={apiKey}/>}
         {modulo==="ana"&&<ModuloAna form={form} scores={scores} apiKey={apiKey} checkinHoje={checkinHoje} onCheckinSalvo={onCheckinSalvo} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId} getBuildPrompt={buildPrompt} onPlanChange={()=>{setPlanoRefresh(r=>r+1);setModulo("plano");}}/>}
@@ -1571,48 +1571,140 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
 
   // ── TELA HOME ──────────────────────────────────────────────────
   if(tela==="home")return(
-    <div style={{flex:1,overflowY:"auto",background:T.bg,padding:40}}>
-      <div style={{width:"100%",maxWidth:600,margin:"0 auto"}}>
-        {/* Logo */}
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:48,justifyContent:"center"}}>
-          <div style={{width:40,height:40,borderRadius:10,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:700,fontSize:18}}>V</div>
-          <span style={{fontFamily:T.fD,fontSize:22,fontWeight:600,color:T.ink}}>Hospital Virtual Verde</span>
-        </div>
+    <div style={{flex:1,overflowY:"auto",background:T.bg,padding:"24px 32px"}}>
+      <div style={{maxWidth:780,margin:"0 auto"}}>
 
         {/* Saudação */}
-        <div style={{textAlign:"center",marginBottom:40}}>
-          <div style={{fontFamily:T.fD,fontSize:36,color:T.ink,marginBottom:8}}>{saudacao}, {primeiroNome}.</div>
-          <div style={{fontSize:14,color:T.inkMid}}>Como posso te ajudar hoje?</div>
+        <div style={{marginBottom:20}}>
+          <div style={{fontSize:20,fontWeight:500,color:T.ink,marginBottom:4}}>{saudacao}, {primeiroNome}</div>
+          <div style={{fontSize:13,color:T.inkMid}}>Como podemos te ajudar hoje?</div>
         </div>
 
-        {/* Dois caminhos */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:32}}>
-          <button onClick={()=>setTela("programas")} style={{padding:"32px 24px",background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:16,cursor:"pointer",textAlign:"left",transition:"all 0.2s",boxShadow:T.shadowCard,fontFamily:T.fB}}
-            onMouseOver={e=>{e.currentTarget.style.borderColor=T.green;e.currentTarget.style.background=T.greenBg;}}
-            onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
-            <div style={{fontSize:36,marginBottom:14}}>📅</div>
-            <div style={{fontFamily:T.fD,fontSize:20,color:T.ink,marginBottom:8}}>Agendar consulta</div>
-            <div style={{fontSize:13,color:T.inkMid,lineHeight:1.7}}>Escolha um programa de saúde e marque uma consulta com seu médico pessoal.</div>
-          </button>
-
-          <button onClick={()=>setModulo("dashboard")} style={{padding:"32px 24px",background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:16,cursor:"pointer",textAlign:"left",transition:"all 0.2s",boxShadow:T.shadowCard,fontFamily:T.fB}}
-            onMouseOver={e=>{e.currentTarget.style.borderColor=T.teal;e.currentTarget.style.background=T.tealBg;}}
-            onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
-            <div style={{fontSize:36,marginBottom:14}}>❤️</div>
-            <div style={{fontFamily:T.fD,fontSize:20,color:T.ink,marginBottom:8}}>Minha saúde</div>
-            <div style={{fontSize:13,color:T.inkMid,lineHeight:1.7}}>Acesse seu painel, check-in diário, plano de cuidado e converse com a Ana.</div>
-          </button>
-        </div>
-
-        {/* Score resumido */}
-        <Card style={{padding:"16px 20px",display:"flex",alignItems:"center",gap:16}}>
-          <RadialScore value={scores.total} size={48}/>
+        {/* Pronto-atendimento */}
+        <Card style={{padding:"20px",marginBottom:24,display:"flex",alignItems:"center",justifyContent:"space-between",gap:16}}>
           <div style={{flex:1}}>
-            <div style={{fontSize:13,color:T.ink,fontWeight:500}}>Sua vitalidade hoje</div>
-            <div style={{fontSize:11,color:T.inkMid}}>{scores.total>=75?"Ótimo desempenho — continue assim!":scores.total>=50?"Em progresso — seu plano está ativo.":"Atenção — converse com a Ana hoje."}</div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+              <div style={{width:8,height:8,borderRadius:"50%",background:T.green,boxShadow:`0 0 6px ${T.green}`}}/>
+              <span style={{fontSize:12,color:T.green,fontWeight:500}}>Online agora</span>
+            </div>
+            <div style={{fontSize:16,fontWeight:500,color:T.ink,marginBottom:4}}>Pronto-atendimento</div>
+            <div style={{fontSize:13,color:T.inkMid}}>Para problemas agudos · clínico geral em cerca de 4 minutos</div>
           </div>
-          <Btn onClick={()=>setModulo("ana")} variant="outline" style={{fontSize:11,flexShrink:0}}>Falar com Ana →</Btn>
+          <Btn onClick={()=>setModulo("ana")} variant="gold" style={{flexShrink:0}}>Iniciar agora</Btn>
         </Card>
+
+        {/* Canais diretos Stone */}
+        <div style={{background:`linear-gradient(135deg,${T.green}10,${T.greenBg})`,border:`0.5px solid ${T.green}30`,borderRadius:12,padding:"16px 18px",marginBottom:24}}>
+          <div style={{marginBottom:12}}>
+            <div style={{fontSize:15,fontWeight:500,color:T.green,marginBottom:2}}>Canais diretos Stone</div>
+            <div style={{fontSize:12,color:T.inkMid}}>Atendimento próximo e contínuo, exclusivo para a Stone</div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div onClick={()=>setModulo("dashboard")} style={{background:T.surface,border:`0.5px solid ${T.green}30`,borderRadius:8,padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,cursor:"pointer",transition:"all 0.15s"}}
+              onMouseOver={e=>e.currentTarget.style.background=T.greenBg}
+              onMouseOut={e=>e.currentTarget.style.background=T.surface}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600,color:T.ink,marginBottom:3}}>Meu médico pessoal</div>
+                <div style={{fontSize:11,color:T.inkMid}}>Dr. Rafael Mendes · clínico</div>
+              </div>
+              <span style={{fontSize:12,color:T.green,fontWeight:500,flexShrink:0}}>Acessar ↗</span>
+            </div>
+            <div onClick={()=>setModulo("ana")} style={{background:T.surface,border:`0.5px solid ${T.green}30`,borderRadius:8,padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,cursor:"pointer",transition:"all 0.15s"}}
+              onMouseOver={e=>e.currentTarget.style.background=T.greenBg}
+              onMouseOut={e=>e.currentTarget.style.background=T.surface}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600,color:T.ink,marginBottom:3}}>Enfermagem WhatsApp</div>
+                <div style={{fontSize:11,color:T.inkMid}}>Disponível 24h · resposta rápida</div>
+              </div>
+              <span style={{fontSize:12,color:T.green,fontWeight:500,flexShrink:0}}>Abrir ↗</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Programas de cuidado contínuo */}
+        <div style={{marginBottom:28}}>
+          <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:4}}>
+            <div style={{fontSize:15,fontWeight:500,color:T.ink}}>Programas de cuidado contínuo</div>
+            <span style={{fontSize:12,color:T.inkMid,fontWeight:500}}>Caminho recomendado</span>
+          </div>
+          <div style={{fontSize:13,color:T.inkMid,lineHeight:1.6,marginBottom:14}}>Acompanhamento longitudinal com profissionais que conhecem sua história.</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+            {programas.map(p=>{
+              const DESC={
+                "saude-da-mulher":"Ginecologia, gestação, climatério",
+                "saude-do-homem":"Urologia, prevenção, cuidado geral",
+                "saude-da-crianca":"Pediatria, desenvolvimento, rotina",
+                "saude-emocional":"Psicologia, psiquiatria, sono, estresse",
+                "bem-estar":"Nutrição, atividade física, prevenção",
+                "emagrecimento":"Médico, nutri, atividade, comportamento",
+                "cirurgias":"Avaliação, 2ª opinião, preparo, pós-op",
+              };
+              const PROF={
+                "saude-da-mulher":"8 médicas","saude-do-homem":"6 médicos","saude-da-crianca":"5 médicos",
+                "saude-emocional":"12 profissionais","bem-estar":"9 profissionais","emagrecimento":"7 profissionais","cirurgias":"11 cirurgiões",
+              };
+              return(
+                <div key={p.id} onClick={()=>handleSelecionarPrograma(p)}
+                  style={{background:T.surface,border:`0.5px solid ${T.border}`,borderRadius:10,padding:"14px 16px",cursor:"pointer",transition:"all 0.15s"}}
+                  onMouseOver={e=>{e.currentTarget.style.borderColor=p.cor||T.green;e.currentTarget.style.background=`${p.cor||T.green}05`;}}
+                  onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
+                  <div style={{fontSize:13,fontWeight:600,color:T.ink,marginBottom:4}}>{p.nome}</div>
+                  <div style={{fontSize:11,color:T.inkLight,lineHeight:1.5,marginBottom:8}}>{DESC[p.slug]||p.descricao?.slice(0,40)}</div>
+                  <div style={{fontSize:11,color:T.blue,fontWeight:500}}>{PROF[p.slug]||"Profissionais disponíveis"}</div>
+                </div>
+              );
+            })}
+            {/* Novos programas */}
+            <div style={{background:T.bgWarm,border:`0.5px dashed ${T.border}`,borderRadius:10,padding:"14px 16px",display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",textAlign:"center",minHeight:90}}>
+              <div style={{fontSize:12,color:T.inkMid,fontWeight:500,marginBottom:4}}>Novos programas</div>
+              <div style={{fontSize:10,color:T.inkFaint,lineHeight:1.5}}>A Stone está expandindo o cuidado contínuo</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Cuidado por necessidade */}
+        <div style={{marginBottom:28}}>
+          <div style={{fontSize:13,fontWeight:600,color:T.inkMid,marginBottom:4}}>Cuidado por necessidade</div>
+          <div style={{fontSize:12,color:T.inkFaint,lineHeight:1.5,marginBottom:12}}>Se preferir buscar por uma área específica, encontre aqui consultas pontuais com especialistas.</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+            {["Coração","Pele","Hormônios","Ossos e articulações","Ouvido, nariz e garganta","Enxaqueca","Nutrição","Fisioterapia"].map(esp=>(
+              <div key={esp} onClick={()=>setTela("programas")}
+                style={{padding:"10px 12px",background:T.surface,border:`0.5px solid ${T.border}`,borderRadius:8,cursor:"pointer",fontSize:12,color:T.ink,transition:"all 0.15s"}}
+                onMouseOver={e=>{e.currentTarget.style.borderColor=T.green;}}
+                onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;}}>
+                {esp}
+              </div>
+            ))}
+          </div>
+          <div style={{textAlign:"right",marginTop:8}}>
+            <span style={{fontSize:12,color:T.inkMid}}>Não encontrou? <span style={{color:T.inkMid,textDecoration:"underline",cursor:"pointer"}}>Ver todas as áreas</span></span>
+          </div>
+        </div>
+
+        {/* Continuar onde parou */}
+        <div>
+          <div style={{fontSize:13,fontWeight:600,color:T.ink,marginBottom:10}}>Continuar onde parou</div>
+          <div style={{padding:"14px 16px",background:T.surface,border:`0.5px solid ${T.border}`,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,cursor:"pointer"}} onClick={()=>setModulo("plano")}>
+            <div>
+              <div style={{fontSize:13,fontWeight:500,color:T.ink,marginBottom:2}}>Plano de cuidado ativo</div>
+              <div style={{fontSize:12,color:T.inkMid}}>Tarefas pendentes de hoje</div>
+            </div>
+            <span style={{fontSize:12,color:T.blue,fontWeight:500}}>Ver detalhes ↗</span>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div style={{padding:"14px 16px",background:T.surface,border:`0.5px solid ${T.border}`,borderRadius:10,cursor:"pointer"}} onClick={()=>setModulo("documentos")}>
+              <div style={{fontSize:11,color:T.inkMid,marginBottom:4}}>Últimas prescrições</div>
+              <div style={{fontSize:13,fontWeight:500,color:T.ink,marginBottom:4}}>2 documentos disponíveis</div>
+              <div style={{fontSize:12,color:T.blue}}>Abrir prescrições ↗</div>
+            </div>
+            <div style={{padding:"14px 16px",background:T.surface,border:`0.5px solid ${T.border}`,borderRadius:10,cursor:"pointer"}} onClick={()=>setModulo("documentos")}>
+              <div style={{fontSize:11,color:T.inkMid,marginBottom:4}}>Último atestado</div>
+              <div style={{fontSize:13,fontWeight:500,color:T.ink,marginBottom:4}}>Emitido em 03 de abril</div>
+              <div style={{fontSize:12,color:T.blue}}>Baixar PDF ↗</div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );
