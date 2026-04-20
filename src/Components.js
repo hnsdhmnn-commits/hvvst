@@ -1435,7 +1435,7 @@ function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate
   const nome=form?.nome||"Colaborador";
   const primeiroNome=nome.split(" ")[0];
   const hora=new Date().getHours();
-  const saudacao=hora<12?"Bom dia":"hora<18?"Boa tarde":"Boa noite";
+  const saudacao=hora<12?"Bom dia":hora<18?"Boa tarde":"Boa noite";
   const lowAxis=Object.entries(scores.eixos).sort((a,b)=>a[1]-b[1])[0];
 
   const PROGRAMAS=[
