@@ -106,6 +106,43 @@ export default function HVV(){
       try{
         await supabase.from("perfis").upsert({paciente_id:pid,...f,hvv_onboarding_completo:true},{onConflict:"paciente_id"});
         await supabase.from("pacientes").update({nome:f.nome,cargo:f.cargo||""}).eq("id",pid);
+        // Gerar plano de cuidado inicial automaticamente
+        const chave=localStorage.getItem("hvv_api_key")||apiKey||"";
+        if(chave.startsWith("sk-")){
+          const{data:planoExistente}=await supabase.from("plano_cuidado").select("id").eq("paciente_id",pid).eq("ativo",true).limit(1);
+          if(!planoExistente||planoExistente.length===0){
+            // Só gera se não tiver plano ainda
+            const prompt=`Você é Ana, enfermeira do HVV. Gere um plano de cuidado inicial em JSON para este paciente.
+
+PERFIL:
+- Condições: ${(f.condicoes||[]).filter(c=>c!=="Nenhuma").join(", ")||"nenhuma"}
+- Medicamentos: ${(f.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}
+- Sono: ${f.sono||7}h, qualidade ${f.qual_sono||5}/10
+- Estresse: ${f.estresse||5}/10
+- Treino: ${f.freq_treino||0}x/semana
+- Dieta: ${f.dieta||"não informada"}
+- Rede de apoio: ${f.qualidade_rede||"-"}/10
+- Vida social: ${f.satisfacao_social||"-"}/10
+
+Retorne APENAS um array JSON com 6-8 tarefas:
+[{"area":"saude_geral|nutricao|atividade|emocional|vinculos|prevencao","titulo":"...","descricao":"...","frequencia":"diario","frequencia_tipo":"diario|n_vezes_semana|uma_vez_semana|uma_vez_mes|unico","meta_semanal":1,"ordem":1}]`;
+            try{
+              const res=await fetch("/.netlify/functions/claude",{
+                method:"POST",
+                headers:{"Content-Type":"application/json","x-api-key":chave,"anthropic-version":"2023-06-01"},
+                body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content:prompt}]})
+              });
+              const data=await res.json();
+              const text=data.content?.[0]?.text||"[]";
+              const tarefas=JSON.parse(text.replace(/```json|```/g,"").trim());
+              if(tarefas.length>0){
+                await supabase.from("plano_cuidado").insert(
+                  tarefas.map(t=>({...t,paciente_id:pid,origem:"ia",ativo:true}))
+                );
+              }
+            }catch(e){console.warn("Plano não gerado automaticamente:",e);}
+          }
+        }
       }catch(e){console.error("Erro ao salvar perfil:",e);}
     }
     setTimeout(()=>setScreen("app"),2800);
