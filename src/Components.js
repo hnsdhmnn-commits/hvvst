@@ -1509,13 +1509,35 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
     setTela("horarios");
   };
 
-  // Horários simulados — virão do banco quando a agenda estiver implementada
-  const HORARIOS=[
-    {data:"Ter, 22 abr",slots:["09h00","10h00","14h00","15h30"]},
-    {data:"Qua, 23 abr",slots:["08h30","11h00","14h30","16h00"]},
-    {data:"Qui, 24 abr",slots:["09h30","10h30","15h00"]},
-    {data:"Sex, 25 abr",slots:["08h00","09h00","14h00","15h00"]},
-  ];
+  // Horários simulados — gerados dinamicamente a partir de hoje
+  const HORARIOS=(()=>{
+    const dias=[];
+    const hoje=new Date();
+    const nomes=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+    const meses=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+    const slotsPorDia=[
+      ["08h30","09h00","10h00","11h00","14h00","15h30","16h00"],
+      ["09h00","10h30","11h00","14h30","15h00","16h30"],
+      ["08h00","09h30","10h00","14h00","15h00","16h00"],
+      ["09h00","10h00","11h30","14h00","15h30"],
+    ];
+    let count=0;
+    for(let i=1;count<4;i++){
+      const d=new Date(hoje);
+      d.setDate(hoje.getDate()+i);
+      if(d.getDay()===0||d.getDay()===6)continue; // pular fins de semana
+      // Simular disponibilidade parcial — remover alguns slots aleatoriamente
+      const todos=slotsPorDia[count];
+      const disponiveis=todos.filter((_,idx)=>idx%2===0||count%2===0?true:idx>1);
+      dias.push({
+        data:`${nomes[d.getDay()]}, ${d.getDate()} ${meses[d.getMonth()]}`,
+        dataISO:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`,
+        slots:disponiveis
+      });
+      count++;
+    }
+    return dias;
+  })();
 
   const handleAgendar=async()=>{
     if(!horarioSelecionado||!medicoSelecionado||!programaSelecionado)return;
@@ -1528,7 +1550,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
         medico_id:medicoId,
         tipo:"teleconsulta",
         data:horarioSelecionado.dataISO,
-        hora:horarioSelecionado.hora+":00",
+        hora:horarioSelecionado.hora.replace("h",":")+":00",
         status:"agendado",
         resumo:`Programa: ${programaSelecionado.nome}`
       });
@@ -1672,7 +1694,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
                   const key=`${di}-${si}`;
                   const sel=horarioSelecionado?.key===key;
                   return(
-                    <button key={si} onClick={()=>setHorarioSelecionado({key,hora:slot,data:dia.data,dataISO:`2026-04-${21+di}`})}
+                    <button key={si} onClick={()=>setHorarioSelecionado({key,hora:slot,data:dia.data,dataISO:dia.dataISO})}
                       style={{padding:"8px 18px",borderRadius:8,border:`1.5px solid ${sel?T.green:T.border}`,background:sel?T.greenBg:T.surface,color:sel?T.green:T.inkMid,fontSize:13,cursor:"pointer",fontFamily:T.fB,fontWeight:sel?600:400,transition:"all 0.15s"}}>
                       {slot}
                     </button>
@@ -1779,17 +1801,35 @@ function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate
             <Btn onClick={()=>setModulo("ana")} variant="teal">FAZER CHECK-IN →</Btn>
           </Card>
         ):(
-          <Card style={{padding:"16px 20px",background:T.greenBg,border:`1px solid ${T.green}30`,display:"flex",alignItems:"center",gap:14}}>
-            <div style={{width:36,height:36,borderRadius:"50%",background:T.green,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>✓</div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:13,color:T.ink,fontWeight:500,marginBottom:3}}>Check-in concluído hoje</div>
-              <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
-                {[["Energia",checkinHoje.energia,T.teal],["Sono",checkinHoje.sono,T.purple],["Estresse",checkinHoje.estresse,T.red],["Vínculos",checkinHoje.vinculos,T.blue]].filter(([,v])=>v).map(([label,val,cor])=>(
-                  <div key={label} style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:4,height:4,borderRadius:"50%",background:cor}}/><span style={{fontSize:11,color:T.inkMid}}>{label}: <strong style={{color:cor}}>{val}/10</strong></span></div>
-                ))}
+          <Card style={{padding:"16px 20px",background:T.greenBg,border:`1px solid ${T.green}30`}}>
+            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:12}}>
+              <div style={{width:36,height:36,borderRadius:"50%",background:T.green,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>✓</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,color:T.ink,fontWeight:500}}>Check-in concluído hoje</div>
+                <div style={{fontSize:11,color:T.inkMid}}>{new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"})}</div>
               </div>
+              <Btn onClick={()=>setModulo("ana")} variant="outline" style={{fontSize:11}}>Conversar com Ana →</Btn>
             </div>
-            <Btn onClick={()=>setModulo("ana")} variant="outline" style={{fontSize:11}}>Ver detalhes →</Btn>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:8}}>
+              {[
+                ["Energia",checkinHoje.energia,T.teal],
+                ["Sono",checkinHoje.sono,T.purple],
+                ["Estresse",checkinHoje.estresse,T.red],
+                ["Humor",checkinHoje.humor,T.gold],
+                ["Vínculos",checkinHoje.vinculos,T.blue],
+                ["Bem-estar",checkinHoje.bem_estar,T.green],
+              ].filter(([,v])=>v).map(([label,val,cor])=>(
+                <div key={label} style={{textAlign:"center",padding:"8px",background:"rgba(255,255,255,0.6)",borderRadius:8}}>
+                  <div style={{fontSize:18,fontWeight:700,color:cor,fontFamily:T.fD,lineHeight:1,marginBottom:3}}>{val}</div>
+                  <div style={{fontSize:9,color:T.inkMid}}>{label}</div>
+                  <div style={{height:2,background:"rgba(0,0,0,0.08)",borderRadius:1,overflow:"hidden",marginTop:4}}>
+                    <div style={{height:"100%",width:`${val*10}%`,background:cor,borderRadius:1}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {checkinHoje.sintomas&&<div style={{marginTop:10,fontSize:11,color:T.inkMid}}>Sintomas: {checkinHoje.sintomas}</div>}
+            {checkinHoje.notas&&<div style={{marginTop:4,fontSize:11,color:T.inkMid}}>Observações: {checkinHoje.notas}</div>}
           </Card>
         )}
 
