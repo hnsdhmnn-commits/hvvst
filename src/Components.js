@@ -261,7 +261,7 @@ async function inscreverPrograma(pacienteId,programaId,medicoId){
 }
 
 async function carregarMedicos(){
-  const{data}=await supabase.from("medicos").select("id,nome,especialidade,foto_url").eq("ativo",true);
+  const{data}=await supabase.from("medicos").select("id,nome,crm,especialidade,foto_url");
   return data||[];
 }
 
@@ -1499,7 +1499,15 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
 
   const handleSelecionarPrograma=async(prog)=>{
     setProgramaSelecionado(prog);
-    const ms=await carregarMedicos();
+    let ms=await carregarMedicos();
+    // Se não houver médicos no banco, usar fictícios para demonstração
+    if(ms.length===0){
+      ms=[
+        {id:"demo-1",nome:"Dr. Rafael Mendes",crm:"CRM/SP 145678",especialidade:"Clínica Geral"},
+        {id:"demo-2",nome:"Dra. Marina Costa",crm:"CRM/SP 112233",especialidade:"Medicina Interna"},
+        {id:"demo-3",nome:"Dr. Carlos Lima",crm:"CRM/SP 98765",especialidade:"Medicina de Família"},
+      ];
+    }
     setMedicos(ms);
     setTela("medicos");
   };
@@ -1678,24 +1686,50 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
   if(tela==="horarios")return(
     <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
       <div style={{maxWidth:700,margin:"0 auto"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:28}}>
+
+        {/* Cabeçalho */}
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
           <button onClick={()=>setTela("medicos")} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:T.inkMid}}>←</button>
           <div>
             <div style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>Escolha o horário</div>
-            <div style={{fontSize:13,color:T.inkMid}}>{medicoSelecionado?.nome} · {programaSelecionado?.nome}</div>
+            <div style={{fontSize:13,color:T.inkMid}}>{programaSelecionado?.nome}</div>
           </div>
         </div>
-        <div style={{display:"flex",flexDirection:"column",gap:16}}>
+
+        {/* Card do médico selecionado */}
+        <Card style={{padding:"16px 18px",marginBottom:20,display:"flex",alignItems:"center",gap:14}}>
+          <div style={{width:46,height:46,borderRadius:"50%",background:T.greenBg,border:`1.5px solid ${T.green}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👨‍⚕️</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:14,color:T.ink,fontWeight:600}}>{medicoSelecionado?.nome}</div>
+            <div style={{fontSize:12,color:T.inkMid}}>{medicoSelecionado?.especialidade||"Clínica Geral"} · CRM {medicoSelecionado?.crm}</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:10,color:T.inkFaint,marginBottom:2}}>DURAÇÃO</div>
+            <div style={{fontSize:13,color:T.ink,fontWeight:500}}>30–40 min</div>
+          </div>
+        </Card>
+
+        {/* Nota teleconsulta */}
+        <div style={{padding:"10px 14px",background:T.blueBg,border:`1px solid ${T.blue}20`,borderRadius:8,marginBottom:20,display:"flex",gap:10,alignItems:"center"}}>
+          <span style={{fontSize:18}}>📹</span>
+          <div style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>Consulta por <strong>videochamada</strong>. O link será enviado por e-mail e disponibilizado no app 30 minutos antes.</div>
+        </div>
+
+        {/* Grade de horários */}
+        <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:20}}>
           {HORARIOS.map((dia,di)=>(
-            <Card key={di} style={{padding:"18px 20px"}}>
-              <div style={{fontSize:12,color:T.inkMid,fontWeight:600,letterSpacing:"0.08em",marginBottom:12}}>{dia.data.toUpperCase()}</div>
+            <Card key={di} style={{padding:"16px 18px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                <div style={{fontSize:12,fontWeight:600,color:T.ink}}>{dia.data}</div>
+                <div style={{fontSize:10,color:T.inkFaint,marginLeft:"auto"}}>{dia.slots.length} horários disponíveis</div>
+              </div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 {dia.slots.map((slot,si)=>{
                   const key=`${di}-${si}`;
                   const sel=horarioSelecionado?.key===key;
                   return(
                     <button key={si} onClick={()=>setHorarioSelecionado({key,hora:slot,data:dia.data,dataISO:dia.dataISO})}
-                      style={{padding:"8px 18px",borderRadius:8,border:`1.5px solid ${sel?T.green:T.border}`,background:sel?T.greenBg:T.surface,color:sel?T.green:T.inkMid,fontSize:13,cursor:"pointer",fontFamily:T.fB,fontWeight:sel?600:400,transition:"all 0.15s"}}>
+                      style={{padding:"8px 16px",borderRadius:8,border:`1.5px solid ${sel?T.green:T.border}`,background:sel?T.green:T.surface,color:sel?"#FFF":T.inkMid,fontSize:12,cursor:"pointer",fontFamily:T.fB,fontWeight:sel?600:400,transition:"all 0.15s"}}>
                       {slot}
                     </button>
                   );
@@ -1704,38 +1738,99 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
             </Card>
           ))}
         </div>
+
+        {/* Resumo e confirmação */}
         {horarioSelecionado&&(
-          <div style={{marginTop:20,padding:"16px 20px",background:T.greenBg,border:`1px solid ${T.green}30`,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <div>
-              <div style={{fontSize:13,color:T.ink,fontWeight:500}}>Teleconsulta com {medicoSelecionado?.nome?.split(" ").slice(-1)[0]}</div>
-              <div style={{fontSize:12,color:T.inkMid}}>{horarioSelecionado.data} às {horarioSelecionado.hora} · {programaSelecionado?.nome}</div>
+          <Card style={{padding:"20px",background:T.goldFaint,border:`1px solid ${T.goldBorder}`}}>
+            <div style={{fontFamily:T.fD,fontSize:16,color:T.ink,marginBottom:14}}>Resumo do agendamento</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+              {[
+                ["Programa",programaSelecionado?.nome],
+                ["Médico",medicoSelecionado?.nome],
+                ["Data",horarioSelecionado.data],
+                ["Horário",horarioSelecionado.hora],
+                ["Tipo","Teleconsulta"],
+                ["Duração","30–40 minutos"],
+              ].map(([label,val])=>(
+                <div key={label} style={{padding:"10px 12px",background:"rgba(255,255,255,0.7)",borderRadius:8}}>
+                  <div style={{fontSize:10,color:T.inkFaint,marginBottom:2}}>{label.toUpperCase()}</div>
+                  <div style={{fontSize:13,color:T.ink,fontWeight:500}}>{val}</div>
+                </div>
+              ))}
             </div>
-            <Btn onClick={handleAgendar} variant="gold" disabled={agendando}>{agendando?"Agendando...":"CONFIRMAR →"}</Btn>
-          </div>
+            <Btn onClick={handleAgendar} variant="gold" disabled={agendando} style={{width:"100%",padding:"13px"}}>
+              {agendando?"Confirmando agendamento...":"✓ CONFIRMAR AGENDAMENTO →"}
+            </Btn>
+          </Card>
         )}
+
       </div>
     </div>
   );
 
   // ── TELA CONFIRMADO ────────────────────────────────────────────
   if(tela==="confirmado")return(
-    <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:40}}>
-      <div style={{maxWidth:500,textAlign:"center"}}>
-        <div style={{fontSize:64,marginBottom:20}}>✅</div>
-        <div style={{fontFamily:T.fD,fontSize:28,color:T.ink,marginBottom:8}}>Consulta agendada!</div>
-        <div style={{fontSize:14,color:T.inkMid,lineHeight:1.8,marginBottom:8}}>
-          {horarioSelecionado?.data} às {horarioSelecionado?.hora}
+    <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
+      <div style={{maxWidth:700,margin:"0 auto"}}>
+
+        {/* Header de sucesso */}
+        <div style={{textAlign:"center",padding:"28px 0 24px"}}>
+          <div style={{width:72,height:72,borderRadius:"50%",background:T.greenBg,border:`2px solid ${T.green}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,margin:"0 auto 16px"}}>✅</div>
+          <div style={{fontFamily:T.fD,fontSize:28,color:T.ink,marginBottom:6}}>Consulta agendada!</div>
+          <div style={{fontSize:14,color:T.inkMid}}>{horarioSelecionado?.data} às {horarioSelecionado?.hora} · {programaSelecionado?.nome}</div>
         </div>
-        <div style={{fontSize:13,color:T.inkMid,marginBottom:32}}>
-          com {medicoSelecionado?.nome} · {programaSelecionado?.nome}
+
+        {/* Detalhes do agendamento */}
+        <Card style={{padding:"20px 22px",marginBottom:16}}>
+          <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16,paddingBottom:14,borderBottom:`0.5px solid ${T.border}`}}>
+            <div style={{width:46,height:46,borderRadius:"50%",background:T.greenBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👨‍⚕️</div>
+            <div>
+              <div style={{fontSize:14,color:T.ink,fontWeight:600}}>{medicoSelecionado?.nome}</div>
+              <div style={{fontSize:12,color:T.inkMid}}>{medicoSelecionado?.especialidade||"Clínica Geral"} · CRM {medicoSelecionado?.crm}</div>
+            </div>
+            <span style={{marginLeft:"auto",padding:"3px 10px",borderRadius:8,background:T.greenBg,color:T.green,fontSize:11,fontWeight:600}}>Confirmado</span>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+            {[["Data",horarioSelecionado?.data],["Horário",horarioSelecionado?.hora],["Tipo","Teleconsulta"],["Programa",programaSelecionado?.nome],["Duração","30–40 min"],["Link","Enviado por e-mail"]].map(([l,v])=>(
+              <div key={l} style={{padding:"10px 12px",background:T.bgWarm,borderRadius:8}}>
+                <div style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.08em",marginBottom:3}}>{l.toUpperCase()}</div>
+                <div style={{fontSize:12,color:T.ink,fontWeight:500}}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Notificação Ana */}
+        <Card style={{padding:"16px 18px",marginBottom:16,display:"flex",alignItems:"center",gap:12,background:T.tealBg,border:`1px solid ${T.teal}30`}}>
+          <div style={{fontSize:24,flexShrink:0}}>🩺</div>
+          <div>
+            <div style={{fontSize:13,color:T.ink,fontWeight:500,marginBottom:2}}>Ana foi notificada</div>
+            <div style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>A Ana preparará um resumo do seu perfil de saúde e histórico de check-ins para o médico antes da consulta.</div>
+          </div>
+        </Card>
+
+        {/* Próximos passos */}
+        <Card style={{padding:"18px 20px",marginBottom:16}}>
+          <div style={{fontFamily:T.fD,fontSize:16,color:T.ink,marginBottom:14}}>Próximos passos</div>
+          {[
+            {n:1,text:"Verifique seu e-mail — o link da videochamada será enviado 24h antes"},
+            {n:2,text:"Prepare seus exames e documentos recentes para mostrar ao médico"},
+            {n:3,text:"Faça seu check-in no dia da consulta — o médico verá seus dados atualizados"},
+            {n:4,text:"Entre no link 5 minutos antes do horário agendado"},
+          ].map(({n,text})=>(
+            <div key={n} style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:10}}>
+              <div style={{width:22,height:22,borderRadius:"50%",background:T.greenBg,border:`1.5px solid ${T.green}40`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:11,fontWeight:700,color:T.green}}>{n}</div>
+              <div style={{fontSize:12,color:T.inkMid,lineHeight:1.7,paddingTop:2}}>{text}</div>
+            </div>
+          ))}
+        </Card>
+
+        {/* Ações */}
+        <div style={{display:"flex",gap:10}}>
+          <Btn onClick={()=>setTela("home")} variant="outline" style={{flex:1}}>← Voltar ao início</Btn>
+          <Btn onClick={()=>setModulo("dashboard")} variant="teal" style={{flex:2}}>Ver minha saúde →</Btn>
         </div>
-        <div style={{padding:"16px 20px",background:T.tealBg,borderRadius:12,fontSize:13,color:T.inkMid,lineHeight:1.7,marginBottom:24}}>
-          Você receberá o link da teleconsulta por e-mail. A Ana já foi notificada e preparará um resumo do seu perfil para o médico.
-        </div>
-        <div style={{display:"flex",gap:12,justifyContent:"center"}}>
-          <Btn onClick={()=>setTela("home")} variant="outline">← Voltar ao início</Btn>
-          <Btn onClick={()=>setModulo("dashboard")} variant="teal">Ver minha saúde →</Btn>
-        </div>
+
       </div>
     </div>
   );
