@@ -124,11 +124,17 @@ async function carregarPlanoCuidado(pacienteId){
 }
 
 async function carregarRegistrosHoje(pacienteId){
-  const hoje=dataHoje();
+  // Buscar registros dos últimos 31 dias para cobrir todas as frequências
+  const d=new Date();
+  const inicio=new Date(d);
+  inicio.setDate(inicio.getDate()-31);
+  const inicioStr=`${inicio.getFullYear()}-${String(inicio.getMonth()+1).padStart(2,'0')}-${String(inicio.getDate()).padStart(2,'0')}`;
   const{data}=await supabase.from("plano_registros")
     .select("*")
     .eq("paciente_id",pacienteId)
-    .eq("data",hoje);
+    .gte("data",inicioStr)
+    .eq("status","concluido")
+    .order("data",{ascending:false});
   return data||[];
 }
 
@@ -158,7 +164,14 @@ PERFIL:
 - Vida social: ${form?.satisfacao_social||"-"}/10
 
 Retorne APENAS um array JSON com 6-10 tarefas no formato:
-[{"area":"saude_geral|nutricao|atividade|emocional|vinculos|prevencao","titulo":"...","descricao":"...","frequencia":"diario|semanal|mensal","ordem":1}]`;
+[{"area":"saude_geral|nutricao|atividade|emocional|vinculos|prevencao","titulo":"...","descricao":"...","frequencia":"diario","frequencia_tipo":"diario|n_vezes_semana|uma_vez_semana|uma_vez_mes|unico","meta_semanal":3,"ordem":1}]
+
+Regras para frequencia_tipo:
+- "diario": tarefas que devem ser feitas todo dia (tomar medicamento, beber água, etc)
+- "n_vezes_semana": atividades com meta semanal — use meta_semanal para definir quantas vezes (ex: exercício 3x/semana = meta_semanal:3)
+- "uma_vez_semana": tarefas semanais (ex: pesar na balança, revisar plano)
+- "uma_vez_mes": tarefas mensais (ex: consulta de retorno, exame)
+- "unico": tarefas pontuais que some quando concluída (ex: agendar consulta, comprar medicamento)`;
 
   try{
     const chave=apiKey||localStorage.getItem("hvv_api_key")||"";
@@ -1197,6 +1210,7 @@ function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate
 function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKey}){
   const[tarefas,setTarefas]=useState([]);
   const[registros,setRegistros]=useState({});
+  const[registrosPorData,setRegistrosPorData]=useState({});
   const[loading,setLoading]=useState(true);
   const[gerando,setGerando]=useState(false);
   const eq=EQUIPE.find(e=>e.id==="enfermeira");
@@ -1221,17 +1235,98 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
       setTarefas(ts);
       // Mapear registros por tarefa_id
       const mapa={};
-      rs.forEach(r=>{mapa[r.tarefa_id]=r.status;});
+      const porData={};
+      rs.forEach(r=>{
+        if(!mapa[r.tarefa_id]){mapa[r.tarefa_id]={status:r.status,data:r.data};}
+        if(!porData[r.tarefa_id])porData[r.tarefa_id]={};
+        porData[r.tarefa_id][r.data]=r.status;
+      });
       setRegistros(mapa);
+      setRegistrosPorData(porData);
       setLoading(false);
     })();
   },[pacienteId]);
 
+  // Retorna início da semana atual (segunda-feira)
+  const inicioSemana=()=>{
+    const d=new Date();
+    const dia=d.getDay();
+    const diff=dia===0?-6:1-dia; // ajuste para segunda
+    const seg=new Date(d);
+    seg.setDate(d.getDate()+diff);
+    return `${seg.getFullYear()}-${String(seg.getMonth()+1).padStart(2,'0')}-${String(seg.getDate()).padStart(2,'0')}`;
+  };
+
+  // Quantas vezes a tarefa foi concluída nesta semana
+  const concluidasNaSemana=(tarefaId)=>{
+    const seg=inicioSemana();
+    return Object.entries(registrosPorData[tarefaId]||{})
+      .filter(([data,status])=>data>=seg && status==="concluido")
+      .length;
+  };
+
+  const isTarefaConcluida=(tarefa)=>{
+    const tipo=tarefa.frequencia_tipo||tarefa.frequencia||"diario";
+    const hoje=dataHoje();
+
+    if(tipo==="unico"){
+      // Aparece uma vez, some quando marcado
+      return !!registros[tarefa.id];
+    }
+    if(tipo==="diario"){
+      // Reseta todo dia
+      return registros[tarefa.id]?.data===hoje;
+    }
+    if(tipo==="n_vezes_semana"){
+      // Meta semanal — some quando atingir N vezes
+      const meta=tarefa.meta_semanal||3;
+      return concluidasNaSemana(tarefa.id)>=meta;
+    }
+    if(tipo==="uma_vez_semana"){
+      // Marcado nesta semana
+      const seg=inicioSemana();
+      return Object.entries(registrosPorData[tarefa.id]||{})
+        .some(([data,status])=>data>=seg && status==="concluido");
+    }
+    if(tipo==="uma_vez_mes" || tipo==="mensal"){
+      // Marcado neste mês
+      const mesAtual=dataHoje().slice(0,7); // YYYY-MM
+      return Object.entries(registrosPorData[tarefa.id]||{})
+        .some(([data,status])=>data.startsWith(mesAtual) && status==="concluido");
+    }
+    // fallback diário
+    return registros[tarefa.id]?.data===hoje;
+  };
+
+  // Para n_vezes_semana — mostrar progresso
+  const progressoSemanal=(tarefa)=>{
+    if((tarefa.frequencia_tipo||tarefa.frequencia)!=="n_vezes_semana")return null;
+    const meta=tarefa.meta_semanal||3;
+    const feitas=concluidasNaSemana(tarefa.id);
+    return {feitas,meta};
+  };
+
   const toggleTarefa=async(tarefa)=>{
-    const atual=registros[tarefa.id];
-    const novoStatus=atual==="concluido"?"pendente":"concluido";
-    setRegistros(prev=>({...prev,[tarefa.id]:novoStatus}));
-    await registrarTarefa(tarefa.id,pacienteId,novoStatus);
+    const tipo=tarefa.frequencia_tipo||tarefa.frequencia||"diario";
+    const hoje=dataHoje();
+    const feita=isTarefaConcluida(tarefa);
+
+    if(tipo==="n_vezes_semana" && !feita){
+      // Adicionar mais uma ocorrência hoje
+      const novoReg={status:"concluido",data:hoje};
+      setRegistros(prev=>({...prev,[tarefa.id]:novoReg}));
+      setRegistrosPorData(prev=>({...prev,[tarefa.id]:{...(prev[tarefa.id]||{}),[hoje]:"concluido"}}));
+      await registrarTarefa(tarefa.id,pacienteId,"concluido");
+    } else if(feita && tipo!=="unico"){
+      // Desmarcar ocorrência de hoje
+      setRegistros(prev=>{const n={...prev};delete n[tarefa.id];return n;});
+      setRegistrosPorData(prev=>({...prev,[tarefa.id]:{...(prev[tarefa.id]||{}),[hoje]:"pendente"}}));
+      await registrarTarefa(tarefa.id,pacienteId,"pendente");
+    } else if(!feita){
+      setRegistros(prev=>({...prev,[tarefa.id]:{status:"concluido",data:hoje}}));
+      setRegistrosPorData(prev=>({...prev,[tarefa.id]:{...(prev[tarefa.id]||{}),[hoje]:"concluido"}}));
+      await registrarTarefa(tarefa.id,pacienteId,"concluido");
+    }
   };
 
   const handleGerarPlano=async()=>{
@@ -1244,7 +1339,7 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
     setGerando(false);
   };
 
-  const concluidas=Object.values(registros).filter(s=>s==="concluido").length;
+  const concluidas=tarefas.filter(t=>isTarefaConcluida(t)).length;
   const areas=[...new Set(tarefas.map(t=>t.area))];
 
   if(loading)return(
@@ -1297,7 +1392,7 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
                     <span style={{marginLeft:"auto",fontSize:11,color:cfg.cor,fontWeight:600}}>{done}/{ts.length}</span>
                   </div>
                   {ts.map(tarefa=>{
-                    const feita=registros[tarefa.id]==="concluido";
+                    const feita=isTarefaConcluida(tarefa);
                     return(
                       <div key={tarefa.id} onClick={()=>toggleTarefa(tarefa)}
                         style={{display:"flex",gap:12,alignItems:"flex-start",padding:"12px 18px",borderBottom:`1px solid ${T.border}`,cursor:"pointer",background:feita?T.surfaceMid:"transparent",transition:"background 0.15s"}}
@@ -1309,7 +1404,9 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
                           <div style={{fontSize:13,color:feita?T.inkFaint:T.ink,fontWeight:500,textDecoration:feita?"line-through":"none",marginBottom:2}}>{tarefa.titulo}</div>
                           {tarefa.descricao&&<div style={{fontSize:11,color:T.inkFaint,lineHeight:1.5}}>{tarefa.descricao}</div>}
                         </div>
-                        <span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:cfg.bg,color:cfg.cor,fontWeight:700,flexShrink:0,marginTop:2}}>{tarefa.frequencia?.toUpperCase()||"DIÁRIO"}</span>
+                        <span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:cfg.bg,color:cfg.cor,fontWeight:700,flexShrink:0,marginTop:2}}>
+                        {(()=>{const prog=progressoSemanal(tarefa);return prog?`${prog.feitas}/${prog.meta}x SEMANA`:(tarefa.frequencia_tipo||tarefa.frequencia||"diario").toUpperCase().replace("_"," ");})()}
+                      </span>
                       </div>
                     );
                   })}
