@@ -741,7 +741,7 @@ Tom: acolhedor, preciso e humano. Histórico persistido — você tem memória d
 
         {modulo==="dashboard"&&<ModuloDashboard form={form} scores={scores} setModulo={setModulo} checkinHoje={checkinHoje} planLog={planLog} onPlanUpdate={onPlanUpdate}/>}
         {modulo==="plano"&&<ModuloPlano form={form} scores={scores} setModulo={setModulo} planLog={planLog} checkinHoje={checkinHoje} pacienteId={pacienteId} apiKey={apiKey}/>}
-        {modulo==="ana"&&<ModuloAna form={form} scores={scores} apiKey={apiKey} checkinHoje={checkinHoje} onCheckinSalvo={onCheckinSalvo} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId} getBuildPrompt={buildPrompt}/>}
+        {modulo==="ana"&&<ModuloAna form={form} scores={scores} apiKey={apiKey} checkinHoje={checkinHoje} onCheckinSalvo={onCheckinSalvo} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId} getBuildPrompt={buildPrompt} onPlanChange={()=>setModulo("plano")}/>}
         {modulo==="nutri"&&<ModuloChat membro="nutri" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("nutri")} inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou a Dra. Lucia, sua nutricionista. Dieta atual: ${form?.dieta||"não informada"}. Score de Nutrição: ${scores.eixos["Nutrição"]}/100. Como posso ajudar?`} sugestoes={["O que devo comer antes do treino?","Como melhorar minha alimentação?","Quais suplementos são indicados para mim?","Como montar um cardápio executivo?"]}/>}
         {modulo==="personal"&&<ModuloChat membro="personal" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("personal")} inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou o Bruno, seu especialista em atividade física. Treino atual: ${form?.freq_treino||0}x/semana. Score de Atividade: ${scores.eixos["Atividade"]}/100. Como posso ajudar?`} sugestoes={["Monte um treino para minha rotina executiva","Como treinar com pouco tempo?","Qual a melhor atividade para reduzir estresse?","Como melhorar minha recuperação?"]}/>}
         {modulo==="farmaceutico"&&<ModuloChat membro="farmaceutico" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("farmaceutico")} inicialMsg={`Olá! Sou Rafael. Medicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}. Em que posso ajudar?`} sugestoes={["Verificar interações","Como tomar minha medicação?","Posso tomar vitaminas junto?"]}/>}
@@ -768,8 +768,183 @@ function ModuloChat({membro,form,scores,apiKey,pacienteId,systemPrompt,inicialMs
   );
 }
 
+// ─── Chat da Ana com Tool Use ─────────────────────────────────────
+// A Ana pode adicionar, atualizar e remover tarefas do plano de cuidado
+function ChatIAComTools({systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pacienteId,onPlanChange}){
+  const eq=EQUIPE.find(e=>e.id==="enfermeira");
+  const[msgs,setMsgs]=useState([{role:"assistant",content:inicialMsg}]);
+  const[input,setInput]=useState("");
+  const[loading,setLoading]=useState(false);
+  const[carregando,setCarregando]=useState(true);
+  const bottomRef=useRef(null);
+  const inputRef=useRef(null);
+
+  const TOOLS=[{
+    name:"gerenciar_plano_cuidado",
+    description:"Adiciona, atualiza ou remove tarefas do plano de cuidado do paciente. Use quando o paciente pedir para agendar algo, adicionar uma tarefa, remover uma tarefa, ou quando você identificar que uma tarefa precisa ser criada com base na conversa.",
+    input_schema:{
+      type:"object",
+      properties:{
+        acao:{type:"string",enum:["adicionar","remover","atualizar"],description:"Ação a realizar no plano"},
+        titulo:{type:"string",description:"Título claro e objetivo da tarefa"},
+        descricao:{type:"string",description:"Descrição detalhada opcional"},
+        area:{type:"string",enum:["saude_geral","nutricao","atividade","emocional","vinculos","prevencao"],description:"Área de saúde da tarefa"},
+        frequencia_tipo:{type:"string",enum:["diario","n_vezes_semana","uma_vez_semana","uma_vez_mes","unico"],description:"Frequência da tarefa"},
+        meta_semanal:{type:"number",description:"Quantas vezes por semana (apenas para n_vezes_semana)"},
+        tarefa_id:{type:"string",description:"ID da tarefa a remover ou atualizar (obrigatório para remover/atualizar)"},
+      },
+      required:["acao","titulo","area","frequencia_tipo"]
+    }
+  }];
+
+  useEffect(()=>{
+    if(!pacienteId){setCarregando(false);return;}
+    const timer=setTimeout(()=>{
+      carregarHistoricoChat(pacienteId,"enfermeira").then(hist=>{
+        if(hist.length>0)setMsgs([{role:"assistant",content:inicialMsg},...hist]);
+        setCarregando(false);
+      }).catch(()=>setCarregando(false));
+    },3000);
+    return()=>clearTimeout(timer);
+  },[pacienteId]);
+
+  useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[msgs]);
+
+  const executarTool=async(toolInput)=>{
+    const{acao,titulo,descricao,area,frequencia_tipo,meta_semanal,tarefa_id}=toolInput;
+    try{
+      if(acao==="adicionar"){
+        const{data,error}=await supabase.from("plano_cuidado").insert({
+          paciente_id:pacienteId,
+          titulo,descricao:descricao||"",
+          area,frequencia_tipo,
+          frequencia:frequencia_tipo,
+          meta_semanal:meta_semanal||1,
+          origem:"ana",ativo:true,ordem:99
+        }).select("id").single();
+        if(!error&&onPlanChange)onPlanChange();
+        return error?`Erro ao adicionar tarefa: ${error.message}`:`Tarefa "${titulo}" adicionada ao plano com sucesso.`;
+      }
+      if(acao==="remover"&&tarefa_id){
+        const{error}=await supabase.from("plano_cuidado").update({ativo:false}).eq("id",tarefa_id);
+        if(!error&&onPlanChange)onPlanChange();
+        return error?`Erro ao remover tarefa: ${error.message}`:`Tarefa removida do plano.`;
+      }
+      if(acao==="atualizar"&&tarefa_id){
+        const{error}=await supabase.from("plano_cuidado").update({
+          titulo,descricao,area,frequencia_tipo,meta_semanal:meta_semanal||1
+        }).eq("id",tarefa_id);
+        if(!error&&onPlanChange)onPlanChange();
+        return error?`Erro ao atualizar: ${error.message}`:`Tarefa "${titulo}" atualizada.`;
+      }
+      return "Ação não reconhecida.";
+    }catch(e){return `Erro: ${e.message}`;}
+  };
+
+  const send=async(text)=>{
+    if(!text.trim()||loading||!apiKey)return;
+    const userMsg={role:"user",content:text};
+    setMsgs(prev=>[...prev,userMsg,{role:"assistant",content:"",loading:true}]);
+    setInput("");setLoading(true);
+    if(pacienteId)await salvarMensagemChat(pacienteId,"enfermeira","user",text);
+
+    const enviar=async(history,tentativa=1)=>{
+      try{
+        const res=await fetch("/.netlify/functions/claude",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},
+          body:JSON.stringify({
+            model:"claude-sonnet-4-20250514",
+            max_tokens:1200,
+            system:systemPrompt,
+            tools:TOOLS,
+            messages:history
+          })
+        });
+        if(res.status===429&&tentativa<3){await new Promise(r=>setTimeout(r,3000*tentativa));return enviar(history,tentativa+1);}
+        if(res.status===503&&tentativa<3){await new Promise(r=>setTimeout(r,5000*tentativa));return enviar(history,tentativa+1);}
+
+        const data=await res.json();
+        const stopReason=data.stop_reason;
+
+        if(stopReason==="tool_use"){
+          // Ana quer usar uma ferramenta
+          const toolUse=data.content.find(c=>c.type==="tool_use");
+          const textContent=data.content.find(c=>c.type==="text");
+
+          // Mostrar o que a Ana disse antes de usar a ferramenta
+          if(textContent?.text){
+            setMsgs(prev=>[...prev.slice(0,-1),
+              {role:"assistant",content:textContent.text},
+              {role:"assistant",content:"",loading:true}
+            ]);
+          }
+
+          // Executar a ferramenta
+          const resultado=await executarTool(toolUse.input);
+
+          // Continuar a conversa com o resultado da ferramenta
+          const novoHistory=[
+            ...history,
+            {role:"assistant",content:data.content},
+            {role:"user",content:[{type:"tool_result",tool_use_id:toolUse.id,content:resultado}]}
+          ];
+          return enviar(novoHistory,1);
+        }
+
+        // Resposta final
+        const resposta=data.content?.find(c=>c.type==="text")?.text||"Erro ao processar.";
+        setMsgs(prev=>[...prev.slice(0,-1),{role:"assistant",content:resposta}]);
+        if(pacienteId)await salvarMensagemChat(pacienteId,"enfermeira","assistant",resposta);
+
+      }catch(e){
+        setMsgs(prev=>[...prev.slice(0,-1),{role:"assistant",content:"Erro de conexão. Tente novamente."}]);
+      }finally{
+        setLoading(false);
+        setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),100);
+        inputRef.current?.focus();
+      }
+    };
+
+    const history=[...msgs,userMsg].filter(m=>!m.loading).map(m=>({role:m.role,content:m.content}));
+    await enviar(history);
+  };
+
+  if(carregando)return <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{fontSize:12,color:T.inkFaint}}>Carregando histórico...</div></div>;
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+      <div style={{flex:1,overflowY:"auto",padding:"24px 28px 8px"}}>
+        {msgs.map((msg,i)=>{
+          const isUser=msg.role==="user";
+          return(<div key={i} style={{display:"flex",flexDirection:isUser?"row-reverse":"row",gap:12,marginBottom:20,alignItems:"flex-start"}}>
+            {!isUser&&<div style={{width:36,height:36,borderRadius:"50%",background:eq?.bg||T.goldFaint,border:`1.5px solid ${eq?.cor||T.gold}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,marginTop:2}}>{eq?.icon||"🩺"}</div>}
+            <div style={{maxWidth:"74%",padding:"14px 18px",background:isUser?T.goldFaint:T.surface,border:`1px solid ${isUser?T.goldBorder:T.border}`,borderRadius:isUser?"16px 16px 4px 16px":"4px 16px 16px 16px",fontSize:13,color:T.ink,lineHeight:1.8,whiteSpace:"pre-wrap",boxShadow:T.shadowCard}}>
+              {msg.loading?<span style={{display:"inline-flex",gap:5}}>{[0,1,2].map(j=><span key={j} style={{width:6,height:6,borderRadius:"50%",background:eq?.cor||T.gold,display:"inline-block",animation:`blink 1.2s ease ${j*0.2}s infinite`}}/>)}</span>:msg.content}
+            </div>
+          </div>);
+        })}
+        <div ref={bottomRef}/>
+      </div>
+      {msgs.length<=1&&sugestoes?.length>0&&(
+        <div style={{padding:"0 28px 14px",display:"flex",gap:8,flexWrap:"wrap",flexShrink:0}}>
+          {sugestoes.map((s,i)=>(<button key={i} onClick={()=>send(s)} style={{padding:"8px 16px",background:T.surface,border:`1px solid ${T.border}`,borderRadius:20,fontSize:12,color:T.inkMid,cursor:"pointer",fontFamily:T.fB,transition:"all 0.18s",boxShadow:T.shadowCard}}>{s}</button>))}
+        </div>
+      )}
+      <div style={{padding:"6px 28px",background:T.surfaceMid,borderTop:`1px solid ${T.border}`,flexShrink:0}}>
+        <div style={{fontSize:10,color:T.inkFaint,lineHeight:1.6}}>✦ A Ana pode adicionar tarefas ao seu plano — basta pedir. ⚠️ Valide decisões clínicas com seu médico.</div>
+      </div>
+      <div style={{borderTop:`1px solid ${T.border}`,padding:"14px 28px",display:"flex",gap:10,alignItems:"flex-end",flexShrink:0,background:T.bgWarm}}>
+        <textarea ref={inputRef} rows={1} placeholder={apiKey?placeholder:"Configure a API Key..."} value={input} onChange={e=>{setInput(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,120)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send(input);}}} disabled={loading||!apiKey} style={{flex:1,background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:10,padding:"12px 16px",color:T.ink,fontFamily:T.fB,fontSize:13,outline:"none",lineHeight:1.6,minHeight:44,maxHeight:120,overflow:"hidden",resize:"none",opacity:apiKey?1:0.5,boxShadow:T.shadowCard}}/>
+        <button onClick={()=>send(input)} disabled={loading||!input.trim()||!apiKey} style={{width:44,height:44,borderRadius:10,background:(!loading&&input.trim()&&apiKey)?eq?.cor||T.gold:"transparent",border:`1.5px solid ${(!loading&&input.trim()&&apiKey)?eq?.cor||T.gold:T.border}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:(!loading&&input.trim()&&apiKey)?"#FFF":T.inkFaint,transition:"all 0.2s",flexShrink:0,fontWeight:700}}>{loading?"…":"↑"}</button>
+      </div>
+    </div>
+  );
+}
+
+
 // ─── Módulo Ana ───────────────────────────────────────────────────
-function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,pacienteId,getBuildPrompt}){
+function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,pacienteId,getBuildPrompt,onPlanChange}){
   const[aba,setAba]=useState(checkinHoje?"chat":"checkin");
   const eq=EQUIPE.find(e=>e.id==="enfermeira");
   const[ci,setCi]=useState({sono:7,energia:7,estresse:5,humor:7,vinculos:7,bem_estar:7,rede_apoio:7,relacoes_colegas:6,relacoes_lider:6,vida_social:6,relacionamentos_pessoais:7,sintomas:"",notas:""});
@@ -796,7 +971,7 @@ function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,p
       <div style={{borderBottom:`1px solid ${T.border}`,padding:"0 28px",display:"flex",background:T.bgWarm,flexShrink:0}}>
         {[{id:"chat",label:"Conversar com Ana"},{id:"checkin",label:"Check-in Diário"}].map(t=>(<button key={t.id} onClick={()=>setAba(t.id)} style={{background:"none",border:"none",borderBottom:`2px solid ${aba===t.id?T.teal:"transparent"}`,padding:"13px 22px",fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",color:aba===t.id?T.teal:T.inkFaint,cursor:"pointer",fontFamily:T.fB,transition:"all 0.2s",display:"flex",alignItems:"center",gap:6}}>{t.label}{t.id==="checkin"&&!checkinHoje&&<span style={{width:7,height:7,borderRadius:"50%",background:T.orange,display:"inline-block",animation:"pulse 1.5s ease infinite"}}/>}</button>))}
       </div>
-      {aba==="chat"&&<ChatIA key={checkinHoje?`checkin-${checkinHoje.energia}-${checkinHoje.sono}`:"sem-checkin"} membro="enfermeira" apiKey={apiKey} placeholder="Fale com Ana sobre qualquer assunto de saúde..." inicialMsg={`Olá, ${nome.split(" ")[0]}! Recebi seu check-in de hoje.\n\n${checkinHoje?`📊 Seus dados de agora:\n• Energia: ${checkinHoje.energia}/10\n• Sono: ${checkinHoje.sono}/10\n• Estresse: ${checkinHoje.estresse}/10${checkinHoje.vinculos?`\n• Vínculos: ${checkinHoje.vinculos}/10`:""}${checkinHoje.bem_estar?`\n• Bem-estar: ${checkinHoje.bem_estar}/10`:""}${checkinHoje.sintomas?`\n• Sintomas relatados: ${checkinHoje.sintomas}`:""}${checkinHoje.notas?`\n• Você escreveu: "${checkinHoje.notas}"`:""}\n\nBaseado nesses dados, o que mais te preocupa agora?`:"Você ainda não fez seu check-in de hoje. Como está se sentindo?"}`} sugestoes={["Comente sobre meus dados de hoje","O que devo priorizar agora?","Como estão meus vínculos?","Algum alerta no meu check-in?"]} systemPrompt={getBuildPrompt("enfermeira")} pacienteId={pacienteId}/>}
+      {aba==="chat"&&<ChatIAComTools key={checkinHoje?`checkin-${checkinHoje.energia}-${checkinHoje.sono}`:"sem-checkin"} apiKey={apiKey} placeholder="Fale com Ana sobre qualquer assunto de saúde..." inicialMsg={`Olá, ${nome.split(" ")[0]}! Recebi seu check-in de hoje.\n\n${checkinHoje?`📊 Seus dados de agora:\n• Energia: ${checkinHoje.energia}/10\n• Sono: ${checkinHoje.sono}/10\n• Estresse: ${checkinHoje.estresse}/10${checkinHoje.vinculos?`\n• Vínculos: ${checkinHoje.vinculos}/10`:""}${checkinHoje.bem_estar?`\n• Bem-estar: ${checkinHoje.bem_estar}/10`:""}${checkinHoje.sintomas?`\n• Sintomas relatados: ${checkinHoje.sintomas}`:""}${checkinHoje.notas?`\n• Você escreveu: "${checkinHoje.notas}"`:""}\n\nBaseado nesses dados, o que mais te preocupa agora?`:"Você ainda não fez seu check-in de hoje. Como está se sentindo?"}`} sugestoes={["Comente sobre meus dados de hoje","O que devo priorizar agora?","Como estão meus vínculos?","Algum alerta no meu check-in?"]} systemPrompt={getBuildPrompt("enfermeira")} pacienteId={pacienteId} onPlanChange={onPlanChange}/>}
       {aba==="checkin"&&(
         <div style={{flex:1,overflowY:"auto",padding:"28px"}}>
           <div style={{maxWidth:580,margin:"0 auto"}}>
