@@ -264,39 +264,6 @@ async function carregarMedicos(){
   return data||[];
 }
 
-// ─── Programas ────────────────────────────────────────────────────
-async function carregarProgramas(empresaId){
-  const{data}=await supabase.from("programas")
-    .select("*")
-    .eq("empresa_id",empresaId)
-    .eq("ativo",true)
-    .order("ordem");
-  return data||[];
-}
-
-async function carregarInscricoes(pacienteId){
-  const{data}=await supabase.from("inscricoes_programas")
-    .select("*,programas(*),medicos(id,nome,crm,especialidade)")
-    .eq("paciente_id",pacienteId)
-    .eq("status","ativo");
-  return data||[];
-}
-
-async function inscreverPrograma(pacienteId,programaId,medicoId){
-  const{error}=await supabase.from("inscricoes_programas").upsert({
-    paciente_id:pacienteId,
-    programa_id:programaId,
-    medico_id:medicoId||null,
-    status:"ativo",
-  },{onConflict:"paciente_id,programa_id"});
-  return!error;
-}
-
-async function carregarMedicos(){
-  const{data}=await supabase.from("medicos").select("id,nome,crm,especialidade").eq("ativo",true);
-  return data||[];
-}
-
 async function gerarPlanoInicial(pacienteId,form,apiKey){
   // Gera tarefas iniciais via IA com base no perfil
   const prompt=`Você é Ana, enfermeira coordenadora do HVV. Com base no perfil abaixo, gere um plano de cuidado inicial com tarefas concretas em JSON.
