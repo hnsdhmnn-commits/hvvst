@@ -104,16 +104,73 @@ export default function HVV(){
     }
     if(pid){
       try{
-        // Filtrar apenas campos que existem na tabela perfis
-        const{nome,cargo,setor,...perfilData}=f;
-        await supabase.from("perfis").upsert({
+        // Salvar apenas campos confirmados na tabela perfis
+        const perfil={
           paciente_id:pid,
-          ...perfilData,
           hvv_onboarding_completo:true,
-          hvv_onboarding_data:new Date().toISOString()
-        },{onConflict:"paciente_id"});
+          hvv_onboarding_data:new Date().toISOString(),
+          // Identidade
+          idade:f.idade?Number(f.idade):null,
+          peso:f.peso?Number(f.peso):null,
+          altura:f.altura?Number(f.altura):null,
+          horas_trab:f.horas_trab?Number(f.horas_trab):null,
+          horas_descanso:f.horas_descanso?Number(f.horas_descanso):null,
+          // Saúde atual
+          condicoes:f.condicoes||[],
+          condicao_outro:f.condicao_outro||null,
+          meds:f.meds||[],
+          med_outro:f.med_outro||null,
+          alergia_med:f.alergia_med||null,
+          energia:f.energia?Number(f.energia):null,
+          qualidade_vida:f.qualidade_vida?Number(f.qualidade_vida):null,
+          sintomas:f.sintomas||[],
+          sintoma_outro:f.sintoma_outro||null,
+          // Histórico
+          hist_cardio_fam:f.hist_cardio_fam||null,
+          hist_cancer_fam:f.hist_cancer_fam||null,
+          hist_diabetes_fam:f.hist_diabetes_fam||null,
+          hist_depressao_fam:f.hist_depressao_fam||null,
+          cirurgias:f.cirurgias||null,
+          hospitalizacoes:f.hospitalizacoes||null,
+          // Exames
+          colesterol_total:f.colesterol_total?Number(f.colesterol_total):null,
+          colesterol_ldl:f.colesterol_ldl?Number(f.colesterol_ldl):null,
+          colesterol_hdl:f.colesterol_hdl?Number(f.colesterol_hdl):null,
+          triglicerides:f.triglicerides?Number(f.triglicerides):null,
+          glicose_jejum:f.glicose_jejum?Number(f.glicose_jejum):null,
+          hemoglobina_glicada:f.hemoglobina_glicada?Number(f.hemoglobina_glicada):null,
+          pressao_sistolica:f.pressao_sistolica?Number(f.pressao_sistolica):null,
+          pressao_diastolica:f.pressao_diastolica?Number(f.pressao_diastolica):null,
+          // Estilo de vida
+          sono:f.sono?Number(f.sono):null,
+          qual_sono:f.qual_sono?Number(f.qual_sono):null,
+          exercicios:f.exercicios||[],
+          exercicio_outro:f.exercicio_outro||null,
+          freq_treino:f.freq_treino?Number(f.freq_treino):null,
+          alcool:f.alcool||null,
+          estresse:f.estresse?Number(f.estresse):null,
+          meditacao:f.meditacao!=null?Number(f.meditacao):null,
+          dieta:f.dieta||null,
+          tabaco:f.tabaco||null,
+          // Objetivos
+          metas:f.metas||[],
+          disponibilidade:f.disponibilidade?Number(f.disponibilidade):null,
+          acompanhamento:f.acompanhamento||null,
+          horizonte:f.horizonte||null,
+          // Gadgets
+          gadgets:f.gadgets||[],
+          gadget_outro:f.gadget_outro||null,
+          // Rede de apoio
+          estado_civil:f.estado_civil||null,
+          filhos:f.filhos||null,
+          qualidade_rede:f.qualidade_rede?Number(f.qualidade_rede):null,
+          satisfacao_social:f.satisfacao_social?Number(f.satisfacao_social):null,
+          freq_social:f.freq_social||null,
+        };
+        const{error:perfilError}=await supabase.from("perfis").upsert(perfil,{onConflict:"paciente_id"});
+        if(perfilError)console.error("Erro ao salvar perfil:",perfilError);
         // Nome e cargo ficam na tabela pacientes
-        if(nome)await supabase.from("pacientes").update({nome,cargo:cargo||""}).eq("id",pid);
+        if(f.nome)await supabase.from("pacientes").update({nome:f.nome,cargo:f.cargo||""}).eq("id",pid);
         // Gerar plano de cuidado inicial automaticamente
         const chave=localStorage.getItem("hvv_api_key")||apiKey||"";
         if(chave.startsWith("sk-")){
