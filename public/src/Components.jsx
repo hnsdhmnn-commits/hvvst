@@ -5,31 +5,86 @@ const SUPABASE_URL = "https://ahznewkkcyakkilaatas.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoem5ld2trY3lha2tpbGFhdGFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTQzMTIsImV4cCI6MjA5MTg3MDMxMn0.4nFFkuhRTNCXFnkSQDjc_JNi0yoHUBUfT4mgcQ2-3ak";
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ─── Data local (resolve problema de fuso UTC vs Brasília) ────────
+function dataHoje(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function horaAgora(){
+  const d=new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+}
+
 
 
 // ─── Design Tokens ────────────────────────────────────────────────
 export const T = {
-  bg:"#F7F6F2",bgWarm:"#FAFAF7",surface:"#FFFFFF",
-  surfaceMid:"#F1EFE8",surfaceHi:"#E8F5EE",
-  border:"#D0E8D8",borderMid:"#A8D4B8",
-  shadowCard:"0 2px 8px rgba(0,100,60,0.07)",
-  shadowHover:"0 4px 16px rgba(0,100,60,0.12)",
-  ink:"#1B2A1E",inkMid:"#3A4A3E",inkLight:"#6A7A6E",inkFaint:"#A8B8AE",
-  gold:"#00A868",goldFaint:"#E8F5EE",goldBorder:"#C7E6D0",
-  teal:"#00875A",tealBg:"#E0F2EA",
-  green:"#00A868",greenBg:"#E8F5EE",
-  red:"#C0392B",redBg:"#FBEAEA",
-  purple:"#5C7AEA",purpleBg:"#EEF2FD",
-  blue:"#1A6B8A",blueBg:"#E8F4FA",
-  orange:"#E07020",orangeBg:"#FEF3E8",
-  fD:"'DM Sans',system-ui,sans-serif",
-  fB:"'DM Mono','Courier New',monospace",
+  // ── Cores base (fiel ao protótipo) ───────────────────────────
+  bg:          "#F7F6F2",   // --bg-page
+  bgWarm:      "#F1EFE8",   // --bg-secondary
+  surface:     "#FFFFFF",   // --bg-card
+  surfaceMid:  "#F1EFE8",
+  bgWarm2:     "#E8E6DF",
+
+  // ── Texto ─────────────────────────────────────────────────────
+  ink:         "#2C2C2A",   // --text-primary
+  inkMid:      "#5F5E5A",   // --text-secondary
+  inkLight:    "#888780",   // --text-tertiary
+  inkFaint:    "#AEACA5",
+
+  // ── Stone green ───────────────────────────────────────────────
+  green:       "#00A868",
+  greenDark:   "#1B5E20",
+  greenText:   "#2E7D32",
+  greenBg:     "#F0F9F4",
+  greenBorder: "#C7E6D0",
+
+  // ── Bordas ────────────────────────────────────────────────────
+  border:      "rgba(0,0,0,0.10)",
+  borderMid:   "rgba(0,0,0,0.18)",
+
+  // ── Status ────────────────────────────────────────────────────
+  blue:        "#185FA5",
+  blueBg:      "#E6F1FB",
+  teal:        "#0B7B6B",
+  tealBg:      "#E6F4F1",
+  purple:      "#5B3FA6",
+  purpleBg:    "#F0EBFB",
+  red:         "#A32D2D",
+  redBg:       "#FCEBEB",
+  orange:      "#854F0B",
+  orangeBg:    "#FAEEDA",
+  gold:        "#00A868",   // usar green como gold no HVV
+  goldFaint:   "#F0F9F4",
+  goldBorder:  "#C7E6D0",
+
+  // ── Sombras ───────────────────────────────────────────────────
+  shadowCard:  "0 1px 3px rgba(0,0,0,0.06)",
+  shadowMd:    "0 2px 8px rgba(0,0,0,0.08)",
+
+  // ── Raio ──────────────────────────────────────────────────────
+  rMd:  "8px",
+  rLg:  "12px",
+  rXl:  "16px",
+
+  // ── Tipografia ────────────────────────────────────────────────
+  fB:   "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+  fD:   "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+  fS:   "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+
+  // ── Navy (manter para app médico) ─────────────────────────────
+  navy:    "#1A3A6B",
+  navyBg:  "#EEF2F9",
+
+  // ── Aliases de compatibilidade ────────────────────────────────
+  borderMid:   "rgba(0,0,0,0.18)",
+  goldFaint:   "#F0F9F4",
+  goldBorder:  "#C7E6D0",
+  shadowHover: "0 2px 8px rgba(0,0,0,0.08)",
 };
 
-export const AXIS_COLORS={
-  "Nutrição":T.gold,"Atividade":T.teal,"Sono":T.purple,
-  "Estresse":T.red,"Vínculos":T.purple,"Bem-estar":T.green,
-};
+
+export const AXIS_COLORS={"Sono":T.purple,"Energia":T.teal,"Estresse":T.red,"Humor":T.gold,"Vínculos":T.blue,"Bem-estar":T.green};
 
 export const EQUIPE=[
   {id:"enfermeira",nome:"Ana",titulo:"Enfermeira Coordenadora",cor:T.teal,bg:T.tealBg,icon:"🩺",descricao:"Coordena seu plano integral, motivação e acompanhamento MEV."},
@@ -38,8 +93,11 @@ export const EQUIPE=[
   {id:"farmaceutico",nome:"Rafael",titulo:"Farmacêutico Clínico",cor:T.green,bg:T.greenBg,icon:"💊",descricao:"Medicamentos, interações e posologia. Alerta o seu médico pessoal em caso de risco."},
 ];
 
+export function Spinner(){return <div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTop:`3px solid ${T.green}`,borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/>;};
+
 export const MODULOS=[
-  {id:"dashboard",label:"Painel",icon:"◈"},
+  {id:"home",label:"Início",icon:"🏠"},
+  {id:"dashboard",label:"Minha Saúde",icon:"◈"},
   {id:"plano",label:"Plano de Cuidado",icon:"📋",membro:"enfermeira"},
   {id:"ana",label:"Falar com Ana",icon:"🩺",membro:"enfermeira"},
   {id:"nutri",label:"Nutrição",icon:"🥗",membro:"nutri"},
@@ -53,22 +111,109 @@ export const MODULOS=[
 // ─── Score ────────────────────────────────────────────────────────
 function calcScores(form,checkin){
   const f=form;
-  if(!f)return{eixos:{"Nutrição":72,"Atividade":65,"Sono":80,"Estresse":60,"Relacionamentos":55,"Substâncias":88},total:70};
-  const s={"Nutrição":55,"Atividade":50,"Sono":55,"Estresse":55,"Relacionamentos":55,"Substâncias":80};
-  s["Sono"]=Math.min(100,(Number(f.sono)>=7?82:Number(f.sono)>=6?62:42)+(Number(f.qual_sono)||5)*1.5);
-  s["Atividade"]=Math.min(100,35+(Number(f.freq_treino)||0)*11);
-  s["Estresse"]=Math.max(20,100-(Number(f.estresse)||5)*8+(f.meditacao===1?10:0));
-  s["Nutrição"]={"Mediterrâneo":84,"Low-carb":76,"Vegetariano":78,"Vegano":80}[f.dieta]||58;
-  s["Substâncias"]={"Nunca":96,"Ocasional":82,"Semanal":64,"Diário":38}[f.alcool]||70;
-  s["Relacionamentos"]=Math.max(30,65+(Number(f.horas_trab)>60?-12:8));
+
+  // Valores padrão quando não há perfil
+  if(!f)return{eixos:{"Sono":70,"Energia":70,"Estresse":60,"Humor":70,"Vínculos":65,"Bem-estar":70},total:68};
+
+  // ── Base do perfil (dados do onboarding) ──────────────────────
+  // Sono: horas + qualidade declarada
+  let sono=Math.min(100,
+    (Number(f.sono)>=8?85:Number(f.sono)>=7?75:Number(f.sono)>=6?60:40)
+    +(Number(f.qual_sono)||5)*1.5
+  );
+
+  // Energia: proxy via freq_treino e horas de trabalho
+  let energia=Math.min(100,
+    40+(Number(f.freq_treino)||0)*8
+    -(Number(f.horas_trab)>60?10:0)
+    +(Number(f.horas_descanso)||2)*3
+  );
+
+  // Estresse: invertido — estresse alto = score baixo
+  let estresse=Math.max(10,
+    100-(Number(f.estresse)||5)*9
+    +(f.meditacao>=1?8:0)
+    -(Number(f.horas_trab)>55?5:0)
+  );
+
+  // Humor: proxy via qualidade de vida declarada
+  let humor=Math.min(100,
+    (Number(f.qualidade_vida)||6)*9
+    +({Mediterrâneo:5,"Low-carb":3,Vegetariano:4,Vegano:4}[f.dieta]||0)
+  );
+
+  // Vínculos: rede de apoio e satisfação social do perfil
+  let vinculos=Math.min(100,
+    (Number(f.qualidade_rede)||5)*7
+    +(Number(f.satisfacao_social)||5)*5
+    -(Number(f.horas_trab)>60?8:0)
+  );
+
+  // Bem-estar: combinação de múltiplos fatores
+  let bemestar=Math.min(100,
+    (Number(f.qualidade_vida)||6)*8
+    +{"Nunca":8,"Ocasional":4,"Semanal":-2,"Diário":-12}[f.alcool||"Ocasional"]
+    +(f.tabaco==="Nunca"||!f.tabaco?5:-10)
+  );
+
+  const s={
+    "Sono": Math.round(Math.max(0,Math.min(100,sono))),
+    "Energia": Math.round(Math.max(0,Math.min(100,energia))),
+    "Estresse": Math.round(Math.max(0,Math.min(100,estresse))),
+    "Humor": Math.round(Math.max(0,Math.min(100,humor))),
+    "Vínculos": Math.round(Math.max(0,Math.min(100,vinculos))),
+    "Bem-estar": Math.round(Math.max(0,Math.min(100,bemestar))),
+  };
+
+  // ── Check-in do dia sobrescreve com peso maior ─────────────────
+  // Dados reais do check-in têm prioridade sobre estimativas do perfil
   if(checkin){
-    if(checkin.sono)s["Sono"]=Math.round(s["Sono"]*0.4+Number(checkin.sono)*10*0.6);
-    if(checkin.energia)s["Atividade"]=Math.round(s["Atividade"]*0.7+Number(checkin.energia)*10*0.3);
-    if(checkin.estresse)s["Estresse"]=Math.max(10,Math.round(s["Estresse"]*0.5+(10-Number(checkin.estresse))*10*0.5));
-    if(checkin.humor)s["Relacionamentos"]=Math.round(s["Relacionamentos"]*0.6+Number(checkin.humor)*10*0.4);
+    // Sono: check-in tem peso 70%, perfil 30%
+    if(checkin.sono)
+      s["Sono"]=Math.round(Math.max(0,Math.min(100,
+        s["Sono"]*0.3 + Number(checkin.sono)*10*0.7
+      )));
+
+    // Energia: check-in tem peso 80%
+    if(checkin.energia)
+      s["Energia"]=Math.round(Math.max(0,Math.min(100,
+        s["Energia"]*0.2 + Number(checkin.energia)*10*0.8
+      )));
+
+    // Estresse: check-in invertido — estresse 8/10 = score 20
+    if(checkin.estresse)
+      s["Estresse"]=Math.round(Math.max(0,Math.min(100,
+        s["Estresse"]*0.3 + (10-Number(checkin.estresse))*10*0.7
+      )));
+
+    // Humor: check-in tem peso 80%
+    if(checkin.humor)
+      s["Humor"]=Math.round(Math.max(0,Math.min(100,
+        s["Humor"]*0.2 + Number(checkin.humor)*10*0.8
+      )));
+
+    // Vínculos: média dos sub-eixos do check-in quando disponíveis
+    const subVinculos=[checkin.rede_apoio,checkin.relacoes_colegas,checkin.relacoes_lider,checkin.vida_social,checkin.relacionamentos_pessoais].filter(Boolean);
+    if(subVinculos.length>0){
+      const mediaVinculos=subVinculos.reduce((a,b)=>a+Number(b),0)/subVinculos.length;
+      s["Vínculos"]=Math.round(Math.max(0,Math.min(100,
+        s["Vínculos"]*0.2 + mediaVinculos*10*0.8
+      )));
+    } else if(checkin.vinculos){
+      s["Vínculos"]=Math.round(Math.max(0,Math.min(100,
+        s["Vínculos"]*0.2 + Number(checkin.vinculos)*10*0.8
+      )));
+    }
+
+    // Bem-estar: check-in tem peso 80%
+    if(checkin.bem_estar)
+      s["Bem-estar"]=Math.round(Math.max(0,Math.min(100,
+        s["Bem-estar"]*0.2 + Number(checkin.bem_estar)*10*0.8
+      )));
   }
-  Object.keys(s).forEach(k=>{s[k]=Math.max(0,Math.min(100,s[k]));});
-  return{eixos:s,total:Math.round(Object.values(s).reduce((a,b)=>a+b,0)/6)};
+
+  const total=Math.round(Object.values(s).reduce((a,b)=>a+b,0)/Object.keys(s).length);
+  return{eixos:s,total};
 }
 
 // ─── Supabase Helpers ─────────────────────────────────────────────
@@ -80,18 +225,147 @@ async function getPacienteId(userId){
 async function salvarCheckinDB(pacienteId,dados){
   const{error}=await supabase.from("checkins").upsert({
     paciente_id:pacienteId,
-    data:new Date().toISOString().slice(0,10),
-    hora:new Date().toTimeString().slice(0,8),
-    sono:dados.sono,energia:dados.energia,
-    estresse:dados.estresse,humor:dados.humor,
-    sintomas:dados.sintomas,notas:dados.notas,
+    data:dataHoje(),
+    hora:horaAgora(),
+    sono:dados.sono,
+    energia:dados.energia,
+    estresse:dados.estresse,
+    humor:dados.humor,
+    vinculos:dados.vinculos,
+    bem_estar:dados.bem_estar,
+    rede_apoio:dados.rede_apoio,
+    relacoes_colegas:dados.relacoes_colegas,
+    relacoes_lider:dados.relacoes_lider,
+    vida_social:dados.vida_social,
+    relacionamentos_pessoais:dados.relacionamentos_pessoais,
+    sintomas:dados.sintomas,
+    notas:dados.notas,
   },{onConflict:"paciente_id,data"});
   return!error;
 }
 
+// ─── Plano de Cuidado — Banco ─────────────────────────────────────
+async function carregarPlanoCuidado(pacienteId){
+  const{data}=await supabase.from("plano_cuidado")
+    .select("*")
+    .eq("paciente_id",pacienteId)
+    .eq("ativo",true)
+    .order("area").order("ordem");
+  return data||[];
+}
+
+async function carregarRegistrosHoje(pacienteId){
+  // Buscar registros dos últimos 31 dias para cobrir todas as frequências
+  const d=new Date();
+  const inicio=new Date(d);
+  inicio.setDate(inicio.getDate()-31);
+  const inicioStr=`${inicio.getFullYear()}-${String(inicio.getMonth()+1).padStart(2,'0')}-${String(inicio.getDate()).padStart(2,'0')}`;
+  const{data}=await supabase.from("plano_registros")
+    .select("*")
+    .eq("paciente_id",pacienteId)
+    .gte("data",inicioStr)
+    .eq("status","concluido")
+    .order("data",{ascending:false});
+  return data||[];
+}
+
+async function registrarTarefa(tarefaId,pacienteId,status){
+  const hoje=dataHoje();
+  const{error}=await supabase.from("plano_registros").upsert({
+    tarefa_id:tarefaId,
+    paciente_id:pacienteId,
+    data:hoje,
+    status,
+  },{onConflict:"tarefa_id,data"});
+  return!error;
+}
+
+// ─── Programas ────────────────────────────────────────────────────
+async function carregarProgramas(empresaId){
+  const{data}=await supabase.from("programas")
+    .select("*")
+    .eq("empresa_id",empresaId)
+    .eq("ativo",true)
+    .order("ordem");
+  return data||[];
+}
+
+async function carregarInscricoes(pacienteId){
+  const{data}=await supabase.from("inscricoes_programas")
+    .select("*,programas(*),medicos(id,nome,especialidade,foto_url)")
+    .eq("paciente_id",pacienteId)
+    .eq("status","ativo");
+  return data||[];
+}
+
+async function inscreverPrograma(pacienteId,programaId,medicoId){
+  const{error}=await supabase.from("inscricoes_programas").upsert({
+    paciente_id:pacienteId,
+    programa_id:programaId,
+    medico_id:medicoId||null,
+    status:"ativo",
+  },{onConflict:"paciente_id,programa_id"});
+  return!error;
+}
+
+async function carregarMedicos(){
+  const{data}=await supabase.from("medicos").select("id,nome,crm,especialidade,foto_url");
+  return data||[];
+}
+
+async function gerarPlanoInicial(pacienteId,form,apiKey){
+  // Gera tarefas iniciais via IA com base no perfil
+  const prompt=`Você é Ana, enfermeira coordenadora do HVV. Com base no perfil abaixo, gere um plano de cuidado inicial com tarefas concretas em JSON.
+
+PERFIL:
+- Condições: ${(form?.condicoes||[]).filter(c=>c!=="Nenhuma").join(", ")||"nenhuma"}
+- Medicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}
+- Sono: ${form?.sono||7}h, qualidade ${form?.qual_sono||5}/10
+- Estresse: ${form?.estresse||5}/10
+- Exercícios: ${form?.freq_treino||0}x/semana
+- Dieta: ${form?.dieta||"não informado"}
+- Rede de apoio: ${form?.qualidade_rede||"-"}/10
+- Vida social: ${form?.satisfacao_social||"-"}/10
+
+Retorne APENAS um array JSON com 6-10 tarefas no formato:
+[{"area":"saude_geral|nutricao|atividade|emocional|vinculos|prevencao","titulo":"...","descricao":"...","frequencia":"diario","frequencia_tipo":"diario|n_vezes_semana|uma_vez_semana|uma_vez_mes|unico","meta_semanal":3,"ordem":1}]
+
+Regras para frequencia_tipo:
+- "diario": tarefas que devem ser feitas todo dia (tomar medicamento, beber água, etc)
+- "n_vezes_semana": atividades com meta semanal — use meta_semanal para definir quantas vezes (ex: exercício 3x/semana = meta_semanal:3)
+- "uma_vez_semana": tarefas semanais (ex: pesar na balança, revisar plano)
+- "uma_vez_mes": tarefas mensais (ex: consulta de retorno, exame)
+- "unico": tarefas pontuais que some quando concluída (ex: agendar consulta, comprar medicamento)`;
+
+  try{
+    const chave=apiKey||localStorage.getItem("hvv_api_key")||"";
+    const res=await fetch("/.netlify/functions/claude",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":chave,"anthropic-version":"2023-06-01"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content:prompt}]})
+    });
+    const data=await res.json();
+    const text=data.content?.[0]?.text||"[]";
+    const clean=text.replace(/```json|```/g,"").trim();
+    const tarefas=JSON.parse(clean);
+    // Salvar no banco
+    const inserts=tarefas.map(t=>({...t,paciente_id:pacienteId,origem:"ia",ativo:true}));
+    await supabase.from("plano_cuidado").insert(inserts);
+    return inserts;
+  }catch(e){
+    console.error("Erro ao gerar plano:",e);
+    return[];
+  }
+}
+
 async function carregarCheckinHoje(pacienteId){
-  const hoje=new Date().toISOString().slice(0,10);
-  const{data}=await supabase.from("checkins").select("*").eq("paciente_id",pacienteId).eq("data",hoje).single();
+  const hoje=dataHoje();
+  const{data}=await supabase.from("checkins").select("*")
+    .eq("paciente_id",pacienteId)
+    .eq("data",hoje)
+    .order("created_at",{ascending:false})
+    .limit(1)
+    .maybeSingle();
   return data;
 }
 
@@ -100,7 +374,7 @@ async function salvarPlanLog(pacienteId,evento){
     paciente_id:pacienteId,
     icon:evento.icon,cor:evento.cor,
     titulo:evento.titulo,descricao:evento.descricao,
-    data:new Date().toISOString().slice(0,10),
+    data:dataHoje(),
   });
 }
 
@@ -123,7 +397,7 @@ async function salvarDocumento(pacienteId,doc){
     paciente_id:pacienteId,
     titulo:doc.titulo,tipo:doc.tipo,origem:"paciente",
     resumo:doc.resumo,conteudo_json:doc.analise,
-    data:new Date().toISOString().slice(0,10),
+    data:dataHoje(),
   }).select().single();
   return data;
 }
@@ -156,7 +430,7 @@ async function salvarAnaliseGenetica(pacienteId,analise,pdfNome){
       tipo:"genetico",origem:"paciente",
       resumo:analise?.resumo||"",
       conteudo_json:{...analise,pdfNome},
-      data:new Date().toISOString().slice(0,10),
+      data:dataHoje(),
     });
     if(error)console.error("Erro ao salvar laudo:",error);
     else console.log("Laudo salvo com sucesso");
@@ -182,14 +456,88 @@ async function carregarAnaliseGenetica(pacienteId){
 
 // ─── UI Primitives ────────────────────────────────────────────────
 function Lbl({children,color}){return <div style={{fontSize:9,letterSpacing:"0.18em",color:color||T.inkLight,textTransform:"uppercase",marginBottom:8,fontFamily:T.fB,fontWeight:600}}>{children}</div>;}
-export function Card({children,style={},onClick,hover=false}){const[hov,setHov]=useState(false);return <div onClick={onClick} onMouseOver={()=>hover&&setHov(true)} onMouseOut={()=>hover&&setHov(false)} style={{background:T.surface,borderRadius:12,boxShadow:hov?T.shadowHover:T.shadowCard,border:`1px solid ${T.border}`,transition:"all 0.2s",cursor:onClick?"pointer":"default",...style}}>{children}</div>;}
-export function Btn({children,onClick,variant="primary",disabled=false,style={}}){const v={primary:{background:T.ink,color:"#FFF",border:`1px solid ${T.ink}`},gold:{background:T.gold,color:"#FFF",border:`1px solid ${T.gold}`},outline:{background:"transparent",color:T.ink,border:`1px solid ${T.border}`},teal:{background:T.teal,color:"#FFF",border:`1px solid ${T.teal}`},ghost:{background:"transparent",color:T.inkLight,border:"none"}};return <button onClick={disabled?undefined:onClick} disabled={disabled} style={{padding:"11px 24px",borderRadius:8,fontFamily:T.fB,fontSize:11,letterSpacing:"0.16em",fontWeight:600,cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.4:1,transition:"all 0.2s",...v[variant],...style}}>{children}</button>;}
-function TxtInput({label,placeholder,value,onChange,type="text",unit,autoFocus,error}){const[foc,setFoc]=useState(false);return <div>{label&&<Lbl>{label}</Lbl>}<div style={{position:"relative"}}><input autoFocus={autoFocus} type={type} placeholder={placeholder} value={value||""} onChange={e=>onChange(e.target.value)} onFocus={()=>setFoc(true)} onBlur={()=>setFoc(false)} style={{width:"100%",background:T.bgWarm,border:`1.5px solid ${error?T.red:foc?T.gold:T.border}`,borderRadius:8,padding:unit?"11px 48px 11px 14px":"11px 14px",color:T.ink,fontFamily:T.fB,fontSize:13,outline:"none",transition:"border-color 0.2s",boxSizing:"border-box"}}/>{unit&&<span style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",fontSize:10,color:T.inkLight}}>{unit}</span>}</div>{error&&<div style={{fontSize:11,color:T.red,marginTop:4}}>{error}</div>}</div>;}
-function SldInput({label,value,onChange,min,max,unit,color=T.gold}){return <div><div style={{display:"flex",justifyContent:"space-between",marginBottom:7}}><Lbl>{label}</Lbl><span style={{fontSize:16,color,fontFamily:T.fD,fontWeight:700}}>{value}{unit}</span></div><input type="range" min={min} max={max} value={value} onChange={e=>onChange(Number(e.target.value))} style={{width:"100%",accentColor:color,cursor:"pointer",height:4}}/><div style={{display:"flex",justifyContent:"space-between",marginTop:4}}><span style={{fontSize:9,color:T.inkFaint}}>{min}</span><span style={{fontSize:9,color:T.inkFaint}}>{max}</span></div></div>;}
-function Chip({label,active,color=T.gold,bg,onClick}){return <button onClick={onClick} style={{padding:"8px 14px",borderRadius:6,cursor:"pointer",fontFamily:T.fB,fontSize:12,background:active?(bg||T.goldFaint):"transparent",border:`1.5px solid ${active?color:T.border}`,color:active?color:T.inkMid,transition:"all 0.18s"}}>{label}</button>;}
-function RadialScore({value,size=100}){const r=size/2-9,circ=2*Math.PI*r,dash=(value/100)*circ,color=value>=75?T.green:value>=50?T.gold:T.red;return <svg width={size} height={size}><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={T.surfaceMid} strokeWidth="7"/><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="7" strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" transform={`rotate(-90 ${size/2} ${size/2})`} style={{transition:"stroke-dasharray 1.4s cubic-bezier(0.34,1.56,0.64,1)"}}/><text x={size/2} y={size/2-6} textAnchor="middle" dominantBaseline="middle" fill={color} fontSize="20" fontFamily="Georgia,serif" fontWeight="700">{value}</text><text x={size/2} y={size/2+14} textAnchor="middle" dominantBaseline="middle" fill={T.inkFaint} fontSize="9" fontFamily="'DM Mono',monospace">/100</text></svg>;}
 
-// ─── ChatIA com persistência ──────────────────────────────────────
+function RadialScore({value,size=80}){
+  const r=size*0.38;const circ=2*Math.PI*r;
+  const prog=Math.max(0,Math.min(100,value));
+  const offset=circ-(prog/100)*circ;
+  const cor=prog>=75?T.green:prog>=50?"#E07020":T.red;
+  return(
+    <div style={{position:"relative",width:size,height:size,flexShrink:0}}>
+      <svg width={size} height={size} style={{transform:"rotate(-90deg)"}}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={T.bgWarm} strokeWidth={size*0.08}/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={cor} strokeWidth={size*0.08}
+          strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"/>
+      </svg>
+      <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"}}>
+        <span style={{fontSize:size*0.28,fontWeight:700,color:cor,lineHeight:1}}>{prog}</span>
+      </div>
+    </div>
+  );
+}
+export function Card({children,style={},onClick,hover=false}){const[hov,setHov]=useState(false);return <div onClick={onClick} onMouseOver={()=>hover&&setHov(true)} onMouseOut={()=>hover&&setHov(false)} style={{background:T.surface,borderRadius:12,boxShadow:hov?T.shadowHover:T.shadowCard,border:`1px solid ${T.border}`,transition:"all 0.2s",cursor:onClick?"pointer":"default",...style}}>{children}</div>;}
+export function Btn({children,onClick,variant="primary",disabled=false,style={}}){
+  const v={
+    primary:{background:T.green,color:"#FFF",border:"none"},
+    gold:{background:T.green,color:"#FFF",border:"none"},
+    teal:{background:T.green,color:"#FFF",border:"none"},
+    outline:{background:T.surface,color:T.inkMid,border:`0.5px solid ${T.borderMid}`},
+    ghost:{background:"transparent",color:T.inkLight,border:"none"},
+    red:{background:T.red,color:"#FFF",border:"none"},
+    blue:{background:T.blue,color:"#FFF",border:"none"},
+    purple:{background:T.purple,color:"#FFF",border:"none"},
+  };
+  return <button onClick={disabled?undefined:onClick} disabled={disabled} style={{padding:"9px 18px",borderRadius:"8px",fontFamily:T.fB,fontSize:"13px",fontWeight:500,cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.4:1,transition:"all 0.15s",...v[variant],...style}}>{children}</button>;
+}
+
+function TxtInput({label,placeholder,value,onChange,type="text",unit,error}){
+  return(
+    <div>
+      {label&&<Lbl>{label}</Lbl>}
+      <div style={{position:"relative"}}>
+        <input type={type} placeholder={placeholder} value={value} onChange={e=>onChange(e.target.value)}
+          style={{width:"100%",padding:"10px 14px",border:`1px solid ${error?T.red:T.border}`,borderRadius:8,fontFamily:T.fB,fontSize:13,color:T.ink,background:T.surface,outline:"none",boxSizing:"border-box"}}/>
+        {unit&&<span style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",fontSize:11,color:T.inkLight}}>{unit}</span>}
+      </div>
+      {error&&<div style={{fontSize:11,color:T.red,marginTop:4}}>{error}</div>}
+    </div>
+  );
+}
+
+function SldInput({label,value,onChange,min,max,unit,color=T.green,hint}){
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+        <Lbl>{label}</Lbl>
+        <span style={{fontSize:16,color,fontWeight:700}}>{value}{unit}</span>
+      </div>
+      <input type="range" min={min} max={max} value={value} onChange={e=>onChange(Number(e.target.value))}
+        style={{width:"100%",accentColor:color,cursor:"pointer",height:4}}/>
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+        <span style={{fontSize:9,color:T.inkFaint}}>{hint||min}</span>
+        <span style={{fontSize:9,color:T.inkFaint}}>{max}</span>
+      </div>
+    </div>
+  );
+}
+
+function Chip({label,active,onClick,color=T.green,bg}){
+  return(
+    <button onClick={onClick} style={{padding:"6px 12px",borderRadius:20,border:`1px solid ${active?color:T.border}`,background:active?(bg||`${color}15`):T.surface,color:active?color:T.inkMid,fontSize:12,cursor:"pointer",fontFamily:T.fB,transition:"all 0.15s"}}>{label}</button>
+  );
+}
+
+function OB({step,label,active,done}){
+  return(
+    <div style={{display:"flex",alignItems:"center",gap:6}}>
+      <div style={{width:22,height:22,borderRadius:"50%",background:done?T.green:active?T.greenBg:T.bgWarm,border:`1.5px solid ${done?T.green:active?T.green:T.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:done?"#FFF":active?T.green:T.inkFaint,fontWeight:600,flexShrink:0}}>
+        {done?"✓":step}
+      </div>
+      <span style={{fontSize:11,color:active?T.ink:T.inkFaint,fontWeight:active?500:400}}>{label}</span>
+    </div>
+  );
+}
+
 function ChatIA({membro,systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pdfB64,pacienteId}){
   const eq=EQUIPE.find(e=>e.id===membro);
   const[msgs,setMsgs]=useState([{role:"assistant",content:inicialMsg}]);
@@ -231,7 +579,7 @@ function ChatIA({membro,systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pdf
         if(i===0&&pdfB64&&m.role==="user")return{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:m.content}]};
         return{role:m.role,content:m.content};
       });
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:modeloUsado,max_tokens:900,system:systemPrompt,messages:history})});
+      const res=await fetch("/.netlify/functions/claude",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:modeloUsado,max_tokens:900,system:systemPrompt,messages:history})});
       if(res.status===429&&tentativa<3){await new Promise(r=>setTimeout(r,3000*tentativa));return enviarMensagem(tentativa+1);}
       const data=await res.json();
       const resposta=data.content?.[0]?.text||"Erro ao processar.";
@@ -314,7 +662,7 @@ export function ScreenLogin({onLogin}){
     <div style={{minHeight:"100vh",background:T.bg,display:"flex",fontFamily:T.fB,color:T.ink}}>
       <div style={{width:"44%",flexShrink:0,background:T.surface,borderRight:`1px solid ${T.border}`,padding:"52px",display:"flex",flexDirection:"column",justifyContent:"space-between",boxShadow:"4px 0 24px rgba(60,50,30,0.06)"}}>
         <div>
-          <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:52}}><span style={{fontFamily:T.fD,fontSize:38,color:T.ink,lineHeight:1}}>H</span><span style={{fontFamily:T.fD,fontSize:38,color:T.gold,lineHeight:1}}>Dohmann</span><span style={{fontSize:8,letterSpacing:"0.3em",color:T.inkFaint,marginLeft:4,alignSelf:"flex-end",marginBottom:4}}>HEALTH</span></div>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:52}}><div style={{width:44,height:44,borderRadius:10,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:700,fontSize:20}}>V</div><span style={{fontFamily:T.fD,fontSize:22,fontWeight:600,color:T.ink}}>Hospital Virtual Verde</span></div>
           <div style={{width:72,height:72,borderRadius:16,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:20,boxShadow:`0 4px 20px ${T.green}40`}}><span style={{fontSize:28,color:"#FFF",fontWeight:700}}>V</span></div>
           <div style={{fontFamily:T.fD,fontSize:24,color:T.ink,marginBottom:4}}>Hospital Virtual Verde</div>
           <div style={{fontSize:11,color:T.green,letterSpacing:"0.18em",marginBottom:28,fontWeight:600}}>BENEFÍCIO STONE · SAÚDE CONTÍNUA</div>
@@ -343,12 +691,12 @@ export function ScreenLogin({onLogin}){
 }
 
 // ─── API KEY ──────────────────────────────────────────────────────
-export function ScreenApiKey({user,onConfirm}){
+export function ScreenApiKey({user,onConfirm,onReset}){
   const[key,setKey]=useState("");const[err,setErr]=useState("");
   return(
     <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.fB,padding:24}}>
       <div style={{width:"100%",maxWidth:520}}>
-        <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:40}}><span style={{fontFamily:T.fD,fontSize:32,color:T.ink}}>H</span><span style={{fontFamily:T.fD,fontSize:32,color:T.gold}}>Dohmann</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:40}}><div style={{width:36,height:36,borderRadius:8,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:700,fontSize:16}}>V</div><span style={{fontFamily:T.fD,fontSize:20,fontWeight:600,color:T.ink}}>Hospital Virtual Verde</span></div>
         <Card style={{padding:"0",overflow:"hidden"}}>
           <div style={{background:`linear-gradient(135deg,${T.goldFaint},${T.surface})`,padding:"28px 32px",borderBottom:`1px solid ${T.border}`}}>
             <div style={{fontFamily:T.fD,fontSize:24,color:T.ink,marginBottom:8}}>Olá, {user.name.split(" ")[0]}! Um último passo.</div>
@@ -360,6 +708,7 @@ export function ScreenApiKey({user,onConfirm}){
           <div style={{padding:"24px 32px"}}>
             <TxtInput label="Chave de Acesso (API Key)" placeholder="sk-ant-api03-..." value={key} onChange={v=>{setKey(v);setErr("");}} error={err} autoFocus/>
             <div style={{marginTop:16}}><Btn onClick={()=>key.startsWith("sk-")?onConfirm(key):setErr("Chave inválida. Deve começar com sk-ant-")} variant="gold" style={{width:"100%",padding:"13px"}}>ATIVAR MINHA EQUIPE →</Btn></div>
+            {onReset&&<div style={{textAlign:"center",marginTop:10}}><button onClick={onReset} style={{background:"none",border:"none",fontSize:10,color:T.inkFaint,cursor:"pointer",fontFamily:T.fB,letterSpacing:"0.1em",textDecoration:"underline"}}>↺ refazer onboarding</button></div>}
             <div style={{marginTop:20,padding:"14px 16px",background:T.surfaceMid,borderRadius:8,border:`1px solid ${T.border}`}}>
               <Lbl>Não tem uma chave?</Lbl>
               <div style={{fontSize:12,color:T.inkMid,lineHeight:1.9}}>1. Acesse <span style={{color:T.gold,fontWeight:600}}>console.anthropic.com</span><br/>2. Crie uma conta gratuita<br/>3. API Keys → + Create Key<br/>4. Copie e cole aqui</div>
@@ -375,17 +724,17 @@ export function ScreenApiKey({user,onConfirm}){
 export function ScreenBoasVindas({onStart}){
   const[slide,setSlide]=useState(0);
   const slides=[
-    {icon:"🏥",titulo:"Saúde não é ausência de doença",texto:"O HVV existe para desenvolver sua saúde e produtividade — complementar ao seu médico atual.",cor:T.gold},
-    {icon:"👥",titulo:"Sua equipe de saúde dedicada",texto:"Ana coordena seu plano. O Coach te motiva. Rafael cuida dos medicamentos. Dra. Clara interpreta seu DNA.",cor:T.teal},
-    {icon:"🧬",titulo:"Personalizado até o DNA",texto:"Seu plano usa dados genéticos, biométricos e histórico clínico para criar recomendações únicas.",cor:T.purple},
-    {icon:"📊",titulo:"Plano sempre atualizado",texto:"Gadgets, documentos e check-in diário recalibram seu plano automaticamente em tempo real.",cor:T.green},
-    {icon:"⏱",titulo:"5 minutos para começar",texto:"Vamos montar seu perfil agora — 7 etapas simples para personalizar seu plano.",cor:T.red},
+    {icon:"🩺",titulo:"Seu médico pessoal te conhece de verdade",texto:"No HVV você escolhe um médico que acompanha sua saúde ao longo do tempo — não uma consulta avulsa sem histórico.",cor:T.green},
+    {icon:"🤝",titulo:"Sua equipe de saúde com IA",texto:"Ana coordena seu plano. Dra. Lucia cuida da nutrição. Bruno orienta sua atividade física. Rafael verifica seus medicamentos.",cor:T.teal},
+    {icon:"✅",titulo:"Check-in de 2 minutos por dia",texto:"Todo dia você registra como está — energia, sono, estresse, humor e vínculos. Sua equipe usa isso para personalizar o cuidado.",cor:T.purple},
+    {icon:"📋",titulo:"Plano de cuidado no seu ritmo",texto:"A Ana gera um plano com tarefas concretas para cada área da sua saúde — e acompanha se você está realizando.",cor:T.gold},
+    {icon:"⏱",titulo:"3 minutos para começar",texto:"Vamos montar seu perfil de saúde agora — as informações que sua equipe precisa para te conhecer desde o primeiro dia.",cor:T.green},
   ];
   const s=slides[slide];
   return(
     <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.fB,padding:40}}>
       <div style={{width:"100%",maxWidth:560}}>
-        <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:48,justifyContent:"center"}}><span style={{fontFamily:T.fD,fontSize:32,color:T.ink}}>H</span><span style={{fontFamily:T.fD,fontSize:32,color:T.gold}}>Dohmann</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:48,justifyContent:"center"}}><div style={{width:36,height:36,borderRadius:8,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:700,fontSize:16}}>V</div><span style={{fontFamily:T.fD,fontSize:20,fontWeight:600,color:T.ink}}>Hospital Virtual Verde</span></div>
         <Card style={{padding:"0",overflow:"hidden",marginBottom:24}}>
           <div style={{height:4,background:`linear-gradient(90deg,${s.cor},${s.cor}60)`}}/>
           <div style={{padding:"40px",textAlign:"center"}}>
@@ -406,11 +755,11 @@ export function ScreenBoasVindas({onStart}){
 }
 
 // ─── ONBOARDING ───────────────────────────────────────────────────
-const OB_STEPS=["Identidade","Saúde Atual","Histórico Clínico","Estilo de Vida","Objetivos","Gadgets","Kit Genômico"];
+const OB_STEPS=["Identidade","Condições de Saúde","Histórico Clínico","Estilo de Vida","Rede de Apoio","Objetivos","Gadgets"];
 
 export function ScreenOnboarding({user,onComplete}){
   const[step,setStep]=useState(0);
-  const[f,setF]=useState({nome:user.name,cargo:"",setor:"",idade:"",peso:"",altura:"",horas_trab:50,horas_descanso:2,condicoes:[],condicao_outro:"",meds:[],med_outro:"",alergia_med:"",energia:6,qualidade_vida:6,sintomas:[],sintoma_outro:"",hist_cardio_fam:null,hist_cancer_fam:null,hist_diabetes_fam:null,hist_depressao_fam:null,cirurgias:"",hospitalizacoes:"",colesterol_total:"",colesterol_ldl:"",colesterol_hdl:"",triglicerides:"",glicose_jejum:"",hemoglobina:"",pressao_sistolica:"",pressao_diastolica:"",sono:7,qual_sono:6,exercicios:[],exercicio_outro:"",freq_treino:3,alcool:"",estresse:6,meditacao:-1,dieta:"",tabaco:"",metas:[],disponibilidade:30,acompanhamento:"",horizonte:"",gadgets:[],gadget_outro:"",quer_kit:null});
+  const[f,setF]=useState({nome:user.name,cargo:"",setor:"",idade:"",peso:"",altura:"",horas_trab:50,horas_descanso:2,condicoes:[],condicao_outro:"",meds:[],med_outro:"",alergia_med:"",energia:6,qualidade_vida:6,sintomas:[],sintoma_outro:"",hist_cardio_fam:null,hist_cancer_fam:null,hist_diabetes_fam:null,hist_depressao_fam:null,cirurgias:"",hospitalizacoes:"",colesterol_total:"",colesterol_ldl:"",colesterol_hdl:"",triglicerides:"",glicose_jejum:"",hemoglobina_glicada:"",pressao_sistolica:"",pressao_diastolica:"",sono:7,qual_sono:6,exercicios:[],exercicio_outro:"",freq_treino:3,alcool:"",estresse:6,meditacao:-1,dieta:"",tabaco:"",metas:[],disponibilidade:30,acompanhamento:"",horizonte:"",gadgets:[],gadget_outro:"",quer_kit:null});
   const set=(k,v)=>setF(p=>({...p,[k]:v}));
   const tog=(k,v)=>set(k,(f[k]||[]).includes(v)?(f[k]||[]).filter(x=>x!==v):[...(f[k]||[]),v]);
 
@@ -439,7 +788,7 @@ export function ScreenOnboarding({user,onComplete}){
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
       <div><Lbl>Histórico familiar</Lbl><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>{[{label:"Doenças cardiovasculares",key:"hist_cardio_fam",cor:T.red},{label:"Câncer",key:"hist_cancer_fam",cor:T.purple},{label:"Diabetes",key:"hist_diabetes_fam",cor:T.orange},{label:"Depressão / ansiedade",key:"hist_depressao_fam",cor:T.blue}].map(item=>(<div key={item.key} style={{padding:"14px 16px",background:T.bgWarm,border:`1px solid ${T.border}`,borderRadius:8}}><div style={{fontSize:12,color:T.inkMid,marginBottom:10}}>{item.label}</div><div style={{display:"flex",gap:8}}>{["Sim","Não","Não sei"].map(opt=><Chip key={opt} label={opt} active={f[item.key]===opt} color={item.cor} onClick={()=>set(item.key,opt)}/>)}</div></div>))}</div></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}><TxtInput label="Cirurgias anteriores" placeholder="Descreva ou 'Nenhuma'" value={f.cirurgias} onChange={v=>set("cirurgias",v)}/><TxtInput label="Internações anteriores" placeholder="Descreva ou 'Nenhuma'" value={f.hospitalizacoes} onChange={v=>set("hospitalizacoes",v)}/></div>
-      <div><Lbl>Exames recentes</Lbl><Card style={{padding:"16px",background:T.bgWarm}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}><TxtInput label="Colesterol Total" placeholder="185" type="number" value={f.colesterol_total} onChange={v=>set("colesterol_total",v)} unit="mg/dL"/><TxtInput label="LDL" placeholder="110" type="number" value={f.colesterol_ldl} onChange={v=>set("colesterol_ldl",v)} unit="mg/dL"/><TxtInput label="HDL" placeholder="55" type="number" value={f.colesterol_hdl} onChange={v=>set("colesterol_hdl",v)} unit="mg/dL"/><TxtInput label="Triglicerídeos" placeholder="120" type="number" value={f.triglicerides} onChange={v=>set("triglicerides",v)} unit="mg/dL"/><TxtInput label="Glicose jejum" placeholder="92" type="number" value={f.glicose_jejum} onChange={v=>set("glicose_jejum",v)} unit="mg/dL"/><TxtInput label="HbA1c" placeholder="5.4" type="number" value={f.hemoglobina} onChange={v=>set("hemoglobina",v)} unit="%"/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:12}}><TxtInput label="Pressão Sistólica" placeholder="120" type="number" value={f.pressao_sistolica} onChange={v=>set("pressao_sistolica",v)} unit="mmHg"/><TxtInput label="Pressão Diastólica" placeholder="80" type="number" value={f.pressao_diastolica} onChange={v=>set("pressao_diastolica",v)} unit="mmHg"/></div></Card></div>
+      <div><Lbl>Exames recentes</Lbl><Card style={{padding:"16px",background:T.bgWarm}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}><TxtInput label="Colesterol Total" placeholder="185" type="number" value={f.colesterol_total} onChange={v=>set("colesterol_total",v)} unit="mg/dL"/><TxtInput label="LDL" placeholder="110" type="number" value={f.colesterol_ldl} onChange={v=>set("colesterol_ldl",v)} unit="mg/dL"/><TxtInput label="HDL" placeholder="55" type="number" value={f.colesterol_hdl} onChange={v=>set("colesterol_hdl",v)} unit="mg/dL"/><TxtInput label="Triglicerídeos" placeholder="120" type="number" value={f.triglicerides} onChange={v=>set("triglicerides",v)} unit="mg/dL"/><TxtInput label="Glicose jejum" placeholder="92" type="number" value={f.glicose_jejum} onChange={v=>set("glicose_jejum",v)} unit="mg/dL"/><TxtInput label="HbA1c" placeholder="5.4" type="number" value={f.hemoglobina_glicada} onChange={v=>set("hemoglobina_glicada",v)} unit="%"/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:12}}><TxtInput label="Pressão Sistólica" placeholder="120" type="number" value={f.pressao_sistolica} onChange={v=>set("pressao_sistolica",v)} unit="mmHg"/><TxtInput label="Pressão Diastólica" placeholder="80" type="number" value={f.pressao_diastolica} onChange={v=>set("pressao_diastolica",v)} unit="mmHg"/></div></Card></div>
     </div>,
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}><SldInput label="Sono por noite" value={f.sono} onChange={v=>set("sono",v)} min={4} max={10} unit="h" color={T.purple}/><SldInput label="Qualidade do sono" value={f.qual_sono} onChange={v=>set("qual_sono",v)} min={1} max={10} unit="/10" color={T.purple}/></div>
@@ -467,13 +816,13 @@ export function ScreenOnboarding({user,onComplete}){
         {[{icon:"⌚",t:"Gadgets",d:"Apple Watch, Oura, Garmin enviam dados em tempo real."},{icon:"📄",t:"Documentos",d:"Novos exames ou laudos são incorporados imediatamente."},{icon:"✅",t:"Check-in diário",d:"Ana faz um check-in rápido todo dia."}].map((item,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:10}}><span style={{fontSize:20,flexShrink:0}}>{item.icon}</span><div><div style={{fontSize:12,color:T.ink,fontWeight:600}}>{item.t}</div><div style={{fontSize:11,color:T.inkMid,lineHeight:1.7}}>{item.d}</div></div></div>))}
       </Card>
     </div>,
-    <div style={{display:"flex",flexDirection:"column",gap:24}}>
-      <div style={{textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>🧬</div><div style={{fontFamily:T.fD,fontSize:24,color:T.ink,marginBottom:8}}>Análise Genômica HVV</div><div style={{fontSize:13,color:T.inkMid,lineHeight:1.9,maxWidth:480,margin:"0 auto"}}>Mais de 30 variantes em 6 categorias clínicas integradas ao seu plano.</div></div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>{[{icon:"📦",t:"Kit em casa",d:"Correios em 3–5 dias úteis"},{icon:"🧪",t:"Coleta simples",d:"Swab oral — 2 minutos"},{icon:"📊",t:"Laudo em 30 dias",d:"Analisado pela Dra. Clara"}].map((fi,i)=>(<Card key={i} style={{padding:"18px",textAlign:"center"}}><div style={{fontSize:28,marginBottom:10}}>{fi.icon}</div><div style={{fontSize:13,color:T.ink,fontWeight:600,marginBottom:6}}>{fi.t}</div><div style={{fontSize:11,color:T.inkLight,lineHeight:1.6}}>{fi.d}</div></Card>))}</div>
-      <div><Lbl>Deseja solicitar o Kit Genômico?</Lbl><div style={{display:"flex",gap:12}}>
-        <button onClick={()=>set("quer_kit",true)} style={{flex:1,padding:"16px",background:f.quer_kit===true?T.goldFaint:"transparent",border:`1.5px solid ${f.quer_kit===true?T.gold:T.border}`,borderRadius:10,cursor:"pointer",fontFamily:T.fB,fontSize:12,color:f.quer_kit===true?T.gold:T.inkMid,transition:"all 0.18s"}}>✓ Sim, quero o kit</button>
-        <button onClick={()=>set("quer_kit",false)} style={{flex:1,padding:"16px",background:f.quer_kit===false?T.surfaceMid:"transparent",border:`1.5px solid ${f.quer_kit===false?T.borderMid:T.border}`,borderRadius:10,cursor:"pointer",fontFamily:T.fB,fontSize:12,color:T.inkMid,transition:"all 0.18s"}}>Não por enquanto</button>
-      </div>{f.quer_kit===true&&<div style={{marginTop:12,padding:"12px 16px",background:T.tealBg,borderRadius:8}}><div style={{fontSize:12,color:T.teal}}>✓ A equipe entrará em contato para confirmar o endereço.</div></div>}</div>
+    <div style={{display:"flex",flexDirection:"column",gap:20}}>
+      <div style={{padding:"16px 18px",background:T.goldFaint,borderRadius:10,border:`1px solid ${T.goldBorder}`}}><div style={{fontSize:13,color:T.gold,fontWeight:600,marginBottom:4}}>Por que perguntamos sobre relacionamentos?</div><div style={{fontSize:12,color:T.inkMid,lineHeight:1.7}}>Vínculos e rede de apoio são determinantes de saúde tão importantes quanto sono e exercício. A Ana usa essas informações para personalizar o acompanhamento.</div></div>
+      <div><Lbl>Estado civil</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{["Casado(a)","Solteiro(a)","União estável","Divorciado(a)","Prefiro não informar"].map(o=><Chip key={o} label={o} active={f.estado_civil===o} onClick={()=>set("estado_civil",o)}/>)}</div></div>
+      <div><Lbl>Tem filhos?</Lbl><div style={{display:"flex",gap:8}}>{["Não","Sim — 1 a 2","Sim — 3 ou mais","Prefiro não informar"].map(o=><Chip key={o} label={o} active={f.filhos===o} onClick={()=>set("filhos",o)}/>)}</div></div>
+      <SldInput label="Qualidade da rede de apoio (família e amigos próximos)" value={f.qualidade_rede||5} onChange={v=>set("qualidade_rede",v)} min={1} max={10} unit="/10" color={T.purple}/>
+      <SldInput label="Satisfação com a vida social" value={f.satisfacao_social||5} onChange={v=>set("satisfacao_social",v)} min={1} max={10} unit="/10" color={T.teal}/>
+      <div><Lbl>Com que frequência você tem conexões sociais significativas?</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{["Raramente","Algumas vezes por semana","Todo dia","Prefiro não informar"].map(o=><Chip key={o} label={o} active={f.freq_social===o} onClick={()=>set("freq_social",o)}/>)}</div></div>
     </div>,
   ];
 
@@ -481,7 +830,7 @@ export function ScreenOnboarding({user,onComplete}){
   return(
     <div style={{minHeight:"100vh",display:"flex",background:T.bg,fontFamily:T.fB,color:T.ink}}>
       <div style={{width:220,flexShrink:0,borderRight:`1px solid ${T.border}`,padding:"32px 24px",display:"flex",flexDirection:"column",background:T.surface}}>
-        <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:44}}><span style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>H</span><span style={{fontFamily:T.fD,fontSize:24,color:T.gold}}>Dohmann</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:44}}><div style={{width:28,height:28,borderRadius:6,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:700,fontSize:13}}>V</div><span style={{fontFamily:T.fD,fontSize:15,fontWeight:600,color:T.ink}}>Hospital Virtual Verde</span></div>
         <div style={{flex:1,display:"flex",flexDirection:"column",gap:2}}>
           {OB_STEPS.map((s,i)=>{const done=i<step,active=i===step;return(<div key={i} style={{display:"flex",gap:14,alignItems:"flex-start",padding:"9px 0",cursor:done?"pointer":"default"}} onClick={()=>done&&setStep(i)}><div style={{display:"flex",flexDirection:"column",alignItems:"center"}}><div style={{width:24,height:24,borderRadius:"50%",border:`2px solid ${done?T.green:active?T.gold:T.border}`,background:done?T.green:active?T.goldFaint:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:done?"#FFF":active?T.gold:T.inkFaint,fontWeight:700,transition:"all 0.3s"}}>{done?"✓":i+1}</div>{i<OB_STEPS.length-1&&<div style={{width:1.5,height:28,background:done?T.green:T.border,marginTop:3}}/>}</div><span style={{fontSize:11,color:active?T.gold:done?T.ink:T.inkFaint,paddingTop:3,fontWeight:active?600:400}}>{s}</span></div>);})}
         </div>
@@ -503,9 +852,94 @@ export function ScreenOnboarding({user,onComplete}){
 
 // ─── APP PRINCIPAL ────────────────────────────────────────────────
 export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
-  const[modulo,setModulo]=useState("dashboard");
+  const[modulo,setModulo]=useState("home");
   const[checkinHoje,setCheckinHoje]=useState(null);
   const[planLog,setPlanLog]=useState([]);
+  const[planoRefresh,setPlanoRefresh]=useState(0);
+  const[homeKey,setHomeKey]=useState(0);
+  const[modalCsat,setModalCsat]=useState(null); // {agendamento_id, medico_nome}
+  const[modalNps,setModalNps]=useState(false);
+
+  // Verificar CSAT e NPS pendentes ao carregar
+  useEffect(()=>{
+    if(!pacienteId)return;
+    verificarAvaliacoesPendentes();
+  },[pacienteId]);
+
+  const verificarAvaliacoesPendentes=async()=>{
+    // Buscar consultas realizadas sem avaliação CSAT
+    const{data:consultasRealizadas}=await supabase.from("agendamentos")
+      .select("id,data,hora,medicos(nome)")
+      .eq("paciente_id",pacienteId)
+      .eq("status","realizada")
+      .order("data",{ascending:false})
+      .limit(5);
+
+    if(consultasRealizadas?.length>0){
+      // Verificar quais já têm avaliação
+      const{data:avaliacoes}=await supabase.from("avaliacoes")
+        .select("agendamento_id")
+        .eq("paciente_id",pacienteId)
+        .eq("tipo","csat");
+
+      const idsAvaliados=new Set((avaliacoes||[]).map(a=>a.agendamento_id));
+      const semAvaliacao=consultasRealizadas.filter(c=>!idsAvaliados.has(c.id));
+
+      if(semAvaliacao.length>0){
+        const c=semAvaliacao[0];
+        setModalCsat({agendamento_id:c.id,medico_nome:c.medicos?.nome||"seu médico"});
+        return; // Mostrar CSAT primeiro, NPS depois
+      }
+    }
+
+    // Verificar NPS — a cada 4 meses
+    const{data:ultimoNps}=await supabase.from("avaliacoes")
+      .select("created_at")
+      .eq("paciente_id",pacienteId)
+      .eq("tipo","nps")
+      .order("created_at",{ascending:false})
+      .limit(1)
+      .single();
+
+    if(!ultimoNps){
+      // Nunca respondeu — verificar se tem pelo menos 1 consulta realizada
+      const{count}=await supabase.from("agendamentos")
+        .select("*",{count:"exact",head:true})
+        .eq("paciente_id",pacienteId)
+        .eq("status","realizada");
+      if(count>0)setModalNps(true);
+    } else {
+      const ultimo=new Date(ultimoNps.created_at);
+      const mesesPassados=(Date.now()-ultimo.getTime())/(1000*60*60*24*30);
+      if(mesesPassados>=4)setModalNps(true);
+    }
+  };
+
+  const salvarCsat=async(nota,comentario)=>{
+    if(!modalCsat)return;
+    await supabase.from("avaliacoes").insert({
+      paciente_id:pacienteId,
+      agendamento_id:modalCsat.agendamento_id,
+      tipo:"csat",
+      nota_csat:nota,
+      comentario:comentario||null,
+      data:new Date().toISOString().slice(0,10),
+    });
+    setModalCsat(null);
+    // Verificar NPS depois do CSAT
+    setTimeout(()=>verificarAvaliacoesPendentes(),500);
+  };
+
+  const salvarNps=async(nota,comentario)=>{
+    await supabase.from("avaliacoes").insert({
+      paciente_id:pacienteId,
+      tipo:"nps",
+      nota_nps:nota,
+      comentario:comentario||null,
+      data:new Date().toISOString().slice(0,10),
+    });
+    setModalNps(false);
+  };
   const[mensagensNaoLidas,setMensagensNaoLidas]=useState(0);
   const[laudoGenetico,setLaudoGenetico]=useState({pdfB64:null,pdfNome:null,analise:null});
   const scores=calcScores(form,checkinHoje);
@@ -514,8 +948,8 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
 
   useEffect(()=>{
     if(!pacienteId)return;
-    const hoje=new Date().toISOString().slice(0,10);
-    carregarCheckinHoje(pacienteId).then(ci=>{if(ci&&ci.data===hoje)setCheckinHoje(ci);});
+    const hoje=dataHoje();
+    carregarCheckinHoje(pacienteId).then(ci=>{ if(ci) setCheckinHoje(ci); });
     carregarPlanLog(pacienteId).then(log=>setPlanLog(log));
     supabase.from("mensagens").select("id",{count:"exact"}).eq("paciente_id",pacienteId).eq("lida",false).eq("remetente","ana").then(({count})=>setMensagensNaoLidas(count||0));
     // Carregar análise genética salva
@@ -530,10 +964,14 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
   },[pacienteId]);
 
   const onCheckinSalvo=useCallback(async(dados)=>{
-    setCheckinHoje(dados);
     if(pacienteId){
       await salvarCheckinDB(pacienteId,dados);
-      await onPlanUpdate({icon:"✅",cor:T.teal,titulo:"Check-in diário realizado",descricao:`Energia ${dados.energia}/10 · Sono ${dados.sono}/10 · Estresse ${dados.estresse}/10. Scores recalibrados.`,data:new Date().toLocaleDateString("pt-BR")});
+      // Recarregar do banco para garantir dados completos incluindo sintomas e notas
+      const ciAtualizado=await carregarCheckinHoje(pacienteId);
+      setCheckinHoje(ciAtualizado||dados);
+      await onPlanUpdate({icon:"✅",cor:T.teal,titulo:"Check-in diário realizado",descricao:`Energia ${dados.energia}/10 · Sono ${dados.sono}/10 · Estresse ${dados.estresse}/10 · Vínculos ${dados.vinculos||"-"}/10. Scores recalibrados.`,data:new Date().toLocaleDateString("pt-BR")});
+    } else {
+      setCheckinHoje(dados);
     }
   },[pacienteId,onPlanUpdate]);
 
@@ -551,59 +989,285 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
     if(membro==="suporte")return `Você é a Central de Atendimento HVV. Responda dúvidas sobre o app e o programa. Seja claro e amigável. Usuário: ${nome}.`;
     // Ana — acesso total
     const laudoCtx=laudoGenetico?.analise?`\n\nLAUDO GENÉTICO (${laudoGenetico.pdfNome||"disponível"}): ${laudoGenetico.analise.resumo||""}. Risco geral: ${laudoGenetico.analise.nivel_risco_geral||"—"}. Farmacogenômica: ${laudoGenetico.analise.medicamentos||"—"}.`:"\n\nLAUDO GENÉTICO: ainda não enviado.";
-    return `Você é Ana, enfermeira coordenadora da equipe de saúde do Hospital Virtual Verde (HVV) — benefício Stone. Você é o ponto central de contato — tem acesso a TODOS os dados e conversas do paciente.\n\nSeu papel inclui: coordenar o plano integral de saúde, motivar o paciente, acompanhar a evolução dos 6 eixos MEV, fazer check-ins e orientar sobre saúde geral. Para questões específicas de nutrição, exercício, medicamentos ou genômica, você pode orientar inicialmente mas deve direcionar ao especialista correto da equipe.\n\nPERFIL: ${nome}, ${form?.cargo||"—"}, ${form?.idade||"—"} anos.\nCondições: ${(form?.condicoes||[]).filter(c=>c!=="Nenhuma").join(", ")||"nenhuma"}.\nMedicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}.\nSono: ${form?.sono||7}h qualidade ${form?.qual_sono||5}/10. Treino: ${form?.freq_treino||0}x/sem. Estresse: ${form?.estresse||5}/10.\nScores MEV+Vínculos: ${Object.entries(scores.eixos).map(([n,sc])=>`${n}: ${sc}`).join(" | ")}. Vitalidade: ${scores.total}/100.\nCheck-in hoje: ${checkinHoje?`Energia ${checkinHoje.energia}/10, Sono ${checkinHoje.sono}/10, Estresse ${checkinHoje.estresse}/10`:"Não realizado"}.${laudoCtx}\n\nTom: acolhedor, preciso e humano. Histórico de conversas está persistido — você tem memória das sessões anteriores.\n\n⚠️ IMPORTANTE: Suas respostas são orientações de IA e devem sempre ser validadas pelo seu médico pessoal antes de qualquer decisão clínica.`;
+    const checkinCtx=checkinHoje?`\n\nCHECK-IN REGISTRADO AGORA — ESTES SÃO OS DADOS REAIS DE HOJE:
+Energia: ${checkinHoje.energia}/10 | Sono: ${checkinHoje.sono}/10 | Estresse: ${checkinHoje.estresse}/10 | Humor: ${checkinHoje.humor||"-"}/10
+Vínculos: ${checkinHoje.vinculos||"-"}/10 (rede apoio: ${checkinHoje.rede_apoio||"-"}, trabalho: ${checkinHoje.relacoes_trabalho||"-"}, social: ${checkinHoje.vida_social||"-"}, pessoal: ${checkinHoje.relacionamentos_pessoais||"-"})
+Bem-estar: ${checkinHoje.bem_estar||"-"}/10${checkinHoje.sintomas?`\nSintomas: ${checkinHoje.sintomas}`:""}${checkinHoje.notas?`\nObservações do paciente: ${checkinHoje.notas}`:""}
+
+INSTRUÇÃO CRÍTICA: Estes dados ACABARAM de ser salvos. Você TEM acesso ao check-in de hoje. NÃO diga que não consegue ver os dados. Abra a conversa comentando diretamente sobre estes números — especialmente os pontos mais críticos. Se estresse >= 7, comente. Se sono <= 4, comente. Se vínculos <= 4, comente. Se o paciente deixou observações, responda a elas diretamente.`:"\nCheck-in de hoje: ainda não realizado.";
+
+    return `Você é Ana, enfermeira coordenadora da equipe de saúde do Hospital Virtual Verde (HVV) — benefício Stone. Você é o ponto central de contato e tem acesso a TODOS os dados do paciente.
+
+Seu papel: coordenar o plano integral de saúde, motivar o paciente, acompanhar os 6 eixos de vitalidade e orientar sobre saúde geral. Para nutrição, exercício ou medicamentos, direcione ao especialista correto da equipe.
+
+PERFIL DO PACIENTE:
+- Nome: ${nome}
+- Condições: ${(form?.condicoes||[]).filter(c=>c!=="Nenhuma").join(", ")||"nenhuma"}
+- Medicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}
+- Sono habitual: ${form?.sono||7}h, qualidade ${form?.qual_sono||5}/10
+- Estresse habitual: ${form?.estresse||5}/10
+- Treino: ${form?.freq_treino||0}x/semana
+- Dieta: ${form?.dieta||"não informada"}
+- Rede de apoio: ${form?.qualidade_rede||"-"}/10
+- Vida social: ${form?.satisfacao_social||"-"}/10
+
+SCORES DE VITALIDADE:
+${Object.entries(scores.eixos).map(([n,sc])=>`- ${n}: ${sc}/100`).join("\n")}
+- TOTAL: ${scores.total}/100
+${checkinCtx}${laudoCtx}
+
+Tom: acolhedor, preciso e humano. Histórico persistido — você tem memória das sessões anteriores.
+
+⚠️ Suas respostas são orientações de IA — sempre validar com o médico pessoal antes de decisões clínicas.`;
   };
 
   return(
     <div style={{display:"flex",height:"100vh",background:T.bg,fontFamily:T.fB,color:T.ink,overflow:"hidden"}}>
-      {/* Sidebar */}
-      <div style={{width:222,flexShrink:0,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",background:T.surface,height:"100vh",position:"sticky",top:0,overflow:"hidden",boxShadow:"2px 0 12px rgba(60,50,30,0.04)"}}>
-        <div style={{padding:"20px 20px 16px",borderBottom:`1px solid ${T.border}`}}><div style={{display:"flex",alignItems:"baseline",gap:6}}><div style={{width:28,height:28,borderRadius:6,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:700,fontSize:13}}>V</div><span style={{fontFamily:T.fD,fontSize:15,color:T.ink,fontWeight:600}}>Hospital Virtual Verde</span></div><div style={{fontSize:8,letterSpacing:"0.18em",color:T.inkFaint,marginTop:2}}>BENEFÍCIO STONE</div></div>
-        <div style={{padding:"12px 16px 10px",borderBottom:`1px solid ${T.border}`,display:"flex",gap:10,alignItems:"center"}}>
-          <div style={{width:34,height:34,borderRadius:"50%",background:T.goldFaint,border:`1.5px solid ${T.goldBorder}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:T.gold,fontWeight:700,flexShrink:0}}>{initials}</div>
-          <div style={{minWidth:0}}><div style={{fontSize:12,color:T.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:500}}>{nome.split(" ")[0]}</div><div style={{fontSize:9,color:T.inkFaint}}>{form?.cargo||"Executivo"}</div></div>
+
+      {/* Sidebar — estilo protótipo */}
+      <div style={{width:220,flexShrink:0,borderRight:`0.5px solid ${T.border}`,display:"flex",flexDirection:"column",background:T.surface,height:"100vh",position:"sticky",top:0,overflow:"hidden"}}>
+
+        {/* Logo */}
+        <div style={{padding:"14px 20px",borderBottom:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:28,height:28,borderRadius:6,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:500,fontSize:13}}>V</div>
+          <span style={{fontSize:15,color:T.ink,fontWeight:500}}>Hospital Virtual Verde</span>
         </div>
-        <div style={{flex:1,overflowY:"auto",padding:"10px 10px"}}>
-          <div style={{fontSize:8,letterSpacing:"0.2em",color:T.inkFaint,padding:"6px 10px 8px"}}>NAVEGAÇÃO</div>
+
+        {/* Nav */}
+        <nav style={{flex:1,overflowY:"auto",padding:"8px"}}>
           {MODULOS.map(m=>{
-            const eq=m.membro?EQUIPE.find(e=>e.id===m.membro):null;
             const active=modulo===m.id;
             const showDot=m.id==="ana"&&checkinPendente;
             const showMsg=m.id==="mensagens"&&mensagensNaoLidas>0;
-            return(<button key={m.id} onClick={()=>{setModulo(m.id);if(m.id==="mensagens"){setMensagensNaoLidas(0);if(pacienteId)marcarMensagensLidas(pacienteId);}}} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:8,background:active?T.goldFaint:"transparent",border:`1px solid ${active?T.goldBorder:"transparent"}`,cursor:"pointer",transition:"all 0.18s",fontFamily:T.fB,textAlign:"left",marginBottom:2,boxShadow:active?T.shadowCard:"none"}} onMouseOver={e=>{if(!active)e.currentTarget.style.background=T.surfaceMid;}} onMouseOut={e=>{if(!active)e.currentTarget.style.background="transparent";}}>
-              <span style={{fontSize:15,flexShrink:0}}>{m.icon}</span>
-              <span style={{fontSize:12,color:active?T.gold:T.inkMid,fontWeight:active?600:400}}>{m.label}</span>
-              {showDot&&<span style={{marginLeft:"auto",width:8,height:8,borderRadius:"50%",background:T.orange,display:"inline-block",animation:"pulse 1.5s ease infinite",flexShrink:0}}/>}
-              {showMsg&&<span style={{marginLeft:"auto",fontSize:9,padding:"2px 6px",borderRadius:10,background:T.teal,color:"#FFF",fontWeight:700}}>{mensagensNaoLidas}</span>}
-              {!showDot&&!showMsg&&eq&&<div style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:eq.cor,boxShadow:`0 0 6px ${eq.cor}60`}}/>}
-            </button>);
+            return(
+              <button key={m.id}
+                onClick={()=>{if(m.id==="home")setHomeKey(k=>k+1);setModulo(m.id);if(m.id==="mensagens"){setMensagensNaoLidas(0);if(pacienteId)marcarMensagensLidas(pacienteId);}}}
+                style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:8,background:active?T.greenBg:"transparent",border:"none",cursor:"pointer",transition:"all 0.15s",fontFamily:T.fB,textAlign:"left",marginBottom:1}}
+                onMouseOver={e=>{if(!active)e.currentTarget.style.background=T.bgWarm;}}
+                onMouseOut={e=>{if(!active)e.currentTarget.style.background="transparent";}}>
+                <span style={{fontSize:14,flexShrink:0,width:20,textAlign:"center"}}>{m.icon}</span>
+                <span style={{fontSize:13,color:active?T.greenDark:T.inkMid,fontWeight:active?500:400}}>{m.label}</span>
+                {showDot&&<span style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:"#E07020",flexShrink:0}}/>}
+                {showMsg&&<span style={{marginLeft:"auto",fontSize:10,padding:"1px 6px",borderRadius:10,background:T.green,color:"#FFF",fontWeight:600}}>{mensagensNaoLidas}</span>}
+              </button>
+            );
           })}
-          <div style={{fontSize:8,letterSpacing:"0.2em",color:T.inkFaint,padding:"14px 10px 8px"}}>SUA EQUIPE</div>
-          {EQUIPE.map(e=>(<div key={e.id} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 12px",borderRadius:8}}><div style={{width:30,height:30,borderRadius:"50%",background:e.bg,border:`1.5px solid ${e.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{e.icon}</div><div style={{minWidth:0}}><div style={{fontSize:11,color:T.inkMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.nome}</div><div style={{fontSize:8,color:T.inkFaint,letterSpacing:"0.08em"}}>{e.titulo}</div></div><div style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:T.green,boxShadow:`0 0 6px ${T.green}60`,flexShrink:0}}/></div>))}
-        </div>
-        <div style={{padding:"14px 16px",borderTop:`1px solid ${T.border}`}}>
-          <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:10,color:T.inkFaint}}>VITALIDADE</span><span style={{fontSize:13,color:T.gold,fontFamily:T.fD,fontWeight:700}}>{scores.total}/100</span></div>
-          <div style={{height:3,background:T.surfaceMid,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${scores.total}%`,background:`linear-gradient(90deg,${T.gold},${T.teal})`}}/></div>
-          <button onClick={onLogout} style={{marginTop:12,width:"100%",padding:"7px",background:"transparent",border:`1px solid ${T.border}`,borderRadius:6,color:T.inkFaint,fontFamily:T.fB,fontSize:9,letterSpacing:"0.12em",cursor:"pointer"}}>SAIR</button>
+        </nav>
+
+        {/* Footer — usuário + sair */}
+        <div style={{padding:"12px 16px",borderTop:`0.5px solid ${T.border}`}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+            <div style={{width:32,height:32,borderRadius:"50%",background:T.greenBg,border:`1px solid ${T.greenBorder}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:T.greenDark,fontWeight:600,flexShrink:0}}>{initials}</div>
+            <div style={{minWidth:0,flex:1}}>
+              <div style={{fontSize:13,color:T.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:500}}>{nome.split(" ")[0]}</div>
+              <div style={{fontSize:11,color:T.inkLight}}>Vitalidade: {scores.total}/100</div>
+            </div>
+          </div>
+          <button onClick={onLogout} style={{width:"100%",padding:"7px",background:"transparent",border:`0.5px solid ${T.borderMid}`,borderRadius:6,color:T.inkLight,fontFamily:T.fB,fontSize:12,cursor:"pointer"}}>Sair</button>
         </div>
       </div>
 
       {/* Content */}
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-        <div style={{borderBottom:`1px solid ${T.border}`,padding:"0 28px",height:48,display:"flex",alignItems:"center",justifyContent:"space-between",background:T.surface,flexShrink:0,boxShadow:T.shadowCard}}>
-          <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:10,color:T.inkFaint,letterSpacing:"0.15em"}}>Hospital Virtual Verde</span><span style={{color:T.border}}>›</span><span style={{fontSize:11,color:T.inkMid,letterSpacing:"0.12em",fontWeight:500}}>{MODULOS.find(m=>m.id===modulo)?.label}</span></div>
-          <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:6,height:6,borderRadius:"50%",background:T.green,boxShadow:`0 0 8px ${T.green}60`,animation:"pulse 2s ease infinite"}}/><span style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.12em"}}>EQUIPE ONLINE</span></div>
+        {/* Topbar */}
+        <div style={{borderBottom:`0.5px solid ${T.border}`,padding:"0 24px",height:48,display:"flex",alignItems:"center",justifyContent:"space-between",background:T.surface,flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:13,color:T.inkLight}}>Hospital Virtual Verde</span>
+            <span style={{color:T.border}}>›</span>
+            <span style={{fontSize:13,color:T.ink,fontWeight:500}}>{MODULOS.find(m=>m.id===modulo)?.label||""}</span>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <div style={{width:6,height:6,borderRadius:"50%",background:T.green}}/>
+            <span style={{fontSize:12,color:T.inkLight}}>Equipe online</span>
+          </div>
         </div>
 
-        {modulo==="dashboard"&&<ModuloDashboard form={form} scores={scores} setModulo={setModulo} checkinHoje={checkinHoje} planLog={planLog} onPlanUpdate={onPlanUpdate}/>}
-        {modulo==="plano"&&<ModuloPlano form={form} scores={scores} setModulo={setModulo} planLog={planLog} checkinHoje={checkinHoje}/>}
-        {modulo==="ana"&&<ModuloAna form={form} scores={scores} apiKey={apiKey} checkinHoje={checkinHoje} onCheckinSalvo={onCheckinSalvo} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId} systemPrompt={buildPrompt("enfermeira")}/>}
+        {modulo==="home"&&<ModuloHome key={`home-${homeKey}`} form={form} scores={scores} setModulo={setModulo} pacienteId={pacienteId}/>}
+        {modulo==="dashboard"&&<ModuloDashboard form={form} scores={scores} setModulo={setModulo} checkinHoje={checkinHoje} planLog={planLog} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId}/>}
+        {modulo==="plano"&&<ModuloPlano key={planoRefresh} form={form} scores={scores} setModulo={setModulo} planLog={planLog} checkinHoje={checkinHoje} pacienteId={pacienteId} apiKey={apiKey}/>}
+        {modulo==="ana"&&<ModuloAna form={form} scores={scores} apiKey={apiKey} checkinHoje={checkinHoje} onCheckinSalvo={onCheckinSalvo} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId} getBuildPrompt={buildPrompt} onPlanChange={()=>{setPlanoRefresh(r=>r+1);setModulo("plano");}}/>}
         {modulo==="nutri"&&<ModuloChat membro="nutri" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("nutri")} inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou a Dra. Lucia, sua nutricionista. Dieta atual: ${form?.dieta||"não informada"}. Score de Nutrição: ${scores.eixos["Nutrição"]}/100. Como posso ajudar?`} sugestoes={["O que devo comer antes do treino?","Como melhorar minha alimentação?","Quais suplementos são indicados para mim?","Como montar um cardápio executivo?"]}/>}
         {modulo==="personal"&&<ModuloChat membro="personal" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("personal")} inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou o Bruno, seu especialista em atividade física. Treino atual: ${form?.freq_treino||0}x/semana. Score de Atividade: ${scores.eixos["Atividade"]}/100. Como posso ajudar?`} sugestoes={["Monte um treino para minha rotina executiva","Como treinar com pouco tempo?","Qual a melhor atividade para reduzir estresse?","Como melhorar minha recuperação?"]}/>}
         {modulo==="farmaceutico"&&<ModuloChat membro="farmaceutico" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("farmaceutico")} inicialMsg={`Olá! Sou Rafael. Medicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}. Em que posso ajudar?`} sugestoes={["Verificar interações","Como tomar minha medicação?","Posso tomar vitaminas junto?"]}/>}
         {modulo==="documentos"&&<ModuloDocumentos apiKey={apiKey} pacienteId={pacienteId} onPlanUpdate={onPlanUpdate}/>}
         {modulo==="mensagens"&&<ModuloMensagens pacienteId={pacienteId} nome={nome}/>}
         {modulo==="integracoes"&&<ModuloIntegracoes/>}
+      </div>
+
+      {/* Modal CSAT */}
+      {modalCsat&&(
+        <ModalCsat
+          medicoNome={modalCsat.medico_nome}
+          onSalvar={salvarCsat}
+          onPular={()=>setModalCsat(null)}/>
+      )}
+
+      {/* Modal NPS */}
+      {modalNps&&!modalCsat&&(
+        <ModalNps
+          onSalvar={salvarNps}
+          onPular={()=>setModalNps(false)}/>
+      )}
+
+    </div>
+  );
+}
+
+// ─── Modal CSAT ────────────────────────────────────────────────────
+function ModalCsat({medicoNome,onSalvar,onPular}){
+  const[nota,setNota]=useState(0);
+  const[hover,setHover]=useState(0);
+  const[comentario,setComentario]=useState("");
+  const[salvando,setSalvando]=useState(false);
+
+  const labels=["","Muito ruim","Ruim","Regular","Boa","Excelente"];
+
+  const handleSalvar=async()=>{
+    if(!nota)return;
+    setSalvando(true);
+    await onSalvar(nota,comentario);
+    setSalvando(false);
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:2000,padding:"0 0 0 0"}}>
+      <div style={{background:T.surface,borderRadius:"20px 20px 0 0",padding:"28px 24px 40px",width:"100%",maxWidth:480,boxShadow:"0 -8px 32px rgba(0,0,0,0.15)"}}>
+        <div style={{width:40,height:4,borderRadius:2,background:T.border,margin:"0 auto 24px"}}/>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{fontSize:32,marginBottom:8}}>⭐</div>
+          <div style={{fontSize:18,fontWeight:600,color:T.ink,marginBottom:4}}>Como foi sua consulta?</div>
+          <div style={{fontSize:13,color:T.inkMid}}>com {medicoNome}</div>
+        </div>
+
+        {/* Estrelas */}
+        <div style={{display:"flex",justifyContent:"center",gap:12,marginBottom:12}}>
+          {[1,2,3,4,5].map(i=>(
+            <button key={i}
+              onClick={()=>setNota(i)}
+              onMouseEnter={()=>setHover(i)}
+              onMouseLeave={()=>setHover(0)}
+              style={{background:"none",border:"none",cursor:"pointer",fontSize:40,
+                filter:(hover||nota)>=i?"none":"grayscale(1) opacity(0.3)",
+                transform:(hover||nota)>=i?"scale(1.1)":"scale(1)",
+                transition:"all 0.15s"}}>
+              ⭐
+            </button>
+          ))}
+        </div>
+
+        {nota>0&&(
+          <div style={{textAlign:"center",fontSize:13,fontWeight:500,color:T.green,marginBottom:16}}>
+            {labels[nota]}
+          </div>
+        )}
+
+        {nota>0&&nota<=3&&(
+          <textarea value={comentario} onChange={e=>setComentario(e.target.value)}
+            placeholder="O que poderia ser melhor? (opcional)"
+            rows={2}
+            style={{width:"100%",padding:"10px 12px",border:`1px solid ${T.border}`,borderRadius:10,
+              fontFamily:T.f,fontSize:13,color:T.ink,outline:"none",resize:"none",
+              lineHeight:1.6,boxSizing:"border-box",marginBottom:16}}/>
+        )}
+
+        <button onClick={handleSalvar} disabled={!nota||salvando}
+          style={{width:"100%",padding:"14px",background:nota?T.green:"#ccc",color:"#FFF",
+            border:"none",borderRadius:12,fontSize:14,fontWeight:600,cursor:nota?"pointer":"not-allowed",
+            fontFamily:T.f,marginBottom:10,opacity:salvando?0.6:1}}>
+          {salvando?"Enviando...":"Enviar avaliação →"}
+        </button>
+        <button onClick={onPular}
+          style={{width:"100%",padding:"10px",background:"transparent",border:"none",
+            color:T.inkFaint,fontSize:12,cursor:"pointer",fontFamily:T.f}}>
+          Pular por agora
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Modal NPS ─────────────────────────────────────────────────────
+function ModalNps({onSalvar,onPular}){
+  const[nota,setNota]=useState(-1);
+  const[comentario,setComentario]=useState("");
+  const[salvando,setSalvando]=useState(false);
+
+  const handleSalvar=async()=>{
+    if(nota<0)return;
+    setSalvando(true);
+    await onSalvar(nota,comentario);
+    setSalvando(false);
+  };
+
+  const getNpsLabel=()=>{
+    if(nota<0)return"";
+    if(nota<=6)return"Detrator";
+    if(nota<=8)return"Neutro";
+    return"Promotor";
+  };
+
+  const getNpsCor=()=>{
+    if(nota<0)return T.inkMid;
+    if(nota<=6)return T.red;
+    if(nota<=8)return T.orange;
+    return T.green;
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:2000}}>
+      <div style={{background:T.surface,borderRadius:"20px 20px 0 0",padding:"28px 24px 40px",width:"100%",maxWidth:480,boxShadow:"0 -8px 32px rgba(0,0,0,0.15)"}}>
+        <div style={{width:40,height:4,borderRadius:2,background:T.border,margin:"0 auto 24px"}}/>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{fontSize:32,marginBottom:8}}>💬</div>
+          <div style={{fontSize:18,fontWeight:600,color:T.ink,marginBottom:4}}>Você indicaria o HVV?</div>
+          <div style={{fontSize:13,color:T.inkMid}}>De 0 a 10, qual a probabilidade de indicar para um amigo ou familiar?</div>
+        </div>
+
+        {/* Notas 0-10 */}
+        <div style={{display:"flex",gap:6,justifyContent:"center",marginBottom:8,flexWrap:"wrap"}}>
+          {[0,1,2,3,4,5,6,7,8,9,10].map(i=>(
+            <button key={i} onClick={()=>setNota(i)}
+              style={{width:40,height:40,borderRadius:10,border:`2px solid ${nota===i?T.green:T.border}`,
+                background:nota===i?T.green:"transparent",
+                color:nota===i?"#FFF":T.inkMid,
+                fontSize:13,fontWeight:nota===i?700:400,cursor:"pointer",fontFamily:T.f,
+                transition:"all 0.15s"}}>
+              {i}
+            </button>
+          ))}
+        </div>
+
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.inkFaint,marginBottom:nota>=0?16:24}}>
+          <span>Pouco provável</span>
+          <span>Muito provável</span>
+        </div>
+
+        {nota>=0&&(
+          <div style={{textAlign:"center",fontSize:13,fontWeight:600,color:getNpsCor(),marginBottom:16}}>
+            {getNpsLabel()}
+          </div>
+        )}
+
+        {nota>=0&&(
+          <textarea value={comentario} onChange={e=>setComentario(e.target.value)}
+            placeholder="Quer nos contar mais? (opcional)"
+            rows={2}
+            style={{width:"100%",padding:"10px 12px",border:`1px solid ${T.border}`,borderRadius:10,
+              fontFamily:T.f,fontSize:13,color:T.ink,outline:"none",resize:"none",
+              lineHeight:1.6,boxSizing:"border-box",marginBottom:16}}/>
+        )}
+
+        <button onClick={handleSalvar} disabled={nota<0||salvando}
+          style={{width:"100%",padding:"14px",background:nota>=0?T.green:"#ccc",color:"#FFF",
+            border:"none",borderRadius:12,fontSize:14,fontWeight:600,
+            cursor:nota>=0?"pointer":"not-allowed",fontFamily:T.f,marginBottom:10,opacity:salvando?0.6:1}}>
+          {salvando?"Enviando...":"Enviar →"}
+        </button>
+        <button onClick={onPular}
+          style={{width:"100%",padding:"10px",background:"transparent",border:"none",
+            color:T.inkFaint,fontSize:12,cursor:"pointer",fontFamily:T.f}}>
+          Pular por agora
+        </button>
       </div>
     </div>
   );
@@ -624,11 +1288,186 @@ function ModuloChat({membro,form,scores,apiKey,pacienteId,systemPrompt,inicialMs
   );
 }
 
+// ─── Chat da Ana com Tool Use ─────────────────────────────────────
+// A Ana pode adicionar, atualizar e remover tarefas do plano de cuidado
+function ChatIAComTools({systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pacienteId,onPlanChange}){
+  const eq=EQUIPE.find(e=>e.id==="enfermeira");
+  const[msgs,setMsgs]=useState([{role:"assistant",content:inicialMsg}]);
+  const[input,setInput]=useState("");
+  const[loading,setLoading]=useState(false);
+  const[carregando,setCarregando]=useState(true);
+  const bottomRef=useRef(null);
+  const inputRef=useRef(null);
+
+  const TOOLS=[{
+    name:"gerenciar_plano_cuidado",
+    description:"Adiciona, atualiza ou remove tarefas do plano de cuidado do paciente. Use quando o paciente pedir para agendar algo, adicionar uma tarefa, remover uma tarefa, ou quando você identificar que uma tarefa precisa ser criada com base na conversa.",
+    input_schema:{
+      type:"object",
+      properties:{
+        acao:{type:"string",enum:["adicionar","remover","atualizar"],description:"Ação a realizar no plano"},
+        titulo:{type:"string",description:"Título claro e objetivo da tarefa"},
+        descricao:{type:"string",description:"Descrição detalhada opcional"},
+        area:{type:"string",enum:["saude_geral","nutricao","atividade","emocional","vinculos","prevencao"],description:"Área de saúde da tarefa"},
+        frequencia_tipo:{type:"string",enum:["diario","n_vezes_semana","uma_vez_semana","uma_vez_mes","unico"],description:"Frequência da tarefa"},
+        meta_semanal:{type:"number",description:"Quantas vezes por semana (apenas para n_vezes_semana)"},
+        tarefa_id:{type:"string",description:"ID da tarefa a remover ou atualizar (obrigatório para remover/atualizar)"},
+      },
+      required:["acao","titulo","area","frequencia_tipo"]
+    }
+  }];
+
+  useEffect(()=>{
+    if(!pacienteId){setCarregando(false);return;}
+    const timer=setTimeout(()=>{
+      carregarHistoricoChat(pacienteId,"enfermeira").then(hist=>{
+        if(hist.length>0)setMsgs([{role:"assistant",content:inicialMsg},...hist]);
+        setCarregando(false);
+      }).catch(()=>setCarregando(false));
+    },3000);
+    return()=>clearTimeout(timer);
+  },[pacienteId]);
+
+  useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[msgs]);
+
+  const executarTool=async(toolInput)=>{
+    const{acao,titulo,descricao,area,frequencia_tipo,meta_semanal,tarefa_id}=toolInput;
+    try{
+      if(acao==="adicionar"){
+        const{data,error}=await supabase.from("plano_cuidado").insert({
+          paciente_id:pacienteId,
+          titulo,descricao:descricao||"",
+          area,frequencia_tipo,
+          frequencia:frequencia_tipo,
+          meta_semanal:meta_semanal||1,
+          origem:"ana",ativo:true,ordem:99
+        }).select("id").single();
+        if(!error&&onPlanChange)onPlanChange();
+        return error?`Erro ao adicionar tarefa: ${error.message}`:`Tarefa "${titulo}" adicionada ao plano com sucesso.`;
+      }
+      if(acao==="remover"&&tarefa_id){
+        const{error}=await supabase.from("plano_cuidado").update({ativo:false}).eq("id",tarefa_id);
+        if(!error&&onPlanChange)onPlanChange();
+        return error?`Erro ao remover tarefa: ${error.message}`:`Tarefa removida do plano.`;
+      }
+      if(acao==="atualizar"&&tarefa_id){
+        const{error}=await supabase.from("plano_cuidado").update({
+          titulo,descricao,area,frequencia_tipo,meta_semanal:meta_semanal||1
+        }).eq("id",tarefa_id);
+        if(!error&&onPlanChange)onPlanChange();
+        return error?`Erro ao atualizar: ${error.message}`:`Tarefa "${titulo}" atualizada.`;
+      }
+      return "Ação não reconhecida.";
+    }catch(e){return `Erro: ${e.message}`;}
+  };
+
+  const send=async(text)=>{
+    if(!text.trim()||loading||!apiKey)return;
+    const userMsg={role:"user",content:text};
+    setMsgs(prev=>[...prev,userMsg,{role:"assistant",content:"",loading:true}]);
+    setInput("");setLoading(true);
+    if(pacienteId)await salvarMensagemChat(pacienteId,"enfermeira","user",text);
+
+    const enviar=async(history,tentativa=1)=>{
+      try{
+        const res=await fetch("/.netlify/functions/claude",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},
+          body:JSON.stringify({
+            model:"claude-sonnet-4-20250514",
+            max_tokens:1200,
+            system:systemPrompt,
+            tools:TOOLS,
+            messages:history
+          })
+        });
+        if(res.status===429&&tentativa<3){await new Promise(r=>setTimeout(r,3000*tentativa));return enviar(history,tentativa+1);}
+        if(res.status===503&&tentativa<3){await new Promise(r=>setTimeout(r,5000*tentativa));return enviar(history,tentativa+1);}
+
+        const data=await res.json();
+        const stopReason=data.stop_reason;
+
+        if(stopReason==="tool_use"){
+          // Ana quer usar uma ferramenta
+          const toolUse=data.content.find(c=>c.type==="tool_use");
+          const textContent=data.content.find(c=>c.type==="text");
+
+          // Mostrar o que a Ana disse antes de usar a ferramenta
+          if(textContent?.text){
+            setMsgs(prev=>[...prev.slice(0,-1),
+              {role:"assistant",content:textContent.text},
+              {role:"assistant",content:"",loading:true}
+            ]);
+          }
+
+          // Executar a ferramenta
+          const resultado=await executarTool(toolUse.input);
+
+          // Continuar a conversa com o resultado da ferramenta
+          const novoHistory=[
+            ...history,
+            {role:"assistant",content:data.content},
+            {role:"user",content:[{type:"tool_result",tool_use_id:toolUse.id,content:resultado}]}
+          ];
+          return enviar(novoHistory,1);
+        }
+
+        // Resposta final
+        const resposta=data.content?.find(c=>c.type==="text")?.text||"Erro ao processar.";
+        setMsgs(prev=>[...prev.slice(0,-1),{role:"assistant",content:resposta}]);
+        if(pacienteId)await salvarMensagemChat(pacienteId,"enfermeira","assistant",resposta);
+
+      }catch(e){
+        setMsgs(prev=>[...prev.slice(0,-1),{role:"assistant",content:"Erro de conexão. Tente novamente."}]);
+      }finally{
+        setLoading(false);
+        setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),100);
+        inputRef.current?.focus();
+      }
+    };
+
+    const history=[...msgs,userMsg].filter(m=>!m.loading).map(m=>({role:m.role,content:m.content}));
+    await enviar(history);
+  };
+
+  if(carregando)return <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{fontSize:12,color:T.inkFaint}}>Carregando histórico...</div></div>;
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+      <div style={{flex:1,overflowY:"auto",padding:"24px 28px 8px"}}>
+        {msgs.map((msg,i)=>{
+          const isUser=msg.role==="user";
+          return(<div key={i} style={{display:"flex",flexDirection:isUser?"row-reverse":"row",gap:12,marginBottom:20,alignItems:"flex-start"}}>
+            {!isUser&&<div style={{width:36,height:36,borderRadius:"50%",background:eq?.bg||T.goldFaint,border:`1.5px solid ${eq?.cor||T.gold}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,marginTop:2}}>{eq?.icon||"🩺"}</div>}
+            <div style={{maxWidth:"74%",padding:"14px 18px",background:isUser?T.goldFaint:T.surface,border:`1px solid ${isUser?T.goldBorder:T.border}`,borderRadius:isUser?"16px 16px 4px 16px":"4px 16px 16px 16px",fontSize:13,color:T.ink,lineHeight:1.8,whiteSpace:"pre-wrap",boxShadow:T.shadowCard}}>
+              {msg.loading?<span style={{display:"inline-flex",gap:5}}>{[0,1,2].map(j=><span key={j} style={{width:6,height:6,borderRadius:"50%",background:eq?.cor||T.gold,display:"inline-block",animation:`blink 1.2s ease ${j*0.2}s infinite`}}/>)}</span>:msg.content}
+            </div>
+          </div>);
+        })}
+        <div ref={bottomRef}/>
+      </div>
+      {msgs.length<=1&&sugestoes?.length>0&&(
+        <div style={{padding:"0 28px 14px",display:"flex",gap:8,flexWrap:"wrap",flexShrink:0}}>
+          {sugestoes.map((s,i)=>(<button key={i} onClick={()=>send(s)} style={{padding:"8px 16px",background:T.surface,border:`1px solid ${T.border}`,borderRadius:20,fontSize:12,color:T.inkMid,cursor:"pointer",fontFamily:T.fB,transition:"all 0.18s",boxShadow:T.shadowCard}}>{s}</button>))}
+        </div>
+      )}
+      <div style={{padding:"6px 28px",background:T.surfaceMid,borderTop:`1px solid ${T.border}`,flexShrink:0}}>
+        <div style={{fontSize:10,color:T.inkFaint,lineHeight:1.6}}>✦ A Ana pode adicionar tarefas ao seu plano — basta pedir. ⚠️ Valide decisões clínicas com seu médico.</div>
+      </div>
+      <div style={{borderTop:`1px solid ${T.border}`,padding:"14px 28px",display:"flex",gap:10,alignItems:"flex-end",flexShrink:0,background:T.bgWarm}}>
+        <textarea ref={inputRef} rows={1} placeholder={apiKey?placeholder:"Configure a API Key..."} value={input} onChange={e=>{setInput(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,120)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send(input);}}} disabled={loading||!apiKey} style={{flex:1,background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:10,padding:"12px 16px",color:T.ink,fontFamily:T.fB,fontSize:13,outline:"none",lineHeight:1.6,minHeight:44,maxHeight:120,overflow:"hidden",resize:"none",opacity:apiKey?1:0.5,boxShadow:T.shadowCard}}/>
+        <button onClick={()=>send(input)} disabled={loading||!input.trim()||!apiKey} style={{width:44,height:44,borderRadius:10,background:(!loading&&input.trim()&&apiKey)?eq?.cor||T.gold:"transparent",border:`1.5px solid ${(!loading&&input.trim()&&apiKey)?eq?.cor||T.gold:T.border}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:(!loading&&input.trim()&&apiKey)?"#FFF":T.inkFaint,transition:"all 0.2s",flexShrink:0,fontWeight:700}}>{loading?"…":"↑"}</button>
+      </div>
+    </div>
+  );
+}
+
+
 // ─── Módulo Ana ───────────────────────────────────────────────────
-function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,pacienteId,systemPrompt}){
+function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,pacienteId,getBuildPrompt,onPlanChange}){
   const[aba,setAba]=useState(checkinHoje?"chat":"checkin");
   const eq=EQUIPE.find(e=>e.id==="enfermeira");
-  const[ci,setCi]=useState({sono:7,energia:7,estresse:5,humor:7,sintomas:"",notas:""});
+  const[ci,setCi]=useState({sono:7,energia:7,estresse:5,humor:7,vinculos:7,bem_estar:7,rede_apoio:7,relacoes_colegas:6,relacoes_lider:6,vida_social:6,relacionamentos_pessoais:7,sintomas:"",notas:""});
   const[salvando,setSalvando]=useState(false);const[salvo,setSalvo]=useState(false);
   const nome=form?.nome||"Executivo";
 
@@ -652,7 +1491,7 @@ function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,p
       <div style={{borderBottom:`1px solid ${T.border}`,padding:"0 28px",display:"flex",background:T.bgWarm,flexShrink:0}}>
         {[{id:"chat",label:"Conversar com Ana"},{id:"checkin",label:"Check-in Diário"}].map(t=>(<button key={t.id} onClick={()=>setAba(t.id)} style={{background:"none",border:"none",borderBottom:`2px solid ${aba===t.id?T.teal:"transparent"}`,padding:"13px 22px",fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",color:aba===t.id?T.teal:T.inkFaint,cursor:"pointer",fontFamily:T.fB,transition:"all 0.2s",display:"flex",alignItems:"center",gap:6}}>{t.label}{t.id==="checkin"&&!checkinHoje&&<span style={{width:7,height:7,borderRadius:"50%",background:T.orange,display:"inline-block",animation:"pulse 1.5s ease infinite"}}/>}</button>))}
       </div>
-      {aba==="chat"&&<ChatIA membro="enfermeira" apiKey={apiKey} placeholder="Fale com Ana sobre qualquer assunto de saúde..." inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou a Ana, sua enfermeira coordenadora. Tenho acesso a todo o seu histórico — conversas anteriores, check-ins, documentos e plano de cuidado.\n\n${checkinHoje?`Vi seu check-in de hoje — energia ${checkinHoje.energia}/10. `:"Você ainda não fez seu check-in de hoje. "}Como posso ajudar?`} sugestoes={["Como está meu plano?","O que devo priorizar?","Como uso o app?","Preciso ajustar meus medicamentos"]} systemPrompt={systemPrompt} pacienteId={pacienteId}/>}
+      {aba==="chat"&&<ChatIAComTools key={checkinHoje?`checkin-${checkinHoje.energia}-${checkinHoje.sono}`:"sem-checkin"} apiKey={apiKey} placeholder="Fale com Ana sobre qualquer assunto de saúde..." inicialMsg={`Olá, ${nome.split(" ")[0]}! Recebi seu check-in de hoje.\n\n${checkinHoje?`📊 Seus dados de agora:\n• Energia: ${checkinHoje.energia}/10\n• Sono: ${checkinHoje.sono}/10\n• Estresse: ${checkinHoje.estresse}/10${checkinHoje.vinculos?`\n• Vínculos: ${checkinHoje.vinculos}/10`:""}${checkinHoje.bem_estar?`\n• Bem-estar: ${checkinHoje.bem_estar}/10`:""}${checkinHoje.sintomas?`\n• Sintomas relatados: ${checkinHoje.sintomas}`:""}${checkinHoje.notas?`\n• Você escreveu: "${checkinHoje.notas}"`:""}\n\nBaseado nesses dados, o que mais te preocupa agora?`:"Você ainda não fez seu check-in de hoje. Como está se sentindo?"}`} sugestoes={["Comente sobre meus dados de hoje","O que devo priorizar agora?","Como estão meus vínculos?","Algum alerta no meu check-in?"]} systemPrompt={getBuildPrompt("enfermeira")} pacienteId={pacienteId} onPlanChange={onPlanChange}/>}
       {aba==="checkin"&&(
         <div style={{flex:1,overflowY:"auto",padding:"28px"}}>
           <div style={{maxWidth:580,margin:"0 auto"}}>
@@ -660,7 +1499,7 @@ function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,p
               <Card style={{padding:"28px",textAlign:"center",background:T.greenBg,border:`1px solid ${T.green}30`}}>
                 <div style={{fontSize:48,marginBottom:16}}>✅</div>
                 <div style={{fontFamily:T.fD,fontSize:22,color:T.ink,marginBottom:8}}>Check-in concluído!</div>
-                <div style={{fontSize:13,color:T.inkMid,marginBottom:20,lineHeight:1.7}}>Energia: {checkinHoje.energia}/10 · Sono: {checkinHoje.sono}/10 · Estresse: {checkinHoje.estresse}/10</div>
+                <div style={{fontSize:13,color:T.inkMid,marginBottom:20,lineHeight:1.7}}>Energia: {checkinHoje.energia}/10 · Sono: {checkinHoje.sono}/10 · Estresse: {checkinHoje.estresse}/10{checkinHoje.vinculos?` · Vínculos: ${checkinHoje.vinculos}/10`:""}</div>
                 <Btn onClick={()=>setAba("chat")} variant="teal">CONVERSAR COM ANA →</Btn>
               </Card>
             ):(
@@ -672,6 +1511,18 @@ function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,p
                   <SldInput label="Nível de energia agora" value={ci.energia} onChange={v=>setCi(p=>({...p,energia:v}))} min={1} max={10} unit="/10" color={T.teal}/>
                   <SldInput label="Nível de estresse hoje" value={ci.estresse} onChange={v=>setCi(p=>({...p,estresse:v}))} min={1} max={10} unit="/10" color={T.red}/>
                   <SldInput label="Como está seu humor?" value={ci.humor} onChange={v=>setCi(p=>({...p,humor:v}))} min={1} max={10} unit="/10" color={T.gold}/>
+                  <div style={{borderTop:`1px solid ${T.border}`,paddingTop:18,marginTop:4}}>
+                    <div style={{fontSize:11,color:T.green,fontWeight:600,letterSpacing:"0.12em",marginBottom:14}}>🤝 VÍNCULOS E RELACIONAMENTOS</div>
+                    <div style={{fontSize:12,color:T.inkLight,marginBottom:16,lineHeight:1.7}}>Como foram suas conexões hoje? Relacionamentos são determinantes de saúde tão importantes quanto sono e exercício.</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:18}}>
+                      <SldInput label="Rede de apoio (família e amigos)" value={ci.rede_apoio} onChange={v=>setCi(p=>({...p,rede_apoio:v,vinculos:Math.round((v+(p.relacoes_trabalho||6)+(p.vida_social||6)+(p.relacionamentos_pessoais||7))/4)}))} min={1} max={10} unit="/10" color={T.purple} hint="Me senti apoiado(a) hoje?"/>
+                      <SldInput label="Relacionamento com colegas" value={ci.relacoes_colegas} onChange={v=>setCi(p=>({...p,relacoes_colegas:v,vinculos:Math.round(((p.rede_apoio||7)+v+(p.relacoes_lider||6)+(p.vida_social||6)+(p.relacionamentos_pessoais||7))/5)}))} min={1} max={10} unit="/10" color={T.purple} hint="Ambiente colaborativo e respeitoso com a equipe?"/>
+                      <SldInput label="Relacionamento com meu líder" value={ci.relacoes_lider} onChange={v=>setCi(p=>({...p,relacoes_lider:v,vinculos:Math.round(((p.rede_apoio||7)+(p.relacoes_colegas||6)+v+(p.vida_social||6)+(p.relacionamentos_pessoais||7))/5)}))} min={1} max={10} unit="/10" color={T.purple} hint="Me sinto respeitado e apoiado pela liderança?"/>
+                      <SldInput label="Vida social" value={ci.vida_social} onChange={v=>setCi(p=>({...p,vida_social:v,vinculos:Math.round(((p.rede_apoio||7)+(p.relacoes_trabalho||6)+v+(p.relacionamentos_pessoais||7))/4)}))} min={1} max={10} unit="/10" color={T.purple} hint="Tive tempo para conexões fora do trabalho?"/>
+                      <SldInput label="Relacionamentos pessoais" value={ci.relacionamentos_pessoais} onChange={v=>setCi(p=>({...p,relacionamentos_pessoais:v,vinculos:Math.round(((p.rede_apoio||7)+(p.relacoes_trabalho||6)+(p.vida_social||6)+v)/4)}))} min={1} max={10} unit="/10" color={T.purple} hint="Qualidade das conexões íntimas hoje?"/>
+                      <SldInput label="Bem-estar geral" value={ci.bem_estar} onChange={v=>setCi(p=>({...p,bem_estar:v}))} min={1} max={10} unit="/10" color={T.green} hint="Como você se sente de forma geral hoje?"/>
+                    </div>
+                  </div>
                   <TxtInput label="Algum sintoma hoje?" placeholder="Dor, cansaço, tontura... ou deixe em branco" value={ci.sintomas} onChange={v=>setCi(p=>({...p,sintomas:v}))}/>
                   <TxtInput label="Observações para Ana (opcional)" placeholder="Algo que queira compartilhar..." value={ci.notas} onChange={v=>setCi(p=>({...p,notas:v}))}/>
                   <Btn onClick={salvarCheckin} variant="teal" disabled={salvando} style={{width:"100%",padding:"14px"}}>{salvando?"SALVANDO...":(salvo?"✓ SALVO!":"ENVIAR CHECK-IN →")}</Btn>
@@ -717,7 +1568,7 @@ Responda com precisão clínica baseada nestes achados.`;
     const tentarEnviar=async(tentativa=1)=>{
       try{
         const history=msgs.concat(userMsg).filter(m=>!m.loading).map(m=>({role:m.role,content:m.content}));
-        const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,system,messages:history})});
+        const res=await fetch("/.netlify/functions/claude",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,system,messages:history})});
         if(res.status===429&&tentativa<4){
           await new Promise(r=>setTimeout(r,5000*tentativa));
           return tentarEnviar(tentativa+1);
@@ -781,7 +1632,7 @@ function ModuloGeneticista({form,scores,apiKey,pacienteId,systemPrompt,laudoStat
     setPdfNome(file.name);setAnalisando(true);setAba("risco");
     const toB64=(f)=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});
     const chamarAPI=async(b64,tentativa=1)=>{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,system:`Analise o laudo genético. Retorne SOMENTE um objeto JSON válido, sem markdown, sem texto antes ou depois. Formato: {"resumo":"2 frases resumindo","nivel_risco_geral":"alto|moderado|baixo","achados":[{"gene":"nome","impacto":"alto|moderado|baixo","orientacao":"orientação em 1 frase"}],"nutricao":"recomendação em 1 frase","atividade":"recomendação em 1 frase","sono":"orientação em 1 frase","medicamentos":"resumo farmacogenômico em 2 frases","rastreamento":"exames prioritários em 1 frase","alertas":[{"nivel":"critico|atencao|informativo","msg":"mensagem curta"}]}. Inclua no máximo 10 achados. RETORNE APENAS O JSON.`,messages:[{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:"Analise este laudo genético."}]}]})});
+      const res=await fetch("/.netlify/functions/claude",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,system:`Analise o laudo genético. Retorne SOMENTE um objeto JSON válido, sem markdown, sem texto antes ou depois. Formato: {"resumo":"2 frases resumindo","nivel_risco_geral":"alto|moderado|baixo","achados":[{"gene":"nome","impacto":"alto|moderado|baixo","orientacao":"orientação em 1 frase"}],"nutricao":"recomendação em 1 frase","atividade":"recomendação em 1 frase","sono":"orientação em 1 frase","medicamentos":"resumo farmacogenômico em 2 frases","rastreamento":"exames prioritários em 1 frase","alertas":[{"nivel":"critico|atencao|informativo","msg":"mensagem curta"}]}. Inclua no máximo 10 achados. RETORNE APENAS O JSON.`,messages:[{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:"Analise este laudo genético."}]}]})});
       if((res.status===429||res.status===529)&&tentativa<5){
         const espera=res.status===529?10000:3000;
         console.log(`Status ${res.status} — aguardando ${espera/1000}s (tentativa ${tentativa}/5)...`);
@@ -888,7 +1739,7 @@ function ModuloDocumentos({apiKey,pacienteId,onPlanUpdate}){
       const toB64=(f)=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});
       try{
         const b64=await toB64(file);
-        const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,system:`Analise o documento de saúde e retorne APENAS JSON sem markdown: {"tipo":"genetico|imagem|clinico|receita|atestado|relatorio|consulta|outro","titulo":"título","profissional":"nome","resumo":"resumo 2-3 frases","diagnosticos":["lista"],"medicamentos":[{"nome":"","dose":"","frequencia":""}],"checklist":[{"item":"","urgencia":"alta|media|baixa"}],"alertas":[{"nivel":"critico|atencao|informativo","mensagem":""}],"impacto_plano":"impacto no plano"}`,messages:[{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:"Analise este documento."}]}]})});
+        const res=await fetch("/.netlify/functions/claude",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,system:`Analise o documento de saúde e retorne APENAS JSON sem markdown: {"tipo":"genetico|imagem|clinico|receita|atestado|relatorio|consulta|outro","titulo":"título","profissional":"nome","resumo":"resumo 2-3 frases","diagnosticos":["lista"],"medicamentos":[{"nome":"","dose":"","frequencia":""}],"checklist":[{"item":"","urgencia":"alta|media|baixa"}],"alertas":[{"nivel":"critico|atencao|informativo","mensagem":""}],"impacto_plano":"impacto no plano"}`,messages:[{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:"Analise este documento."}]}]})});
         const data=await res.json();
         const parsed=JSON.parse((data.content?.[0]?.text||"{}").replace(/```json|```/g,"").trim());
         // Salvar no Supabase
@@ -1017,74 +1868,1002 @@ function ModuloMensagens({pacienteId,nome}){
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────
-function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate}){
-  const nome=form?.nome||"Executivo";
+// ─── Home Principal ───────────────────────────────────────────────
+function ModuloHome({form,scores,setModulo,pacienteId}){
+  const nome=form?.nome||"Colaborador";
+  const primeiroNome=nome.split(" ")[0];
+  const hora=new Date().getHours();
+  const saudacao=hora<12?"Bom dia":hora<18?"Boa tarde":"Boa noite";
+  const[tela,setTela]=useState("home"); // home | programas | medicos | horarios | confirmado
+  const[programas,setProgramas]=useState([]);
+  const[programaSelecionado,setProgramaSelecionado]=useState(null);
+  const[medicos,setMedicos]=useState([]);
+  const[medicoSelecionado,setMedicoSelecionado]=useState(null);
+  const[horarioSelecionado,setHorarioSelecionado]=useState(null);
+  const[agendando,setAgendando]=useState(false);
+
+  useEffect(()=>{
+    if(!pacienteId)return;
+    supabase.from("pacientes").select("empresa_id").eq("id",pacienteId).single().then(async({data})=>{
+      let empId=data?.empresa_id;
+      if(!empId){
+        // Fallback — buscar empresa Stone
+        const{data:emp}=await supabase.from("empresas").select("id").eq("slug","stone").single();
+        empId=emp?.id;
+      }
+      if(empId){
+        const progs=await carregarProgramas(empId);
+        setProgramas(progs);
+      }
+    });
+    carregarMedicos().then(setMedicos);
+  },[pacienteId]);
+
+  const handleSelecionarPrograma=async(prog)=>{
+    setProgramaSelecionado(prog);
+    let ms=await carregarMedicos();
+    // Se não houver médicos no banco, usar fictícios para demonstração
+    if(ms.length===0){
+      ms=[
+        {id:"demo-1",nome:"Dr. Rafael Mendes",crm:"CRM/SP 145678",especialidade:"Clínica Geral"},
+        {id:"demo-2",nome:"Dra. Marina Costa",crm:"CRM/SP 112233",especialidade:"Medicina Interna"},
+        {id:"demo-3",nome:"Dr. Carlos Lima",crm:"CRM/SP 98765",especialidade:"Medicina de Família"},
+      ];
+    }
+    setMedicos(ms);
+    setTela("medicos");
+  };
+
+  const handleSelecionarMedico=(medico)=>{
+    setMedicoSelecionado(medico);
+    setTela("horarios");
+  };
+
+  // Horários simulados — gerados dinamicamente a partir de hoje
+  const HORARIOS=(()=>{
+    const dias=[];
+    const hoje=new Date();
+    const nomes=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+    const meses=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+    const slotsPorDia=[
+      ["08h30","09h00","10h00","11h00","14h00","15h30","16h00"],
+      ["09h00","10h30","11h00","14h30","15h00","16h30"],
+      ["08h00","09h30","10h00","14h00","15h00","16h00"],
+      ["09h00","10h00","11h30","14h00","15h30"],
+    ];
+    let count=0;
+    for(let i=1;count<4;i++){
+      const d=new Date(hoje);
+      d.setDate(hoje.getDate()+i);
+      if(d.getDay()===0||d.getDay()===6)continue; // pular fins de semana
+      // Simular disponibilidade parcial — remover alguns slots aleatoriamente
+      const todos=slotsPorDia[count];
+      const disponiveis=todos.filter((_,idx)=>idx%2===0||count%2===0?true:idx>1);
+      dias.push({
+        data:`${nomes[d.getDay()]}, ${d.getDate()} ${meses[d.getMonth()]}`,
+        dataISO:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`,
+        slots:disponiveis
+      });
+      count++;
+    }
+    return dias;
+  })();
+
+  const handleAgendar=async()=>{
+    if(!horarioSelecionado||!medicoSelecionado||!programaSelecionado)return;
+    setAgendando(true);
+    // Salvar agendamento no banco
+    const medicoId=await supabase.from("medicos").select("id").eq("nome",medicoSelecionado.nome).single().then(({data})=>data?.id);
+    if(medicoId){
+      await supabase.from("agendamentos").insert({
+        paciente_id:pacienteId,
+        medico_id:medicoId,
+        tipo:"teleconsulta",
+        data:horarioSelecionado.dataISO,
+        hora:horarioSelecionado.hora.replace("h",":")+":00",
+        status:"agendado",
+        resumo:`Programa: ${programaSelecionado.nome}`
+      });
+      // Inscrever no programa se ainda não estiver
+      await inscreverPrograma(pacienteId,programaSelecionado.id,medicoId);
+    }
+    setAgendando(false);
+    setTela("confirmado");
+  };
+
+  // ── TELA HOME ──────────────────────────────────────────────────
+  if(tela==="home")return(
+    <div style={{flex:1,overflowY:"auto",background:T.bg,padding:"24px 32px"}}>
+      <div style={{maxWidth:780,margin:"0 auto"}}>
+
+        {/* Saudação */}
+        <div style={{marginBottom:20}}>
+          <div style={{fontSize:20,fontWeight:500,color:T.ink,marginBottom:4}}>{saudacao}, {primeiroNome}</div>
+          <div style={{fontSize:13,color:T.inkMid}}>Como podemos te ajudar hoje?</div>
+        </div>
+
+        {/* Pronto-atendimento */}
+        <Card style={{padding:"20px",marginBottom:24,display:"flex",alignItems:"center",justifyContent:"space-between",gap:16}}>
+          <div style={{flex:1}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+              <div style={{width:8,height:8,borderRadius:"50%",background:T.green,boxShadow:`0 0 6px ${T.green}`}}/>
+              <span style={{fontSize:12,color:T.green,fontWeight:500}}>Online agora</span>
+            </div>
+            <div style={{fontSize:16,fontWeight:500,color:T.ink,marginBottom:4}}>Pronto-atendimento</div>
+            <div style={{fontSize:13,color:T.inkMid}}>Para problemas agudos · clínico geral em cerca de 4 minutos</div>
+          </div>
+          <Btn onClick={()=>setModulo("ana")} variant="gold" style={{flexShrink:0}}>Iniciar agora</Btn>
+        </Card>
+
+        {/* Canais diretos Stone */}
+        <div style={{background:`linear-gradient(135deg,${T.green}10,${T.greenBg})`,border:`0.5px solid ${T.green}30`,borderRadius:12,padding:"16px 18px",marginBottom:24}}>
+          <div style={{marginBottom:12}}>
+            <div style={{fontSize:15,fontWeight:500,color:T.green,marginBottom:2}}>Canais diretos Stone</div>
+            <div style={{fontSize:12,color:T.inkMid}}>Atendimento próximo e contínuo, exclusivo para a Stone</div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div onClick={()=>setModulo("dashboard")} style={{background:T.surface,border:`0.5px solid ${T.green}30`,borderRadius:8,padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,cursor:"pointer",transition:"all 0.15s"}}
+              onMouseOver={e=>e.currentTarget.style.background=T.greenBg}
+              onMouseOut={e=>e.currentTarget.style.background=T.surface}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600,color:T.ink,marginBottom:3}}>Meu médico pessoal</div>
+                <div style={{fontSize:11,color:T.inkMid}}>Dr. Rafael Mendes · clínico</div>
+              </div>
+              <span style={{fontSize:12,color:T.green,fontWeight:500,flexShrink:0}}>Acessar ↗</span>
+            </div>
+            <div onClick={()=>setModulo("ana")} style={{background:T.surface,border:`0.5px solid ${T.green}30`,borderRadius:8,padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,cursor:"pointer",transition:"all 0.15s"}}
+              onMouseOver={e=>e.currentTarget.style.background=T.greenBg}
+              onMouseOut={e=>e.currentTarget.style.background=T.surface}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600,color:T.ink,marginBottom:3}}>Enfermagem WhatsApp</div>
+                <div style={{fontSize:11,color:T.inkMid}}>Disponível 24h · resposta rápida</div>
+              </div>
+              <span style={{fontSize:12,color:T.green,fontWeight:500,flexShrink:0}}>Abrir ↗</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Programas de cuidado contínuo */}
+        <div style={{marginBottom:28}}>
+          <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:4}}>
+            <div style={{fontSize:15,fontWeight:500,color:T.ink}}>Programas de cuidado contínuo</div>
+            <span style={{fontSize:12,color:T.inkMid,fontWeight:500}}>Caminho recomendado</span>
+          </div>
+          <div style={{fontSize:13,color:T.inkMid,lineHeight:1.6,marginBottom:14}}>Acompanhamento longitudinal com profissionais que conhecem sua história.</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+            {programas.map(p=>{
+              const DESC={
+                "saude-da-mulher":"Ginecologia, gestação, climatério",
+                "saude-do-homem":"Urologia, prevenção, cuidado geral",
+                "saude-da-crianca":"Pediatria, desenvolvimento, rotina",
+                "saude-emocional":"Psicologia, psiquiatria, sono, estresse",
+                "bem-estar":"Nutrição, atividade física, prevenção",
+                "emagrecimento":"Médico, nutri, atividade, comportamento",
+                "cirurgias":"Avaliação, 2ª opinião, preparo, pós-op",
+              };
+              const PROF={
+                "saude-da-mulher":"8 médicas","saude-do-homem":"6 médicos","saude-da-crianca":"5 médicos",
+                "saude-emocional":"12 profissionais","bem-estar":"9 profissionais","emagrecimento":"7 profissionais","cirurgias":"11 cirurgiões",
+              };
+              return(
+                <div key={p.id} onClick={()=>handleSelecionarPrograma(p)}
+                  style={{background:T.surface,border:`0.5px solid ${T.border}`,borderRadius:10,padding:"14px 16px",cursor:"pointer",transition:"all 0.15s"}}
+                  onMouseOver={e=>{e.currentTarget.style.borderColor=p.cor||T.green;e.currentTarget.style.background=`${p.cor||T.green}05`;}}
+                  onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
+                  <div style={{fontSize:13,fontWeight:600,color:T.ink,marginBottom:4}}>{p.nome}</div>
+                  <div style={{fontSize:11,color:T.inkLight,lineHeight:1.5,marginBottom:8}}>{DESC[p.slug]||p.descricao?.slice(0,40)}</div>
+                  <div style={{fontSize:11,color:T.blue,fontWeight:500}}>{PROF[p.slug]||"Profissionais disponíveis"}</div>
+                </div>
+              );
+            })}
+            {/* Novos programas */}
+            <div style={{background:T.bgWarm,border:`0.5px dashed ${T.border}`,borderRadius:10,padding:"14px 16px",display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",textAlign:"center",minHeight:90}}>
+              <div style={{fontSize:12,color:T.inkMid,fontWeight:500,marginBottom:4}}>Novos programas</div>
+              <div style={{fontSize:10,color:T.inkFaint,lineHeight:1.5}}>A Stone está expandindo o cuidado contínuo</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Cuidado por necessidade */}
+        <div style={{marginBottom:28}}>
+          <div style={{fontSize:13,fontWeight:600,color:T.inkMid,marginBottom:4}}>Cuidado por necessidade</div>
+          <div style={{fontSize:12,color:T.inkFaint,lineHeight:1.5,marginBottom:12}}>Se preferir buscar por uma área específica, encontre aqui consultas pontuais com especialistas.</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+            {["Coração","Pele","Hormônios","Ossos e articulações","Ouvido, nariz e garganta","Enxaqueca","Nutrição","Fisioterapia"].map(esp=>(
+              <div key={esp} onClick={()=>setTela("programas")}
+                style={{padding:"10px 12px",background:T.surface,border:`0.5px solid ${T.border}`,borderRadius:8,cursor:"pointer",fontSize:12,color:T.ink,transition:"all 0.15s"}}
+                onMouseOver={e=>{e.currentTarget.style.borderColor=T.green;}}
+                onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;}}>
+                {esp}
+              </div>
+            ))}
+          </div>
+          <div style={{textAlign:"right",marginTop:8}}>
+            <span style={{fontSize:12,color:T.inkMid}}>Não encontrou? <span style={{color:T.inkMid,textDecoration:"underline",cursor:"pointer"}}>Ver todas as áreas</span></span>
+          </div>
+        </div>
+
+        {/* Continuar onde parou */}
+        <div>
+          <div style={{fontSize:13,fontWeight:600,color:T.ink,marginBottom:10}}>Continuar onde parou</div>
+          <div style={{padding:"14px 16px",background:T.surface,border:`0.5px solid ${T.border}`,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,cursor:"pointer"}} onClick={()=>setModulo("plano")}>
+            <div>
+              <div style={{fontSize:13,fontWeight:500,color:T.ink,marginBottom:2}}>Plano de cuidado ativo</div>
+              <div style={{fontSize:12,color:T.inkMid}}>Tarefas pendentes de hoje</div>
+            </div>
+            <span style={{fontSize:12,color:T.blue,fontWeight:500}}>Ver detalhes ↗</span>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div style={{padding:"14px 16px",background:T.surface,border:`0.5px solid ${T.border}`,borderRadius:10,cursor:"pointer"}} onClick={()=>setModulo("documentos")}>
+              <div style={{fontSize:11,color:T.inkMid,marginBottom:4}}>Últimas prescrições</div>
+              <div style={{fontSize:13,fontWeight:500,color:T.ink,marginBottom:4}}>2 documentos disponíveis</div>
+              <div style={{fontSize:12,color:T.blue}}>Abrir prescrições ↗</div>
+            </div>
+            <div style={{padding:"14px 16px",background:T.surface,border:`0.5px solid ${T.border}`,borderRadius:10,cursor:"pointer"}} onClick={()=>setModulo("documentos")}>
+              <div style={{fontSize:11,color:T.inkMid,marginBottom:4}}>Último atestado</div>
+              <div style={{fontSize:13,fontWeight:500,color:T.ink,marginBottom:4}}>Emitido em 03 de abril</div>
+              <div style={{fontSize:12,color:T.blue}}>Baixar PDF ↗</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+
+  // ── TELA PROGRAMAS ─────────────────────────────────────────────
+  if(tela==="programas")return(
+    <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
+      <div style={{maxWidth:800,margin:"0 auto"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:28}}>
+          <button onClick={()=>setTela("home")} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:T.inkMid}}>←</button>
+          <div>
+            <div style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>Escolha um programa</div>
+            <div style={{fontSize:13,color:T.inkMid}}>Selecione a área de saúde para a sua consulta</div>
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:14}}>
+          {programas.map(p=>(
+            <button key={p.id} onClick={()=>handleSelecionarPrograma(p)}
+              style={{padding:"22px",background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:14,cursor:"pointer",textAlign:"left",transition:"all 0.2s",boxShadow:T.shadowCard,fontFamily:T.fB,borderLeft:`4px solid ${p.cor||T.green}`}}
+              onMouseOver={e=>{e.currentTarget.style.background=`${p.cor||T.green}08`;e.currentTarget.style.borderColor=p.cor||T.green;}}
+              onMouseOut={e=>{e.currentTarget.style.background=T.surface;e.currentTarget.style.borderColor=T.border;e.currentTarget.style.borderLeftColor=p.cor||T.green;}}>
+              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+                <div style={{width:40,height:40,borderRadius:10,background:`${p.cor||T.green}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{p.icone||"🩺"}</div>
+                <div style={{fontFamily:T.fD,fontSize:16,color:T.ink}}>{p.nome}</div>
+              </div>
+              <div style={{fontSize:12,color:T.inkMid,lineHeight:1.7}}>{p.descricao}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── TELA MÉDICOS ───────────────────────────────────────────────
+  if(tela==="medicos")return(
+    <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
+      <div style={{maxWidth:700,margin:"0 auto"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
+          <button onClick={()=>setTela("programas")} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:T.inkMid}}>←</button>
+          <div>
+            <div style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>Escolha seu médico</div>
+            <div style={{fontSize:13,color:T.inkMid}}>{programaSelecionado?.nome} · Este será seu médico pessoal neste programa</div>
+          </div>
+        </div>
+        <div style={{padding:"10px 14px",background:T.goldFaint,border:`1px solid ${T.goldBorder}`,borderRadius:8,marginBottom:24,fontSize:12,color:T.inkMid}}>
+          💡 Seu médico pessoal acompanha sua saúde ao longo do tempo — não é uma consulta avulsa. Escolha alguém com quem você queira construir um vínculo.
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          {medicos.map(m=>(
+            <button key={m.id} onClick={()=>handleSelecionarMedico(m)}
+              style={{padding:"18px 20px",background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:12,cursor:"pointer",display:"flex",alignItems:"center",gap:16,textAlign:"left",transition:"all 0.18s",fontFamily:T.fB}}
+              onMouseOver={e=>{e.currentTarget.style.borderColor=T.green;e.currentTarget.style.background=T.greenBg;}}
+              onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
+              <div style={{width:48,height:48,borderRadius:"50%",background:T.greenBg,border:`1.5px solid ${T.green}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👨‍⚕️</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:14,color:T.ink,fontWeight:600,marginBottom:2}}>{m.nome}</div>
+                <div style={{fontSize:12,color:T.inkMid}}>{m.especialidade||"Clínica Geral"} · CRM {m.crm}</div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+                <div style={{width:6,height:6,borderRadius:"50%",background:T.green}}/>
+                <span style={{fontSize:10,color:T.green}}>Disponível</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── TELA HORÁRIOS ──────────────────────────────────────────────
+  if(tela==="horarios")return(
+    <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
+      <div style={{maxWidth:700,margin:"0 auto"}}>
+
+        {/* Cabeçalho */}
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+          <button onClick={()=>setTela("medicos")} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:T.inkMid}}>←</button>
+          <div>
+            <div style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>Escolha o horário</div>
+            <div style={{fontSize:13,color:T.inkMid}}>{programaSelecionado?.nome}</div>
+          </div>
+        </div>
+
+        {/* Card do médico selecionado */}
+        <Card style={{padding:"16px 18px",marginBottom:20,display:"flex",alignItems:"center",gap:14}}>
+          <div style={{width:46,height:46,borderRadius:"50%",background:T.greenBg,border:`1.5px solid ${T.green}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👨‍⚕️</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:14,color:T.ink,fontWeight:600}}>{medicoSelecionado?.nome}</div>
+            <div style={{fontSize:12,color:T.inkMid}}>{medicoSelecionado?.especialidade||"Clínica Geral"} · CRM {medicoSelecionado?.crm}</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:10,color:T.inkFaint,marginBottom:2}}>DURAÇÃO</div>
+            <div style={{fontSize:13,color:T.ink,fontWeight:500}}>30–40 min</div>
+          </div>
+        </Card>
+
+        {/* Nota teleconsulta */}
+        <div style={{padding:"10px 14px",background:T.blueBg,border:`1px solid ${T.blue}20`,borderRadius:8,marginBottom:20,display:"flex",gap:10,alignItems:"center"}}>
+          <span style={{fontSize:18}}>📹</span>
+          <div style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>Consulta por <strong>videochamada</strong>. O link será enviado por e-mail e disponibilizado no app 30 minutos antes.</div>
+        </div>
+
+        {/* Grade de horários */}
+        <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:20}}>
+          {HORARIOS.map((dia,di)=>(
+            <Card key={di} style={{padding:"16px 18px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                <div style={{fontSize:12,fontWeight:600,color:T.ink}}>{dia.data}</div>
+                <div style={{fontSize:10,color:T.inkFaint,marginLeft:"auto"}}>{dia.slots.length} horários disponíveis</div>
+              </div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {dia.slots.map((slot,si)=>{
+                  const key=`${di}-${si}`;
+                  const sel=horarioSelecionado?.key===key;
+                  return(
+                    <button key={si} onClick={()=>setHorarioSelecionado({key,hora:slot,data:dia.data,dataISO:dia.dataISO})}
+                      style={{padding:"8px 16px",borderRadius:8,border:`1.5px solid ${sel?T.green:T.border}`,background:sel?T.green:T.surface,color:sel?"#FFF":T.inkMid,fontSize:12,cursor:"pointer",fontFamily:T.fB,fontWeight:sel?600:400,transition:"all 0.15s"}}>
+                      {slot}
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Resumo e confirmação */}
+        {horarioSelecionado&&(
+          <Card style={{padding:"20px",background:T.goldFaint,border:`1px solid ${T.goldBorder}`}}>
+            <div style={{fontFamily:T.fD,fontSize:16,color:T.ink,marginBottom:14}}>Resumo do agendamento</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+              {[
+                ["Programa",programaSelecionado?.nome],
+                ["Médico",medicoSelecionado?.nome],
+                ["Data",horarioSelecionado.data],
+                ["Horário",horarioSelecionado.hora],
+                ["Tipo","Teleconsulta"],
+                ["Duração","30–40 minutos"],
+              ].map(([label,val])=>(
+                <div key={label} style={{padding:"10px 12px",background:"rgba(255,255,255,0.7)",borderRadius:8}}>
+                  <div style={{fontSize:10,color:T.inkFaint,marginBottom:2}}>{label.toUpperCase()}</div>
+                  <div style={{fontSize:13,color:T.ink,fontWeight:500}}>{val}</div>
+                </div>
+              ))}
+            </div>
+            <Btn onClick={handleAgendar} variant="gold" disabled={agendando} style={{width:"100%",padding:"13px"}}>
+              {agendando?"Confirmando agendamento...":"✓ CONFIRMAR AGENDAMENTO →"}
+            </Btn>
+          </Card>
+        )}
+
+      </div>
+    </div>
+  );
+
+  // ── TELA CONFIRMADO ────────────────────────────────────────────
+  if(tela==="confirmado")return(
+    <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
+      <div style={{maxWidth:700,margin:"0 auto"}}>
+
+        {/* Header de sucesso */}
+        <div style={{textAlign:"center",padding:"28px 0 24px"}}>
+          <div style={{width:72,height:72,borderRadius:"50%",background:T.greenBg,border:`2px solid ${T.green}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,margin:"0 auto 16px"}}>✅</div>
+          <div style={{fontFamily:T.fD,fontSize:28,color:T.ink,marginBottom:6}}>Consulta agendada!</div>
+          <div style={{fontSize:14,color:T.inkMid}}>{horarioSelecionado?.data} às {horarioSelecionado?.hora} · {programaSelecionado?.nome}</div>
+        </div>
+
+        {/* Detalhes do agendamento */}
+        <Card style={{padding:"20px 22px",marginBottom:16}}>
+          <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16,paddingBottom:14,borderBottom:`0.5px solid ${T.border}`}}>
+            <div style={{width:46,height:46,borderRadius:"50%",background:T.greenBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👨‍⚕️</div>
+            <div>
+              <div style={{fontSize:14,color:T.ink,fontWeight:600}}>{medicoSelecionado?.nome}</div>
+              <div style={{fontSize:12,color:T.inkMid}}>{medicoSelecionado?.especialidade||"Clínica Geral"} · CRM {medicoSelecionado?.crm}</div>
+            </div>
+            <span style={{marginLeft:"auto",padding:"3px 10px",borderRadius:8,background:T.greenBg,color:T.green,fontSize:11,fontWeight:600}}>Confirmado</span>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+            {[["Data",horarioSelecionado?.data],["Horário",horarioSelecionado?.hora],["Tipo","Teleconsulta"],["Programa",programaSelecionado?.nome],["Duração","30–40 min"],["Link","Enviado por e-mail"]].map(([l,v])=>(
+              <div key={l} style={{padding:"10px 12px",background:T.bgWarm,borderRadius:8}}>
+                <div style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.08em",marginBottom:3}}>{l.toUpperCase()}</div>
+                <div style={{fontSize:12,color:T.ink,fontWeight:500}}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Notificação Ana */}
+        <Card style={{padding:"16px 18px",marginBottom:16,display:"flex",alignItems:"center",gap:12,background:T.tealBg,border:`1px solid ${T.teal}30`}}>
+          <div style={{fontSize:24,flexShrink:0}}>🩺</div>
+          <div>
+            <div style={{fontSize:13,color:T.ink,fontWeight:500,marginBottom:2}}>Ana foi notificada</div>
+            <div style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>A Ana preparará um resumo do seu perfil de saúde e histórico de check-ins para o médico antes da consulta.</div>
+          </div>
+        </Card>
+
+        {/* Próximos passos */}
+        <Card style={{padding:"18px 20px",marginBottom:16}}>
+          <div style={{fontFamily:T.fD,fontSize:16,color:T.ink,marginBottom:14}}>Próximos passos</div>
+          {[
+            {n:1,text:"Verifique seu e-mail — o link da videochamada será enviado 24h antes"},
+            {n:2,text:"Prepare seus exames e documentos recentes para mostrar ao médico"},
+            {n:3,text:"Faça seu check-in no dia da consulta — o médico verá seus dados atualizados"},
+            {n:4,text:"Entre no link 5 minutos antes do horário agendado"},
+          ].map(({n,text})=>(
+            <div key={n} style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:10}}>
+              <div style={{width:22,height:22,borderRadius:"50%",background:T.greenBg,border:`1.5px solid ${T.green}40`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:11,fontWeight:700,color:T.green}}>{n}</div>
+              <div style={{fontSize:12,color:T.inkMid,lineHeight:1.7,paddingTop:2}}>{text}</div>
+            </div>
+          ))}
+        </Card>
+
+        {/* Ações */}
+        <div style={{display:"flex",gap:10}}>
+          <Btn onClick={()=>setTela("home")} variant="outline" style={{flex:1}}>← Voltar ao início</Btn>
+          <Btn onClick={()=>setModulo("dashboard")} variant="teal" style={{flex:2}}>Ver minha saúde →</Btn>
+        </div>
+
+      </div>
+    </div>
+  );
+
+  return null;
+}
+
+function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate,pacienteId}){
+  const nome=form?.nome||"Colaborador";
+  const primeiroNome=nome.split(" ")[0];
+  const hora=new Date().getHours();
+  const saudacao=hora<12?"Bom dia":hora<18?"Boa tarde":"Boa noite";
   const lowAxis=Object.entries(scores.eixos).sort((a,b)=>a[1]-b[1])[0];
+  const[programas,setProgramas]=useState([]);
+  const[inscricoes,setInscricoes]=useState([]);
+  const[medicos,setMedicos]=useState([]);
+  const[modalPrograma,setModalPrograma]=useState(null);
+  const[medicoSelecionado,setMedicoSelecionado]=useState("");
+  const[inscrevendo,setInscrevendo]=useState(false);
+
+  useEffect(()=>{
+    if(!pacienteId)return;
+    supabase.from("pacientes").select("empresa_id").eq("id",pacienteId).single().then(({data})=>{
+      if(data?.empresa_id)carregarProgramas(data.empresa_id).then(setProgramas);
+    });
+    carregarInscricoes(pacienteId).then(setInscricoes);
+    carregarMedicos().then(setMedicos);
+  },[pacienteId]);
+
+  const isInscrito=(programaId)=>inscricoes.some(i=>i.programa_id===programaId);
+
+  const handleInscrever=async()=>{
+    if(!modalPrograma||!medicoSelecionado)return;
+    setInscrevendo(true);
+    await inscreverPrograma(pacienteId,modalPrograma.id,medicoSelecionado);
+    const novas=await carregarInscricoes(pacienteId);
+    setInscricoes(novas);
+    setInscrevendo(false);
+    setModalPrograma(null);
+    setMedicoSelecionado("");
+  };
+
   return(
     <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
       <div style={{maxWidth:980,margin:"0 auto",display:"flex",flexDirection:"column",gap:20}}>
+
+        {/* Cabeçalho */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div><div style={{fontFamily:T.fD,fontSize:32,color:T.ink,marginBottom:4}}>Bom dia, {nome.split(" ")[0]}.</div><div style={{fontSize:13,color:T.inkMid}}>Sua equipe HVV está ativa e seus dados estão salvos com segurança.</div></div>
-          <div style={{fontSize:10,color:T.inkFaint,letterSpacing:"0.12em"}}>{new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"}).toUpperCase()}</div>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:16}}>
-          <Card style={{padding:"24px 20px",display:"flex",flexDirection:"column",alignItems:"center",gap:12}}>
-            <Lbl>Score de Vitalidade</Lbl>
-            <RadialScore value={scores.total} size={100}/>
-            <div style={{fontSize:11,color:scores.total>=75?T.green:scores.total>=50?T.gold:T.red,letterSpacing:"0.12em",fontWeight:700}}>{scores.total>=75?"ALTO DESEMPENHO":scores.total>=50?"EM PROGRESSO":"ATENÇÃO"}</div>
-          </Card>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
-            {Object.entries(scores.eixos).map(([n,sc],i)=>(<Card key={i} style={{padding:"16px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}><span style={{fontSize:11,color:T.inkMid}}>{n}</span><span style={{fontSize:20,color:AXIS_COLORS[n],fontFamily:T.fD,fontWeight:700}}>{sc}</span></div><div style={{height:4,background:T.surfaceMid,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${sc}%`,background:AXIS_COLORS[n]}}/></div><div style={{marginTop:6,fontSize:10,color:T.inkFaint}}>{sc>=80?"Excelente":sc>=65?"Bom":sc>=50?"Regular":"Atenção"}</div></Card>))}
+          <div>
+            <div style={{fontFamily:T.fD,fontSize:32,color:T.ink,marginBottom:4}}>{saudacao}, {primeiroNome}.</div>
+            <div style={{fontSize:13,color:T.inkMid}}>{new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"})} · Sua equipe HVV está ativa.</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:10,color:T.inkFaint,letterSpacing:"0.1em",marginBottom:4}}>VITALIDADE</div>
+            <RadialScore value={scores.total} size={64}/>
           </div>
         </div>
-        {!checkinHoje&&<Card style={{padding:"20px 24px",background:T.tealBg,border:`1px solid ${T.teal}30`,display:"flex",alignItems:"center",justifyContent:"space-between"}}><div><div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginBottom:4}}>Check-in diário pendente</div><div style={{fontSize:12,color:T.inkMid}}>A Ana está esperando seu check-in de hoje — 2 minutos.</div></div><Btn onClick={()=>setModulo("ana")} variant="teal">FAZER CHECK-IN →</Btn></Card>}
-        {checkinHoje&&<Card style={{padding:"16px 20px",background:T.greenBg,border:`1px solid ${T.green}30`,display:"flex",alignItems:"center",gap:14}}><div style={{width:36,height:36,borderRadius:"50%",background:T.green,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>✓</div><div><div style={{fontSize:13,color:T.ink,fontWeight:500}}>Check-in concluído hoje</div><div style={{fontSize:11,color:T.inkMid}}>Energia {checkinHoje.energia}/10 · Sono {checkinHoje.sono}/10 · Estresse {checkinHoje.estresse}/10</div></div></Card>}
-        <div><Lbl>Sua equipe de cuidado</Lbl><div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>{EQUIPE.map(e=>(<Card key={e.id} hover onClick={()=>setModulo(e.id==="coach"?"coach":e.id==="farmaceutico"?"farmaceutico":e.id==="geneticista"?"geneticista":"ana")} style={{padding:"18px"}}><div style={{width:44,height:44,borderRadius:"50%",background:e.bg,border:`1.5px solid ${e.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,marginBottom:12}}>{e.icon}</div><div style={{fontSize:13,color:e.cor,marginBottom:3,fontWeight:600}}>{e.nome}</div><div style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.1em",marginBottom:8}}>{e.titulo}</div><div style={{display:"flex",alignItems:"center",gap:5,marginTop:12}}><div style={{width:7,height:7,borderRadius:"50%",background:T.green,boxShadow:`0 0 6px ${T.green}60`}}/><span style={{fontSize:9,color:T.green,letterSpacing:"0.12em"}}>ONLINE</span></div></Card>))}</div></div>
-        {planLog&&planLog.length>0&&<Card style={{padding:"20px 24px"}}><Lbl color={T.blue}>Histórico de Atualizações do Plano</Lbl><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>{planLog.slice(0,6).map((log,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 12px",background:T.bgWarm,borderRadius:8,border:`1px solid ${T.border}`}}><div style={{width:28,height:28,borderRadius:6,background:`${log.cor||T.blue}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{log.icon||"📋"}</div><div style={{flex:1}}><div style={{fontSize:12,color:T.ink,fontWeight:500,marginBottom:2}}>{log.titulo}</div><div style={{fontSize:11,color:T.inkMid,lineHeight:1.5}}>{log.descricao}</div></div><span style={{fontSize:9,color:T.inkFaint,flexShrink:0}}>{log.data}</span></div>))}</div></Card>}
-        <Card style={{padding:"20px 24px",background:T.goldFaint,border:`1px solid ${T.goldBorder}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div><Lbl color={T.gold}>Prioridade da semana</Lbl><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>Foco em <span style={{color:AXIS_COLORS[lowAxis[0]]}}>{lowAxis[0]}</span> — score: {lowAxis[1]}/100</div></div>
-          <Btn onClick={()=>setModulo("coach")} variant="gold">FALAR COM O COACH →</Btn>
+
+        {/* Check-in */}
+        {!checkinHoje?(
+          <Card style={{padding:"20px 24px",background:T.tealBg,border:`1px solid ${T.teal}30`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div><div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginBottom:4}}>Check-in diário pendente</div><div style={{fontSize:12,color:T.inkMid}}>2 minutos para atualizar seu plano. A Ana está esperando.</div></div>
+            <Btn onClick={()=>setModulo("ana")} variant="teal">FAZER CHECK-IN →</Btn>
+          </Card>
+        ):(
+          <Card style={{padding:"16px 20px",background:T.greenBg,border:`1px solid ${T.green}30`}}>
+            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:12}}>
+              <div style={{width:36,height:36,borderRadius:"50%",background:T.green,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>✓</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,color:T.ink,fontWeight:500}}>Check-in concluído hoje</div>
+                <div style={{fontSize:11,color:T.inkMid}}>{new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"})}</div>
+              </div>
+              <Btn onClick={()=>setModulo("ana")} variant="outline" style={{fontSize:11}}>Conversar com Ana →</Btn>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:8}}>
+              {[
+                ["Energia",checkinHoje.energia,T.teal],
+                ["Sono",checkinHoje.sono,T.purple],
+                ["Estresse",checkinHoje.estresse,T.red],
+                ["Humor",checkinHoje.humor,T.gold],
+                ["Vínculos",checkinHoje.vinculos,T.blue],
+                ["Bem-estar",checkinHoje.bem_estar,T.green],
+              ].filter(([,v])=>v).map(([label,val,cor])=>(
+                <div key={label} style={{textAlign:"center",padding:"8px",background:"rgba(255,255,255,0.6)",borderRadius:8}}>
+                  <div style={{fontSize:18,fontWeight:700,color:cor,fontFamily:T.fD,lineHeight:1,marginBottom:3}}>{val}</div>
+                  <div style={{fontSize:9,color:T.inkMid}}>{label}</div>
+                  <div style={{height:2,background:"rgba(0,0,0,0.08)",borderRadius:1,overflow:"hidden",marginTop:4}}>
+                    <div style={{height:"100%",width:`${val*10}%`,background:cor,borderRadius:1}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {checkinHoje.sintomas&&<div style={{marginTop:10,fontSize:11,color:T.inkMid}}>Sintomas: {checkinHoje.sintomas}</div>}
+            {checkinHoje.notas&&<div style={{marginTop:4,fontSize:11,color:T.inkMid}}>Observações: {checkinHoje.notas}</div>}
+          </Card>
+        )}
+
+        {/* Score por eixo */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:10}}>
+          {Object.entries(scores.eixos).map(([n,sc])=>(
+            <Card key={n} style={{padding:"14px 12px",textAlign:"center"}}>
+              <div style={{fontSize:22,fontFamily:T.fD,fontWeight:700,color:AXIS_COLORS[n]||T.gold,lineHeight:1,marginBottom:4}}>{sc}</div>
+              <div style={{fontSize:10,color:T.inkMid,marginBottom:6}}>{n}</div>
+              <div style={{height:3,background:T.surfaceMid,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${sc}%`,background:AXIS_COLORS[n]||T.gold}}/></div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Programas ativos */}
+        {inscricoes.length>0&&(
+          <div>
+            <Lbl style={{marginBottom:12}}>Meus programas ativos</Lbl>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+              {inscricoes.map(insc=>{
+                const prog=insc.programas;
+                return(
+                  <Card key={insc.id} style={{padding:"18px",borderLeft:`3px solid ${prog?.cor||T.green}`,cursor:"pointer"}} onClick={()=>setModulo("ana")}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                      <div style={{width:36,height:36,borderRadius:10,background:`${prog?.cor||T.green}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{prog?.icone||"🩺"}</div>
+                      <div>
+                        <div style={{fontFamily:T.fD,fontSize:14,color:T.ink}}>{prog?.nome}</div>
+                        {insc.medicos&&<div style={{fontSize:10,color:T.inkFaint}}>Dr(a). {insc.medicos.nome}</div>}
+                      </div>
+                      <span style={{marginLeft:"auto",fontSize:9,padding:"2px 8px",borderRadius:8,background:T.greenBg,color:T.green,fontWeight:600}}>ATIVO</span>
+                    </div>
+                    <div style={{fontSize:11,color:T.inkMid,lineHeight:1.6}}>{prog?.descricao?.slice(0,80)}...</div>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Programas disponíveis */}
+        {programas.filter(p=>!isInscrito(p.id)).length>0&&(
+          <div>
+            <Lbl style={{marginBottom:12}}>{inscricoes.length>0?"Outros programas disponíveis":"Programas de saúde disponíveis"}</Lbl>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+              {programas.filter(p=>!isInscrito(p.id)).map(p=>(
+                <Card key={p.id} style={{padding:"18px",borderLeft:`3px solid ${p.cor||T.green}`}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                    <div style={{width:36,height:36,borderRadius:10,background:`${p.cor||T.green}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{p.icone||"🩺"}</div>
+                    <div style={{fontFamily:T.fD,fontSize:14,color:T.ink,flex:1}}>{p.nome}</div>
+                  </div>
+                  <div style={{fontSize:11,color:T.inkMid,lineHeight:1.6,marginBottom:12}}>{p.descricao?.slice(0,90)}...</div>
+                  <Btn onClick={()=>{setModalPrograma(p);setMedicoSelecionado("");}} variant="outline" style={{width:"100%",fontSize:11}}>PARTICIPAR →</Btn>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Ana */}
+        <Card style={{padding:"20px 24px",background:T.tealBg,border:`1px solid ${T.teal}30`,display:"flex",alignItems:"center",gap:16}}>
+          <div style={{width:48,height:48,borderRadius:"50%",background:T.teal,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>🩺</div>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginBottom:3}}>Ana · Enfermeira Coordenadora</div>
+            <div style={{fontSize:12,color:T.inkMid}}>Coordena todos os seus programas, lê seu plano e está disponível a qualquer momento.</div>
+          </div>
+          <Btn onClick={()=>setModulo("ana")} variant="teal">FALAR COM ANA →</Btn>
         </Card>
+
+        {/* Prioridade da semana */}
+        <Card style={{padding:"20px 24px",background:T.goldFaint,border:`1px solid ${T.goldBorder}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div>
+            <Lbl color={T.gold}>Prioridade da semana</Lbl>
+            <div style={{fontFamily:T.fD,fontSize:20,color:T.ink,marginTop:4}}>
+              Foco em <span style={{color:AXIS_COLORS[lowAxis[0]]||T.gold}}>{lowAxis[0]}</span>
+              <span style={{fontSize:13,color:T.inkMid,fontFamily:T.fB,marginLeft:8}}>score atual: {lowAxis[1]}/100</span>
+            </div>
+          </div>
+          <Btn onClick={()=>setModulo("plano")} variant="gold">VER PLANO DE CUIDADO →</Btn>
+        </Card>
+
       </div>
+
+      {/* Modal inscrição */}
+      {modalPrograma&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:24}}>
+          <Card style={{width:"100%",maxWidth:480,padding:"32px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+              <div style={{width:48,height:48,borderRadius:12,background:`${modalPrograma.cor}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{modalPrograma.icone}</div>
+              <div>
+                <div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>{modalPrograma.nome}</div>
+                <div style={{fontSize:12,color:T.inkMid}}>Escolha seu médico para começar</div>
+              </div>
+            </div>
+            <div style={{fontSize:13,color:T.inkMid,lineHeight:1.8,marginBottom:20}}>{modalPrograma.descricao}</div>
+            <div style={{marginBottom:20}}>
+              <Lbl>Escolha seu médico pessoal</Lbl>
+              <select value={medicoSelecionado} onChange={e=>setMedicoSelecionado(e.target.value)}
+                style={{width:"100%",padding:"10px 14px",border:`1px solid ${T.border}`,borderRadius:8,fontFamily:T.fB,fontSize:13,background:T.surface,color:T.ink,marginTop:6}}>
+                <option value="">Selecionar médico...</option>
+                {medicos.map(m=>(<option key={m.id} value={m.id}>{m.nome} — {m.especialidade||"Clínica Geral"}</option>))}
+              </select>
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <Btn onClick={()=>setModalPrograma(null)} variant="outline" style={{flex:1}}>Cancelar</Btn>
+              <Btn onClick={handleInscrever} variant="gold" disabled={!medicoSelecionado||inscrevendo} style={{flex:2}}>
+                {inscrevendo?"Inscrevendo...":"PARTICIPAR →"}
+              </Btn>
+            </div>
+          </Card>
+        </div>
+      )}
+
     </div>
   );
 }
 
-// ─── Plano de Cuidado ─────────────────────────────────────────────
-function ModuloPlano({form,scores,setModulo,planLog,checkinHoje}){
-  const[todoCheck,setTodoCheck]=useState({});
+
+function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKey}){
+  const[tarefas,setTarefas]=useState([]);
+  const[registros,setRegistros]=useState({});
+  const[registrosPorData,setRegistrosPorData]=useState({});
+  const[loading,setLoading]=useState(true);
+  const[gerando,setGerando]=useState(false);
   const eq=EQUIPE.find(e=>e.id==="enfermeira");
-  const todos=[
-    ...((form?.meds||[]).filter(m=>m!=="Nenhum").map((m,i)=>({id:`med-${i}`,tipo:"medicamento",icon:"💊",text:`Tomar ${m}`,hora:"Conforme prescrição",cor:T.green,corBg:T.greenBg}))),
-    scores.eixos["Sono"]<75&&{id:"sono-1",tipo:"hábito",icon:"🌙",text:"Desligar telas até 22h",hora:"22:00",cor:T.purple,corBg:T.purpleBg},
-    scores.eixos["Atividade"]<75&&{id:"atv-1",tipo:"hábito",icon:"🏃",text:`Treino — ${(form?.exercicios||["atividade física"])[0]||"atividade física"}`,hora:"Manhã",cor:T.teal,corBg:T.tealBg},
-    scores.eixos["Estresse"]<75&&{id:"est-1",tipo:"hábito",icon:"🌿",text:"Respiração 4-7-8 pós-reunião",hora:"Após reuniões",cor:T.red,corBg:T.redBg},
-    {id:"agua-1",tipo:"hábito",icon:"💧",text:"2L de água ao longo do dia",hora:"Durante o dia",cor:T.blue,corBg:T.blueBg},
-  ].filter(Boolean);
-  const todosDone=todos.filter(t=>todoCheck[t.id]).length;
-  const plano=[
-    scores.eixos["Sono"]<70&&{tag:"Sono",color:T.purple,bg:T.purpleBg,action:`Sono de ${form?.sono||7}h — alvo 7–9h.`},
-    scores.eixos["Atividade"]<70&&{tag:"Atividade",color:T.teal,bg:T.tealBg,action:`${form?.freq_treino||0}x/sem — alvo 4x.`},
-    scores.eixos["Estresse"]<70&&{tag:"Estresse",color:T.red,bg:T.redBg,action:`Estresse ${form?.estresse||5}/10 — técnicas de respiração.`},
-  ].filter(Boolean);
-  if(!plano.length)plano.push({tag:"Geral",color:T.gold,bg:T.goldFaint,action:"Excelente! Mantenha a consistência."});
+
+  const AREA_CONFIG={
+    saude_geral:{label:"Saúde Geral",icon:"🩺",cor:T.green,bg:T.greenBg},
+    nutricao:{label:"Nutrição",icon:"🥗",cor:T.gold,bg:T.goldFaint},
+    atividade:{label:"Atividade Física",icon:"🏃",cor:T.teal,bg:T.tealBg},
+    emocional:{label:"Saúde Emocional",icon:"🧘",cor:T.purple,bg:T.purpleBg},
+    vinculos:{label:"Vínculos",icon:"🤝",cor:T.blue,bg:T.blueBg},
+    prevencao:{label:"Prevenção",icon:"🔬",cor:T.orange,bg:T.orangeBg},
+  };
+
+  useEffect(()=>{
+    if(!pacienteId)return;
+    (async()=>{
+      setLoading(true);
+      const[ts,rs]=await Promise.all([
+        carregarPlanoCuidado(pacienteId),
+        carregarRegistrosHoje(pacienteId),
+      ]);
+      setTarefas(ts);
+      // Mapear registros por tarefa_id
+      const mapa={};
+      const porData={};
+      rs.forEach(r=>{
+        if(!mapa[r.tarefa_id]){mapa[r.tarefa_id]={status:r.status,data:r.data};}
+        if(!porData[r.tarefa_id])porData[r.tarefa_id]={};
+        porData[r.tarefa_id][r.data]=r.status;
+      });
+      setRegistros(mapa);
+      setRegistrosPorData(porData);
+      setLoading(false);
+    })();
+  },[pacienteId]);
+
+  // Retorna início da semana atual (segunda-feira)
+  const inicioSemana=()=>{
+    const d=new Date();
+    const dia=d.getDay();
+    const diff=dia===0?-6:1-dia; // ajuste para segunda
+    const seg=new Date(d);
+    seg.setDate(d.getDate()+diff);
+    return `${seg.getFullYear()}-${String(seg.getMonth()+1).padStart(2,'0')}-${String(seg.getDate()).padStart(2,'0')}`;
+  };
+
+  // Quantas vezes a tarefa foi concluída nesta semana
+  const concluidasNaSemana=(tarefaId)=>{
+    const seg=inicioSemana();
+    return Object.entries(registrosPorData[tarefaId]||{})
+      .filter(([data,status])=>data>=seg && status==="concluido")
+      .length;
+  };
+
+  const isTarefaConcluida=(tarefa)=>{
+    const tipo=tarefa.frequencia_tipo||tarefa.frequencia||"diario";
+    const hoje=dataHoje();
+
+    if(tipo==="unico"){
+      // Aparece uma vez, some quando marcado
+      return !!registros[tarefa.id];
+    }
+    if(tipo==="diario"){
+      // Reseta todo dia
+      return registros[tarefa.id]?.data===hoje;
+    }
+    if(tipo==="n_vezes_semana"){
+      // Meta semanal — some quando atingir N vezes
+      const meta=tarefa.meta_semanal||3;
+      return concluidasNaSemana(tarefa.id)>=meta;
+    }
+    if(tipo==="uma_vez_semana"){
+      // Marcado nesta semana
+      const seg=inicioSemana();
+      return Object.entries(registrosPorData[tarefa.id]||{})
+        .some(([data,status])=>data>=seg && status==="concluido");
+    }
+    if(tipo==="uma_vez_mes" || tipo==="mensal"){
+      // Marcado neste mês
+      const mesAtual=dataHoje().slice(0,7); // YYYY-MM
+      return Object.entries(registrosPorData[tarefa.id]||{})
+        .some(([data,status])=>data.startsWith(mesAtual) && status==="concluido");
+    }
+    // fallback diário
+    return registros[tarefa.id]?.data===hoje;
+  };
+
+  // Para n_vezes_semana — mostrar progresso
+  const progressoSemanal=(tarefa)=>{
+    if((tarefa.frequencia_tipo||tarefa.frequencia)!=="n_vezes_semana")return null;
+    const meta=tarefa.meta_semanal||3;
+    const feitas=concluidasNaSemana(tarefa.id);
+    return {feitas,meta};
+  };
+
+  const toggleTarefa=async(tarefa)=>{
+    const tipo=tarefa.frequencia_tipo||tarefa.frequencia||"diario";
+    const hoje=dataHoje();
+    const feita=isTarefaConcluida(tarefa);
+
+    if(tipo==="n_vezes_semana" && !feita){
+      // Adicionar mais uma ocorrência hoje
+      const novoReg={status:"concluido",data:hoje};
+      setRegistros(prev=>({...prev,[tarefa.id]:novoReg}));
+      setRegistrosPorData(prev=>({...prev,[tarefa.id]:{...(prev[tarefa.id]||{}),[hoje]:"concluido"}}));
+      await registrarTarefa(tarefa.id,pacienteId,"concluido");
+    } else if(feita && tipo!=="unico"){
+      // Desmarcar ocorrência de hoje
+      setRegistros(prev=>{const n={...prev};delete n[tarefa.id];return n;});
+      setRegistrosPorData(prev=>({...prev,[tarefa.id]:{...(prev[tarefa.id]||{}),[hoje]:"pendente"}}));
+      await registrarTarefa(tarefa.id,pacienteId,"pendente");
+    } else if(!feita){
+      setRegistros(prev=>({...prev,[tarefa.id]:{status:"concluido",data:hoje}}));
+      setRegistrosPorData(prev=>({...prev,[tarefa.id]:{...(prev[tarefa.id]||{}),[hoje]:"concluido"}}));
+      await registrarTarefa(tarefa.id,pacienteId,"concluido");
+    }
+  };
+
+  const handleGerarPlano=async()=>{
+    setGerando(true);
+    const novas=await gerarPlanoInicial(pacienteId,form,apiKey);
+    if(novas.length>0){
+      const ts=await carregarPlanoCuidado(pacienteId);
+      setTarefas(ts);
+    }
+    setGerando(false);
+  };
+
+  const concluidas=tarefas.filter(t=>isTarefaConcluida(t)).length;
+  const areas=[...new Set(tarefas.map(t=>t.area))];
+
+  if(loading)return(
+    <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <Spinner/>
+    </div>
+  );
+
   return(
     <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
       <div style={{maxWidth:1000,margin:"0 auto"}}>
         <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:24}}>
           <div style={{width:50,height:50,borderRadius:"50%",background:eq.bg,border:`1.5px solid ${eq.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{eq.icon}</div>
-          <div><div style={{fontFamily:T.fD,fontSize:26,color:T.ink}}>{eq.nome} · Plano de Cuidado Integral</div><div style={{fontSize:11,color:T.inkFaint}}>Coordenado pela enfermeira Ana · {new Date().toLocaleDateString("pt-BR")} · Dados sincronizados com Supabase</div></div>
-          <div style={{marginLeft:"auto",textAlign:"right"}}><div style={{fontSize:9,color:T.inkFaint}}>SCORE GERAL</div><div style={{fontFamily:T.fD,fontSize:30,color:scores.total>=75?T.green:scores.total>=50?T.gold:T.red,fontWeight:700}}>{scores.total}<span style={{fontSize:14,color:T.inkFaint}}>/100</span></div></div>
+          <div><div style={{fontFamily:T.fD,fontSize:26,color:T.ink}}>Plano de Cuidado</div><div style={{fontSize:11,color:T.inkFaint}}>Coordenado pela Ana · {tarefas.length} tarefas ativas · {concluidas} concluídas hoje</div></div>
+          <div style={{marginLeft:"auto",textAlign:"right"}}><div style={{fontSize:9,color:T.inkFaint}}>VITALIDADE</div><div style={{fontFamily:T.fD,fontSize:30,color:scores.total>=75?T.green:scores.total>=50?T.gold:T.red,fontWeight:700}}>{scores.total}<span style={{fontSize:14,color:T.inkFaint}}>/100</span></div></div>
         </div>
-        <Card style={{padding:"24px",marginBottom:16}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>To-Do de Hoje</div><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{fontSize:12,color:T.inkMid}}>{todosDone}/{todos.length} concluídos</div><div style={{height:6,width:120,background:T.surfaceMid,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${todos.length?(todosDone/todos.length)*100:0}%`,background:`linear-gradient(90deg,${T.gold},${T.green})`}}/></div></div></div>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>{todos.map(todo=>{const done=todoCheck[todo.id];return(<div key={todo.id} onClick={()=>setTodoCheck(prev=>({...prev,[todo.id]:!prev[todo.id]}))} style={{display:"flex",gap:12,alignItems:"center",padding:"12px 16px",background:done?T.surfaceMid:T.bgWarm,border:`1px solid ${done?T.border:todo.corBg}`,borderRadius:8,cursor:"pointer",transition:"all 0.2s",opacity:done?0.6:1}}><div style={{width:22,height:22,borderRadius:6,border:`2px solid ${done?T.green:todo.cor}`,background:done?T.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{done&&<span style={{fontSize:11,color:"#FFF",fontWeight:700}}>✓</span>}</div><span style={{fontSize:16,flexShrink:0}}>{todo.icon}</span><div style={{flex:1}}><div style={{fontSize:13,color:done?T.inkFaint:T.ink,fontWeight:500,textDecoration:done?"line-through":"none"}}>{todo.text}</div><div style={{fontSize:10,color:T.inkFaint}}>{todo.hora}</div></div><span style={{fontSize:9,padding:"3px 8px",borderRadius:4,background:todo.corBg,color:todo.cor,fontWeight:700}}>{todo.tipo.toUpperCase()}</span></div>);})}</div>
-        </Card>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-          <Card style={{padding:"20px"}}><Lbl>6 Eixos MEV</Lbl><div style={{display:"flex",flexDirection:"column",gap:10,marginTop:12}}>{Object.entries(scores.eixos).map(([n,sc],i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:T.inkMid,width:120,flexShrink:0}}>{n}</span><div style={{flex:1,height:5,background:T.surfaceMid,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${sc}%`,background:AXIS_COLORS[n],borderRadius:3}}/></div><span style={{fontSize:13,color:AXIS_COLORS[n],fontFamily:T.fD,fontWeight:700,width:28,textAlign:"right"}}>{sc}</span></div>))}</div></Card>
-          <Card style={{padding:"20px"}}><Lbl color={T.teal}>Prioridades da Semana</Lbl><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>{plano.map((p,i)=>(<div key={i} style={{padding:"11px 14px",background:p.bg,borderRadius:8,borderLeft:`3px solid ${p.color}`,display:"flex",gap:10}}><span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:"rgba(255,255,255,0.6)",color:p.color,fontWeight:700,flexShrink:0,marginTop:1}}>{p.tag.toUpperCase()}</span><span style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>{p.action}</span></div>))}</div></Card>
-        </div>
-        {planLog&&planLog.length>0&&<Card style={{padding:"20px 24px"}}><Lbl color={T.blue}>Histórico de Atualizações</Lbl><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>{planLog.slice(0,8).map((log,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 12px",background:T.bgWarm,borderRadius:8,border:`1px solid ${T.border}`}}><div style={{width:28,height:28,borderRadius:6,background:`${log.cor||T.blue}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{log.icon||"📋"}</div><div style={{flex:1}}><div style={{fontSize:12,color:T.ink,fontWeight:500,marginBottom:2}}>{log.titulo}</div><div style={{fontSize:11,color:T.inkMid,lineHeight:1.5}}>{log.descricao}</div></div><span style={{fontSize:9,color:T.inkFaint,flexShrink:0}}>{log.data}</span></div>))}</div></Card>}
+
+        {/* Separar tarefas de hoje vs futuras */}
+        {(()=>{
+          // Tarefas únicas futuras = visivel_a_partir="proxima"
+          // Todas as outras = hoje
+          const hoje=tarefas.filter(t=>t.visivel_a_partir!=="proxima");
+          const futuras=tarefas.filter(t=>t.visivel_a_partir==="proxima");
+          // Não mudar o estado — só usar para render
+          return null;
+        })()}
+
+        {tarefas.length===0?(
+          <Card style={{padding:"40px",textAlign:"center"}}>
+            <div style={{fontSize:48,marginBottom:16}}>📋</div>
+            <div style={{fontFamily:T.fD,fontSize:22,color:T.ink,marginBottom:8}}>Seu plano ainda não foi gerado</div>
+            <div style={{fontSize:13,color:T.inkMid,lineHeight:1.9,maxWidth:420,margin:"0 auto 24px"}}>A Ana vai criar um plano personalizado com base no seu perfil de saúde. Leva menos de 30 segundos.</div>
+            <Btn onClick={handleGerarPlano} variant="gold" disabled={gerando} style={{padding:"13px 28px"}}>
+              {gerando?"Gerando seu plano...":"✦ Gerar meu plano com IA →"}
+            </Btn>
+          </Card>
+        ):(
+          <>
+            {/* Progresso geral */}
+            <Card style={{padding:"20px 24px",marginBottom:16}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                <div style={{fontFamily:T.fD,fontSize:18,color:T.ink}}>Progresso de hoje</div>
+                <div style={{fontSize:13,color:T.inkMid}}>{concluidas}/{tarefas.length} concluídas</div>
+              </div>
+              <div style={{height:8,background:T.surfaceMid,borderRadius:4,overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${tarefas.length?(concluidas/tarefas.length)*100:0}%`,background:`linear-gradient(90deg,${T.gold},${T.green})`,transition:"width 0.3s",borderRadius:4}}/>
+              </div>
+            </Card>
+
+            {/* Separação hoje vs futuro */}
+            {(()=>{
+              const hoje=tarefas.filter(t=>t.visivel_a_partir!=="proxima");
+              const futuras=tarefas.filter(t=>t.visivel_a_partir==="proxima");
+              const concluidasHoje=hoje.filter(t=>isTarefaConcluida(t)).length;
+              return(
+                <>
+                  {futuras.length>0&&(
+                    <div style={{fontSize:11,color:T.inkFaint,letterSpacing:"0.1em",marginBottom:8}}>
+                      HOJE · {concluidasHoje}/{hoje.length} concluídas
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+
+            {/* Tarefas de episódio — prioridade máxima */}
+            {tarefas.filter(t=>t.categoria==="episodio").length>0&&(
+              <Card style={{padding:"0",overflow:"hidden",marginBottom:12,border:`1.5px solid ${T.green}`}}>
+                <div style={{padding:"12px 18px",background:T.greenBg,borderBottom:`1px solid ${T.greenBorder}`,display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:18}}>🏥</span>
+                  <div style={{flex:1}}>
+                    <span style={{fontFamily:T.fD,fontSize:16,color:T.green}}>Protocolo clínico</span>
+                    <span style={{fontSize:11,color:T.inkMid,marginLeft:8}}>Prioridade alta</span>
+                  </div>
+                  <span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:T.green,color:"#FFF",fontWeight:600}}>
+                    {tarefas.filter(t=>t.categoria==="episodio"&&isTarefaConcluida(t)).length}/{tarefas.filter(t=>t.categoria==="episodio").length}
+                  </span>
+                </div>
+                {tarefas.filter(t=>t.categoria==="episodio").map(tarefa=>{
+                  const feita=isTarefaConcluida(tarefa);
+                  const isProxima=tarefa.visivel_a_partir==="proxima";
+                  return(
+                    <div key={tarefa.id} onClick={()=>!isProxima&&toggleTarefa(tarefa)}
+                      style={{display:"flex",gap:12,alignItems:"flex-start",padding:"12px 18px",
+                        borderBottom:`1px solid ${T.border}`,
+                        cursor:isProxima?"default":"pointer",
+                        background:feita?T.greenBg:isProxima?"rgba(0,168,104,0.03)":"transparent",
+                        opacity:isProxima?0.7:1,
+                        transition:"background 0.15s"}}>
+                      <div style={{width:22,height:22,borderRadius:6,
+                        border:`2px solid ${feita?T.green:isProxima?T.greenBorder:T.green}`,
+                        background:feita?T.green:"transparent",
+                        display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
+                        {feita?<span style={{fontSize:11,color:"#FFF",fontWeight:700}}>✓</span>
+                          :isProxima?<span style={{fontSize:10,color:T.green}}>→</span>:null}
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                          <div style={{fontSize:13,color:feita?T.inkFaint:T.ink,fontWeight:500,textDecoration:feita?"line-through":"none"}}>{tarefa.titulo}</div>
+                          {isProxima&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:4,background:T.greenBg,color:T.green,fontWeight:600}}>PRÓXIMA</span>}
+                        </div>
+                        {tarefa.descricao&&<div style={{fontSize:11,color:T.inkFaint,lineHeight:1.5}}>{tarefa.descricao}</div>}
+                      </div>
+                      <span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:T.greenBg,color:T.green,fontWeight:700,flexShrink:0,marginTop:2}}>
+                        {isProxima?"EM BREVE":"OBRIGATÓRIO"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </Card>
+            )}
+
+            {/* Tarefas por área — demais */}
+            {areas.filter(a=>a!=="episodio").map(area=>{
+              const cfg=AREA_CONFIG[area]||{label:area,icon:"📋",cor:T.gold,bg:T.goldFaint};
+              const ts=tarefas.filter(t=>t.area===area&&t.categoria!=="episodio");
+              if(ts.length===0)return null;
+              const done=ts.filter(t=>isTarefaConcluida(t)).length;
+              return(
+                <Card key={area} style={{padding:"0",overflow:"hidden",marginBottom:12}}>
+                  <div style={{padding:"12px 18px",background:cfg.bg,borderBottom:`1px solid ${cfg.cor}20`,display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:18}}>{cfg.icon}</span>
+                    <span style={{fontFamily:T.fD,fontSize:16,color:T.ink}}>{cfg.label}</span>
+                    <span style={{marginLeft:"auto",fontSize:11,color:cfg.cor,fontWeight:600}}>{done}/{ts.length}</span>
+                  </div>
+                  {ts.map(tarefa=>{
+                    const feita=isTarefaConcluida(tarefa);
+                    return(
+                      <div key={tarefa.id} onClick={()=>toggleTarefa(tarefa)}
+                        style={{display:"flex",gap:12,alignItems:"flex-start",padding:"12px 18px",borderBottom:`1px solid ${T.border}`,cursor:"pointer",background:feita?T.surfaceMid:"transparent",transition:"background 0.15s"}}>
+                        <div style={{width:22,height:22,borderRadius:6,border:`2px solid ${feita?T.green:cfg.cor}`,background:feita?T.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
+                          {feita&&<span style={{fontSize:11,color:"#FFF",fontWeight:700}}>✓</span>}
+                        </div>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:13,color:feita?T.inkFaint:T.ink,fontWeight:500,textDecoration:feita?"line-through":"none",marginBottom:2}}>{tarefa.titulo}</div>
+                          {tarefa.descricao&&<div style={{fontSize:11,color:T.inkFaint,lineHeight:1.5}}>{tarefa.descricao}</div>}
+                        </div>
+                        <span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:cfg.bg,color:cfg.cor,fontWeight:700,flexShrink:0,marginTop:2}}>
+                          {(()=>{const prog=progressoSemanal(tarefa);return prog?`${prog.feitas}/${prog.meta}x SEMANA`:(tarefa.frequencia_tipo||tarefa.frequencia||"diario").toUpperCase().replace("_"," ");})()}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </Card>
+              );
+            })}
+
+            {/* Tarefas futuras — em breve */}
+            {tarefas.filter(t=>t.visivel_a_partir==="proxima").length>0&&(
+              <div style={{marginTop:8}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+                  <div style={{flex:1,height:1,background:T.border}}/>
+                  <span style={{fontSize:10,color:T.inkFaint,letterSpacing:"0.12em",whiteSpace:"nowrap"}}>EM BREVE</span>
+                  <div style={{flex:1,height:1,background:T.border}}/>
+                </div>
+                <Card style={{padding:"0",overflow:"hidden",marginBottom:12,border:`1px dashed ${T.border}`}}>
+                  {tarefas.filter(t=>t.visivel_a_partir==="proxima").map(tarefa=>(
+                    <div key={tarefa.id}
+                      style={{display:"flex",gap:12,alignItems:"flex-start",padding:"12px 18px",
+                        borderBottom:`1px solid ${T.border}`,
+                        background:"transparent",opacity:0.6}}>
+                      <div style={{width:22,height:22,borderRadius:6,border:`2px dashed ${T.border}`,
+                        display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
+                        <span style={{fontSize:12,color:T.inkFaint}}>→</span>
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:13,color:T.inkMid,fontWeight:500,marginBottom:2}}>{tarefa.titulo}</div>
+                        {tarefa.descricao&&<div style={{fontSize:11,color:T.inkFaint,lineHeight:1.5}}>{tarefa.descricao}</div>}
+                      </div>
+                      <span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:T.bgWarm,color:T.inkFaint,fontWeight:600,flexShrink:0,marginTop:2}}>
+                        EM BREVE
+                      </span>
+                    </div>
+                  ))}
+                </Card>
+              </div>
+            )}
+
+            {/* Scores por eixo */}
+            <Card style={{padding:"20px",marginBottom:16}}>
+              <Lbl>Vitalidade por eixo</Lbl>
+              <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:12}}>
+                {Object.entries(scores.eixos).map(([n,sc],i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:12}}>
+                    <span style={{fontSize:11,color:T.inkMid,width:120,flexShrink:0}}>{n}</span>
+                    <div style={{flex:1,height:5,background:T.surfaceMid,borderRadius:3,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${sc}%`,background:AXIS_COLORS[n]||T.gold,borderRadius:3}}/>
+                    </div>
+                    <span style={{fontSize:13,color:AXIS_COLORS[n]||T.gold,fontFamily:T.fD,fontWeight:700,width:28,textAlign:"right"}}>{sc}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </>
+        )}
       </div>
     </div>
   );
