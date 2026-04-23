@@ -857,6 +857,89 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
   const[planLog,setPlanLog]=useState([]);
   const[planoRefresh,setPlanoRefresh]=useState(0);
   const[homeKey,setHomeKey]=useState(0);
+  const[modalCsat,setModalCsat]=useState(null); // {agendamento_id, medico_nome}
+  const[modalNps,setModalNps]=useState(false);
+
+  // Verificar CSAT e NPS pendentes ao carregar
+  useEffect(()=>{
+    if(!pacienteId)return;
+    verificarAvaliacoesPendentes();
+  },[pacienteId]);
+
+  const verificarAvaliacoesPendentes=async()=>{
+    // Buscar consultas realizadas sem avaliação CSAT
+    const{data:consultasRealizadas}=await supabase.from("agendamentos")
+      .select("id,data,hora,medicos(nome)")
+      .eq("paciente_id",pacienteId)
+      .eq("status","realizada")
+      .order("data",{ascending:false})
+      .limit(5);
+
+    if(consultasRealizadas?.length>0){
+      // Verificar quais já têm avaliação
+      const{data:avaliacoes}=await supabase.from("avaliacoes")
+        .select("agendamento_id")
+        .eq("paciente_id",pacienteId)
+        .eq("tipo","csat");
+
+      const idsAvaliados=new Set((avaliacoes||[]).map(a=>a.agendamento_id));
+      const semAvaliacao=consultasRealizadas.filter(c=>!idsAvaliados.has(c.id));
+
+      if(semAvaliacao.length>0){
+        const c=semAvaliacao[0];
+        setModalCsat({agendamento_id:c.id,medico_nome:c.medicos?.nome||"seu médico"});
+        return; // Mostrar CSAT primeiro, NPS depois
+      }
+    }
+
+    // Verificar NPS — a cada 4 meses
+    const{data:ultimoNps}=await supabase.from("avaliacoes")
+      .select("created_at")
+      .eq("paciente_id",pacienteId)
+      .eq("tipo","nps")
+      .order("created_at",{ascending:false})
+      .limit(1)
+      .single();
+
+    if(!ultimoNps){
+      // Nunca respondeu — verificar se tem pelo menos 1 consulta realizada
+      const{count}=await supabase.from("agendamentos")
+        .select("*",{count:"exact",head:true})
+        .eq("paciente_id",pacienteId)
+        .eq("status","realizada");
+      if(count>0)setModalNps(true);
+    } else {
+      const ultimo=new Date(ultimoNps.created_at);
+      const mesesPassados=(Date.now()-ultimo.getTime())/(1000*60*60*24*30);
+      if(mesesPassados>=4)setModalNps(true);
+    }
+  };
+
+  const salvarCsat=async(nota,comentario)=>{
+    if(!modalCsat)return;
+    await supabase.from("avaliacoes").insert({
+      paciente_id:pacienteId,
+      agendamento_id:modalCsat.agendamento_id,
+      tipo:"csat",
+      nota_csat:nota,
+      comentario:comentario||null,
+      data:new Date().toISOString().slice(0,10),
+    });
+    setModalCsat(null);
+    // Verificar NPS depois do CSAT
+    setTimeout(()=>verificarAvaliacoesPendentes(),500);
+  };
+
+  const salvarNps=async(nota,comentario)=>{
+    await supabase.from("avaliacoes").insert({
+      paciente_id:pacienteId,
+      tipo:"nps",
+      nota_nps:nota,
+      comentario:comentario||null,
+      data:new Date().toISOString().slice(0,10),
+    });
+    setModalNps(false);
+  };
   const[mensagensNaoLidas,setMensagensNaoLidas]=useState(0);
   const[laudoGenetico,setLaudoGenetico]=useState({pdfB64:null,pdfNome:null,analise:null});
   const scores=calcScores(form,checkinHoje);
@@ -1009,6 +1092,182 @@ Tom: acolhedor, preciso e humano. Histórico persistido — você tem memória d
         {modulo==="documentos"&&<ModuloDocumentos apiKey={apiKey} pacienteId={pacienteId} onPlanUpdate={onPlanUpdate}/>}
         {modulo==="mensagens"&&<ModuloMensagens pacienteId={pacienteId} nome={nome}/>}
         {modulo==="integracoes"&&<ModuloIntegracoes/>}
+      </div>
+
+      {/* Modal CSAT */}
+      {modalCsat&&(
+        <ModalCsat
+          medicoNome={modalCsat.medico_nome}
+          onSalvar={salvarCsat}
+          onPular={()=>setModalCsat(null)}/>
+      )}
+
+      {/* Modal NPS */}
+      {modalNps&&!modalCsat&&(
+        <ModalNps
+          onSalvar={salvarNps}
+          onPular={()=>setModalNps(false)}/>
+      )}
+
+    </div>
+  );
+}
+
+// ─── Modal CSAT ────────────────────────────────────────────────────
+function ModalCsat({medicoNome,onSalvar,onPular}){
+  const[nota,setNota]=useState(0);
+  const[hover,setHover]=useState(0);
+  const[comentario,setComentario]=useState("");
+  const[salvando,setSalvando]=useState(false);
+
+  const labels=["","Muito ruim","Ruim","Regular","Boa","Excelente"];
+
+  const handleSalvar=async()=>{
+    if(!nota)return;
+    setSalvando(true);
+    await onSalvar(nota,comentario);
+    setSalvando(false);
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:2000,padding:"0 0 0 0"}}>
+      <div style={{background:T.surface,borderRadius:"20px 20px 0 0",padding:"28px 24px 40px",width:"100%",maxWidth:480,boxShadow:"0 -8px 32px rgba(0,0,0,0.15)"}}>
+        <div style={{width:40,height:4,borderRadius:2,background:T.border,margin:"0 auto 24px"}}/>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{fontSize:32,marginBottom:8}}>⭐</div>
+          <div style={{fontSize:18,fontWeight:600,color:T.ink,marginBottom:4}}>Como foi sua consulta?</div>
+          <div style={{fontSize:13,color:T.inkMid}}>com {medicoNome}</div>
+        </div>
+
+        {/* Estrelas */}
+        <div style={{display:"flex",justifyContent:"center",gap:12,marginBottom:12}}>
+          {[1,2,3,4,5].map(i=>(
+            <button key={i}
+              onClick={()=>setNota(i)}
+              onMouseEnter={()=>setHover(i)}
+              onMouseLeave={()=>setHover(0)}
+              style={{background:"none",border:"none",cursor:"pointer",fontSize:40,
+                filter:(hover||nota)>=i?"none":"grayscale(1) opacity(0.3)",
+                transform:(hover||nota)>=i?"scale(1.1)":"scale(1)",
+                transition:"all 0.15s"}}>
+              ⭐
+            </button>
+          ))}
+        </div>
+
+        {nota>0&&(
+          <div style={{textAlign:"center",fontSize:13,fontWeight:500,color:T.green,marginBottom:16}}>
+            {labels[nota]}
+          </div>
+        )}
+
+        {nota>0&&nota<=3&&(
+          <textarea value={comentario} onChange={e=>setComentario(e.target.value)}
+            placeholder="O que poderia ser melhor? (opcional)"
+            rows={2}
+            style={{width:"100%",padding:"10px 12px",border:`1px solid ${T.border}`,borderRadius:10,
+              fontFamily:T.f,fontSize:13,color:T.ink,outline:"none",resize:"none",
+              lineHeight:1.6,boxSizing:"border-box",marginBottom:16}}/>
+        )}
+
+        <button onClick={handleSalvar} disabled={!nota||salvando}
+          style={{width:"100%",padding:"14px",background:nota?T.green:"#ccc",color:"#FFF",
+            border:"none",borderRadius:12,fontSize:14,fontWeight:600,cursor:nota?"pointer":"not-allowed",
+            fontFamily:T.f,marginBottom:10,opacity:salvando?0.6:1}}>
+          {salvando?"Enviando...":"Enviar avaliação →"}
+        </button>
+        <button onClick={onPular}
+          style={{width:"100%",padding:"10px",background:"transparent",border:"none",
+            color:T.inkFaint,fontSize:12,cursor:"pointer",fontFamily:T.f}}>
+          Pular por agora
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Modal NPS ─────────────────────────────────────────────────────
+function ModalNps({onSalvar,onPular}){
+  const[nota,setNota]=useState(-1);
+  const[comentario,setComentario]=useState("");
+  const[salvando,setSalvando]=useState(false);
+
+  const handleSalvar=async()=>{
+    if(nota<0)return;
+    setSalvando(true);
+    await onSalvar(nota,comentario);
+    setSalvando(false);
+  };
+
+  const getNpsLabel=()=>{
+    if(nota<0)return"";
+    if(nota<=6)return"Detrator";
+    if(nota<=8)return"Neutro";
+    return"Promotor";
+  };
+
+  const getNpsCor=()=>{
+    if(nota<0)return T.inkMid;
+    if(nota<=6)return T.red;
+    if(nota<=8)return T.orange;
+    return T.green;
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:2000}}>
+      <div style={{background:T.surface,borderRadius:"20px 20px 0 0",padding:"28px 24px 40px",width:"100%",maxWidth:480,boxShadow:"0 -8px 32px rgba(0,0,0,0.15)"}}>
+        <div style={{width:40,height:4,borderRadius:2,background:T.border,margin:"0 auto 24px"}}/>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{fontSize:32,marginBottom:8}}>💬</div>
+          <div style={{fontSize:18,fontWeight:600,color:T.ink,marginBottom:4}}>Você indicaria o HVV?</div>
+          <div style={{fontSize:13,color:T.inkMid}}>De 0 a 10, qual a probabilidade de indicar para um amigo ou familiar?</div>
+        </div>
+
+        {/* Notas 0-10 */}
+        <div style={{display:"flex",gap:6,justifyContent:"center",marginBottom:8,flexWrap:"wrap"}}>
+          {[0,1,2,3,4,5,6,7,8,9,10].map(i=>(
+            <button key={i} onClick={()=>setNota(i)}
+              style={{width:40,height:40,borderRadius:10,border:`2px solid ${nota===i?T.green:T.border}`,
+                background:nota===i?T.green:"transparent",
+                color:nota===i?"#FFF":T.inkMid,
+                fontSize:13,fontWeight:nota===i?700:400,cursor:"pointer",fontFamily:T.f,
+                transition:"all 0.15s"}}>
+              {i}
+            </button>
+          ))}
+        </div>
+
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.inkFaint,marginBottom:nota>=0?16:24}}>
+          <span>Pouco provável</span>
+          <span>Muito provável</span>
+        </div>
+
+        {nota>=0&&(
+          <div style={{textAlign:"center",fontSize:13,fontWeight:600,color:getNpsCor(),marginBottom:16}}>
+            {getNpsLabel()}
+          </div>
+        )}
+
+        {nota>=0&&(
+          <textarea value={comentario} onChange={e=>setComentario(e.target.value)}
+            placeholder="Quer nos contar mais? (opcional)"
+            rows={2}
+            style={{width:"100%",padding:"10px 12px",border:`1px solid ${T.border}`,borderRadius:10,
+              fontFamily:T.f,fontSize:13,color:T.ink,outline:"none",resize:"none",
+              lineHeight:1.6,boxSizing:"border-box",marginBottom:16}}/>
+        )}
+
+        <button onClick={handleSalvar} disabled={nota<0||salvando}
+          style={{width:"100%",padding:"14px",background:nota>=0?T.green:"#ccc",color:"#FFF",
+            border:"none",borderRadius:12,fontSize:14,fontWeight:600,
+            cursor:nota>=0?"pointer":"not-allowed",fontFamily:T.f,marginBottom:10,opacity:salvando?0.6:1}}>
+          {salvando?"Enviando...":"Enviar →"}
+        </button>
+        <button onClick={onPular}
+          style={{width:"100%",padding:"10px",background:"transparent",border:"none",
+            color:T.inkFaint,fontSize:12,cursor:"pointer",fontFamily:T.f}}>
+          Pular por agora
+        </button>
       </div>
     </div>
   );
@@ -2449,11 +2708,59 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
               </div>
             </Card>
 
-            {/* Tarefas por área */}
-            {areas.map(area=>{
+            {/* Tarefas de episódio — prioridade máxima */}
+            {tarefas.filter(t=>t.categoria==="episodio").length>0&&(
+              <Card style={{padding:"0",overflow:"hidden",marginBottom:12,border:`1.5px solid ${T.green}`}}>
+                <div style={{padding:"12px 18px",background:T.greenBg,borderBottom:`1px solid ${T.greenBorder}`,display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:18}}>🏥</span>
+                  <div style={{flex:1}}>
+                    <span style={{fontFamily:T.fD,fontSize:16,color:T.green}}>Protocolo clínico</span>
+                    <span style={{fontSize:11,color:T.inkMid,marginLeft:8}}>Prioridade alta</span>
+                  </div>
+                  <span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:T.green,color:"#FFF",fontWeight:600}}>
+                    {tarefas.filter(t=>t.categoria==="episodio"&&isTarefaConcluida(t)).length}/{tarefas.filter(t=>t.categoria==="episodio").length}
+                  </span>
+                </div>
+                {tarefas.filter(t=>t.categoria==="episodio").map(tarefa=>{
+                  const feita=isTarefaConcluida(tarefa);
+                  const isProxima=tarefa.visivel_a_partir==="proxima";
+                  return(
+                    <div key={tarefa.id} onClick={()=>!isProxima&&toggleTarefa(tarefa)}
+                      style={{display:"flex",gap:12,alignItems:"flex-start",padding:"12px 18px",
+                        borderBottom:`1px solid ${T.border}`,
+                        cursor:isProxima?"default":"pointer",
+                        background:feita?T.greenBg:isProxima?"rgba(0,168,104,0.03)":"transparent",
+                        opacity:isProxima?0.7:1,
+                        transition:"background 0.15s"}}>
+                      <div style={{width:22,height:22,borderRadius:6,
+                        border:`2px solid ${feita?T.green:isProxima?T.greenBorder:T.green}`,
+                        background:feita?T.green:"transparent",
+                        display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
+                        {feita?<span style={{fontSize:11,color:"#FFF",fontWeight:700}}>✓</span>
+                          :isProxima?<span style={{fontSize:10,color:T.green}}>→</span>:null}
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                          <div style={{fontSize:13,color:feita?T.inkFaint:T.ink,fontWeight:500,textDecoration:feita?"line-through":"none"}}>{tarefa.titulo}</div>
+                          {isProxima&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:4,background:T.greenBg,color:T.green,fontWeight:600}}>PRÓXIMA</span>}
+                        </div>
+                        {tarefa.descricao&&<div style={{fontSize:11,color:T.inkFaint,lineHeight:1.5}}>{tarefa.descricao}</div>}
+                      </div>
+                      <span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:T.greenBg,color:T.green,fontWeight:700,flexShrink:0,marginTop:2}}>
+                        {isProxima?"EM BREVE":"OBRIGATÓRIO"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </Card>
+            )}
+
+            {/* Tarefas por área — demais */}
+            {areas.filter(a=>a!=="episodio").map(area=>{
               const cfg=AREA_CONFIG[area]||{label:area,icon:"📋",cor:T.gold,bg:T.goldFaint};
-              const ts=tarefas.filter(t=>t.area===area);
-              const done=ts.filter(t=>registros[t.id]==="concluido").length;
+              const ts=tarefas.filter(t=>t.area===area&&t.categoria!=="episodio");
+              if(ts.length===0)return null;
+              const done=ts.filter(t=>isTarefaConcluida(t)).length;
               return(
                 <Card key={area} style={{padding:"0",overflow:"hidden",marginBottom:12}}>
                   <div style={{padding:"12px 18px",background:cfg.bg,borderBottom:`1px solid ${cfg.cor}20`,display:"flex",alignItems:"center",gap:10}}>
@@ -2465,8 +2772,7 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
                     const feita=isTarefaConcluida(tarefa);
                     return(
                       <div key={tarefa.id} onClick={()=>toggleTarefa(tarefa)}
-                        style={{display:"flex",gap:12,alignItems:"flex-start",padding:"12px 18px",borderBottom:`1px solid ${T.border}`,cursor:"pointer",background:feita?T.surfaceMid:"transparent",transition:"background 0.15s"}}
-                      >
+                        style={{display:"flex",gap:12,alignItems:"flex-start",padding:"12px 18px",borderBottom:`1px solid ${T.border}`,cursor:"pointer",background:feita?T.surfaceMid:"transparent",transition:"background 0.15s"}}>
                         <div style={{width:22,height:22,borderRadius:6,border:`2px solid ${feita?T.green:cfg.cor}`,background:feita?T.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
                           {feita&&<span style={{fontSize:11,color:"#FFF",fontWeight:700}}>✓</span>}
                         </div>
@@ -2475,8 +2781,8 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
                           {tarefa.descricao&&<div style={{fontSize:11,color:T.inkFaint,lineHeight:1.5}}>{tarefa.descricao}</div>}
                         </div>
                         <span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:cfg.bg,color:cfg.cor,fontWeight:700,flexShrink:0,marginTop:2}}>
-                        {(()=>{const prog=progressoSemanal(tarefa);return prog?`${prog.feitas}/${prog.meta}x SEMANA`:(tarefa.frequencia_tipo||tarefa.frequencia||"diario").toUpperCase().replace("_"," ");})()}
-                      </span>
+                          {(()=>{const prog=progressoSemanal(tarefa);return prog?`${prog.feitas}/${prog.meta}x SEMANA`:(tarefa.frequencia_tipo||tarefa.frequencia||"diario").toUpperCase().replace("_"," ");})()}
+                        </span>
                       </div>
                     );
                   })}
