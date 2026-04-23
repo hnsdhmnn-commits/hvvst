@@ -1309,8 +1309,9 @@ function ChatIAComTools({systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pa
         titulo:{type:"string",description:"Título claro e objetivo da tarefa"},
         descricao:{type:"string",description:"Descrição detalhada opcional"},
         area:{type:"string",enum:["saude_geral","nutricao","atividade","emocional","vinculos","prevencao"],description:"Área de saúde da tarefa"},
-        frequencia_tipo:{type:"string",enum:["diario","n_vezes_semana","uma_vez_semana","uma_vez_mes","unico"],description:"Frequência da tarefa"},
+        frequencia_tipo:{type:"string",enum:["diario","n_vezes_semana","uma_vez_semana","uma_vez_mes","unico"],description:"Frequência da tarefa. Use unico para tarefas com data específica"},
         meta_semanal:{type:"number",description:"Quantas vezes por semana (apenas para n_vezes_semana)"},
+        data_prevista:{type:"string",description:"Data prevista no formato YYYY-MM-DD para tarefas únicas com data específica. Ex: consulta agendada para daqui 5 dias"},
         tarefa_id:{type:"string",description:"ID da tarefa a remover ou atualizar (obrigatório para remover/atualizar)"},
       },
       required:["acao","titulo","area","frequencia_tipo"]
@@ -1331,15 +1332,20 @@ function ChatIAComTools({systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pa
   useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[msgs]);
 
   const executarTool=async(toolInput)=>{
-    const{acao,titulo,descricao,area,frequencia_tipo,meta_semanal,tarefa_id}=toolInput;
+    const{acao,titulo,descricao,area,frequencia_tipo,meta_semanal,data_prevista,tarefa_id}=toolInput;
+    const hoje=new Date().toISOString().slice(0,10);
     try{
       if(acao==="adicionar"){
+        // Determinar se é tarefa de hoje ou futura
+        const ehFutura=data_prevista&&data_prevista>hoje;
         const{data,error}=await supabase.from("plano_cuidado").insert({
           paciente_id:pacienteId,
           titulo,descricao:descricao||"",
           area,frequencia_tipo,
           frequencia:frequencia_tipo,
           meta_semanal:meta_semanal||1,
+          data_prevista:data_prevista||null,
+          visivel_a_partir:ehFutura?"proxima":"agora",
           origem:"ana",ativo:true,ordem:99
         }).select("id").single();
         if(!error&&onPlanChange)onPlanChange();
@@ -2686,6 +2692,16 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
           <div style={{marginLeft:"auto",textAlign:"right"}}><div style={{fontSize:9,color:T.inkFaint}}>VITALIDADE</div><div style={{fontFamily:T.fD,fontSize:30,color:scores.total>=75?T.green:scores.total>=50?T.gold:T.red,fontWeight:700}}>{scores.total}<span style={{fontSize:14,color:T.inkFaint}}>/100</span></div></div>
         </div>
 
+        {/* Separar tarefas de hoje vs futuras */}
+        {(()=>{
+          // Tarefas únicas futuras = visivel_a_partir="proxima"
+          // Todas as outras = hoje
+          const hoje=tarefas.filter(t=>t.visivel_a_partir!=="proxima");
+          const futuras=tarefas.filter(t=>t.visivel_a_partir==="proxima");
+          // Não mudar o estado — só usar para render
+          return null;
+        })()}
+
         {tarefas.length===0?(
           <Card style={{padding:"40px",textAlign:"center"}}>
             <div style={{fontSize:48,marginBottom:16}}>📋</div>
@@ -2707,6 +2723,23 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
                 <div style={{height:"100%",width:`${tarefas.length?(concluidas/tarefas.length)*100:0}%`,background:`linear-gradient(90deg,${T.gold},${T.green})`,transition:"width 0.3s",borderRadius:4}}/>
               </div>
             </Card>
+
+            {/* Separação hoje vs futuro */}
+            {(()=>{
+              const hoje2=new Date().toISOString().slice(0,10);
+              const futuras=tarefas.filter(t=>t.visivel_a_partir==="proxima"||(t.data_prevista&&t.data_prevista>hoje2&&t.frequencia_tipo==="unico"));
+              const hoje=tarefas.filter(t=>!futuras.includes(t));
+              const concluidasHoje=hoje.filter(t=>isTarefaConcluida(t)).length;
+              return(
+                <>
+                  {futuras.length>0&&(
+                    <div style={{fontSize:11,color:T.inkFaint,letterSpacing:"0.1em",marginBottom:8}}>
+                      HOJE · {concluidasHoje}/{hoje.length} concluídas
+                    </div>
+                  )}
+                </>
+              );
+            })()}
 
             {/* Tarefas de episódio — prioridade máxima */}
             {tarefas.filter(t=>t.categoria==="episodio").length>0&&(
@@ -2789,6 +2822,42 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
                 </Card>
               );
             })}
+
+            {/* Tarefas futuras — em breve */}
+            {(()=>{
+              const hoje2=new Date().toISOString().slice(0,10);
+              const futuras=tarefas.filter(t=>t.visivel_a_partir==="proxima"||(t.data_prevista&&t.data_prevista>hoje2&&t.frequencia_tipo==="unico"));
+              if(futuras.length===0)return null;
+              return(
+              <div style={{marginTop:8}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+                  <div style={{flex:1,height:1,background:T.border}}/>
+                  <span style={{fontSize:10,color:T.inkFaint,letterSpacing:"0.12em",whiteSpace:"nowrap"}}>EM BREVE</span>
+                  <div style={{flex:1,height:1,background:T.border}}/>
+                </div>
+                <Card style={{padding:"0",overflow:"hidden",marginBottom:12,border:`1px dashed ${T.border}`}}>
+                  {futuras.map(tarefa=>(
+                    <div key={tarefa.id}
+                      style={{display:"flex",gap:12,alignItems:"flex-start",padding:"12px 18px",
+                        borderBottom:`1px solid ${T.border}`,
+                        background:"transparent",opacity:0.6}}>
+                      <div style={{width:22,height:22,borderRadius:6,border:`2px dashed ${T.border}`,
+                        display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
+                        <span style={{fontSize:12,color:T.inkFaint}}>→</span>
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:13,color:T.inkMid,fontWeight:500,marginBottom:2}}>{tarefa.titulo}</div>
+                        {tarefa.descricao&&<div style={{fontSize:11,color:T.inkFaint,lineHeight:1.5}}>{tarefa.descricao}</div>}
+                      </div>
+                      <span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:T.bgWarm,color:T.inkFaint,fontWeight:600,flexShrink:0,marginTop:2}}>
+                        {tarefa.data_prevista?new Date(tarefa.data_prevista+"T12:00:00").toLocaleDateString("pt-BR",{day:"numeric",month:"short"}):"EM BREVE"}
+                      </span>
+                    </div>
+                  ))}
+                </Card>
+              </div>
+              );
+            })()}
 
             {/* Scores por eixo */}
             <Card style={{padding:"20px",marginBottom:16}}>
