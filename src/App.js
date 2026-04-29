@@ -48,17 +48,29 @@ export default function HVV(){
   const handleLogin=async(userData)=>{
     setUser(userData);
     let pid=await getPacienteId(userData.userId);
+
     if(!pid){
-      try{
-        const{data:medico}=await supabase.from("medicos").select("id").limit(1).maybeSingle();
-        const{data:novoPac}=await supabase.from("pacientes").insert({
+      // Verificar se o e-mail está pré-cadastrado pelo admin
+      const{data:pacientePrecadastrado}=await supabase.from("pacientes")
+        .select("id,nome,medico_id")
+        .eq("email",userData.email)
+        .is("user_id",null)
+        .maybeSingle();
+
+      if(pacientePrecadastrado){
+        // Vincular user_id ao paciente pré-cadastrado
+        await supabase.from("pacientes").update({
           user_id:userData.userId,
-          medico_id:medico?.id||"c0618c54-a555-4781-8e91-075f8898e54a",
-          nome:userData.name,email:userData.email,
-          plano:"Essential",
-        }).select("id").single();
-        if(novoPac)pid=novoPac.id;
-      }catch(e){console.warn("Erro ao criar paciente:",e);}
+          nome:pacientePrecadastrado.nome||userData.name,
+        }).eq("id",pacientePrecadastrado.id);
+        pid=pacientePrecadastrado.id;
+      } else {
+        // E-mail não autorizado — fazer logout e mostrar erro
+        await supabase.auth.signOut();
+        setUser(null);setScreen("login");
+        alert("Acesso não autorizado. Solicite seu cadastro ao RH ou ao administrador do sistema.");
+        return;
+      }
     }
     if(pid){
       setPacienteId(pid);
