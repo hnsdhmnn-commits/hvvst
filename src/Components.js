@@ -1882,6 +1882,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
   const hora=new Date().getHours();
   const saudacao=hora<12?"Bom dia":hora<18?"Boa tarde":"Boa noite";
   const[tela,setTela]=useState("home"); // home | programas | medicos | horarios | confirmado
+  const[modalEncaminhamento,setModalEncaminhamento]=useState(null);
   const[programas,setProgramas]=useState([]);
   const[programaSelecionado,setProgramaSelecionado]=useState(null);
   const[medicos,setMedicos]=useState([]);
@@ -1907,18 +1908,23 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
   },[pacienteId]);
 
   const handleSelecionarPrograma=async(prog)=>{
+    // Programas vão para o médico pessoal do paciente
     setProgramaSelecionado(prog);
-    let ms=await carregarMedicos();
-    // Se não houver médicos no banco, usar fictícios para demonstração
+    const{data:pacData}=await supabase.from("pacientes")
+      .select("medico_id,medicos(id,nome,crm,especialidade)")
+      .eq("id",pacienteId).single();
+    const medicoPersonal=pacData?.medicos;
+    let ms=medicoPersonal?[medicoPersonal]:await carregarMedicos();
     if(ms.length===0){
-      ms=[
-        {id:"demo-1",nome:"Dr. Rafael Mendes",crm:"CRM/SP 145678",especialidade:"Clínica Geral"},
-        {id:"demo-2",nome:"Dra. Marina Costa",crm:"CRM/SP 112233",especialidade:"Medicina Interna"},
-        {id:"demo-3",nome:"Dr. Carlos Lima",crm:"CRM/SP 98765",especialidade:"Medicina de Família"},
-      ];
+      ms=[{id:"demo-1",nome:"Dr. Rafael Mendes",crm:"CRM/SP 145678",especialidade:"Clínica Geral"}];
     }
     setMedicos(ms);
     setTela("medicos");
+  };
+
+  const handleSelecionarEspecialidade=(esp)=>{
+    // Especialidades encaminham para prestador externo
+    setModalEncaminhamento({tipo:"especialidade",nome:esp});
   };
 
   const handleSelecionarMedico=(medico)=>{
@@ -1987,6 +1993,52 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
         <div style={{marginBottom:20}}>
           <div style={{fontSize:20,fontWeight:500,color:T.ink,marginBottom:4}}>{saudacao}, {primeiroNome}</div>
           <div style={{fontSize:13,color:T.inkMid}}>Como podemos te ajudar hoje?</div>
+        </div>
+
+        {/* 3 caminhos principais */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:28}}>
+          {/* Agendar */}
+          <div style={{background:T.surface,border:"1.5px solid "+T.green,borderRadius:12,padding:"20px 18px",
+            display:"flex",flexDirection:"column",gap:8}}>
+            <div style={{fontSize:22}}>📅</div>
+            <div style={{fontSize:14,fontWeight:600,color:T.ink}}>Quero agendar</div>
+            <div style={{fontSize:12,color:T.inkMid,lineHeight:1.5,flex:1}}>
+              Consulta com seu médico pessoal, programa de cuidado contínuo ou especialista parceiro.
+            </div>
+            <div style={{fontSize:11,color:T.green,fontWeight:500,marginTop:4}}>↓ Veja as opções abaixo</div>
+          </div>
+
+          {/* Check-in */}
+          <div onClick={()=>setModulo("checkin")}
+            style={{background:T.surface,border:"1.5px solid "+T.border,borderRadius:12,padding:"20px 18px",
+              cursor:"pointer",transition:"all 0.15s",display:"flex",flexDirection:"column",gap:8}}
+            onMouseOver={e=>{e.currentTarget.style.borderColor=T.green;e.currentTarget.style.background=T.greenBg;}}
+            onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
+            <div style={{fontSize:22}}>✅</div>
+            <div style={{fontSize:14,fontWeight:600,color:T.ink}}>Fazer check-in</div>
+            <div style={{fontSize:12,color:T.inkMid,lineHeight:1.5,flex:1}}>
+              Registre como você está hoje — energia, sono, estresse, humor e bem-estar geral.
+            </div>
+            <div style={{fontSize:11,color:T.green,fontWeight:500,marginTop:4}}>Leva menos de 1 minuto →</div>
+          </div>
+
+          {/* Minha saúde */}
+          <div onClick={()=>setModulo("dashboard")}
+            style={{background:T.surface,border:"1.5px solid "+T.border,borderRadius:12,padding:"20px 18px",
+              cursor:"pointer",transition:"all 0.15s",display:"flex",flexDirection:"column",gap:8}}
+            onMouseOver={e=>{e.currentTarget.style.borderColor=T.blue||"#1D6FE8";e.currentTarget.style.background=T.blueBg||"#EFF6FF";}}
+            onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
+            <div style={{fontSize:22}}>📊</div>
+            <div style={{fontSize:14,fontWeight:600,color:T.ink}}>Minha saúde</div>
+            <div style={{fontSize:12,color:T.inkMid,lineHeight:1.5,flex:1}}>
+              Acompanhe seu score de vitalidade, plano de cuidado e histórico clínico.
+            </div>
+            <div style={{fontSize:11,color:T.blue||"#1D6FE8",fontWeight:500,marginTop:4}}>Ver minha saúde →</div>
+          </div>
+        </div>
+
+        <div style={{fontSize:12,color:T.inkFaint,textAlign:"center",marginBottom:20,letterSpacing:"0.05em"}}>
+          — OU AGENDE ABAIXO —
         </div>
 
         {/* Pronto-atendimento */}
@@ -2077,8 +2129,8 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
           <div style={{fontSize:12,color:T.inkFaint,lineHeight:1.5,marginBottom:12}}>Se preferir buscar por uma área específica, encontre aqui consultas pontuais com especialistas.</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
             {["Coração","Pele","Hormônios","Ossos e articulações","Ouvido, nariz e garganta","Enxaqueca","Nutrição","Fisioterapia"].map(esp=>(
-              <div key={esp} onClick={()=>setTela("programas")}
-                style={{padding:"10px 12px",background:T.surface,border:`0.5px solid ${T.border}`,borderRadius:8,cursor:"pointer",fontSize:12,color:T.ink,transition:"all 0.15s"}}
+              <div key={esp} onClick={()=>handleSelecionarEspecialidade(esp)}
+                style={{padding:"10px 12px",background:T.surface,border:"0.5px solid "+T.border,borderRadius:8,cursor:"pointer",fontSize:12,color:T.ink,transition:"all 0.15s"}}
                 onMouseOver={e=>{e.currentTarget.style.borderColor=T.green;}}
                 onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;}}>
                 {esp}
@@ -2086,8 +2138,41 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
             ))}
           </div>
           <div style={{textAlign:"right",marginTop:8}}>
-            <span style={{fontSize:12,color:T.inkMid}}>Não encontrou? <span style={{color:T.inkMid,textDecoration:"underline",cursor:"pointer"}}>Ver todas as áreas</span></span>
+            <span style={{fontSize:12,color:T.inkMid}}>Não encontrou? <span onClick={()=>handleSelecionarEspecialidade("outra especialidade")} style={{color:T.green,textDecoration:"underline",cursor:"pointer"}}>Ver todas as áreas</span></span>
           </div>
+
+        {/* Modal encaminhamento prestador externo */}
+        {modalEncaminhamento&&(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:24}}
+            onClick={()=>setModalEncaminhamento(null)}>
+            <div style={{background:T.surface,borderRadius:16,padding:"28px 24px",maxWidth:400,width:"100%",boxShadow:"0 12px 40px rgba(0,0,0,0.15)"}}
+              onClick={e=>e.stopPropagation()}>
+              <div style={{fontSize:20,marginBottom:8}}>🏥</div>
+              <div style={{fontSize:16,fontWeight:600,color:T.ink,marginBottom:8}}>
+                {modalEncaminhamento.nome}
+              </div>
+              <div style={{fontSize:13,color:T.inkMid,lineHeight:1.7,marginBottom:20}}>
+                Para consultas com especialista em <strong>{modalEncaminhamento.nome}</strong>, você será encaminhado para um de nossos prestadores parceiros credenciados.
+              </div>
+              <div style={{padding:"12px 14px",background:T.greenBg,borderRadius:10,fontSize:12,color:T.green,marginBottom:20,lineHeight:1.6}}>
+                ✦ Seu médico pessoal será informado sobre este encaminhamento e acompanhará o resultado da sua consulta.
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                <Btn variant="primary" style={{width:"100%",justifyContent:"center"}}
+                  onClick={()=>{
+                    setModalEncaminhamento(null);
+                    alert("Em breve você receberá o contato do prestador parceiro para agendamento. Seu médico pessoal foi notificado.");
+                  }}>
+                  Solicitar encaminhamento →
+                </Btn>
+                <Btn variant="outline" style={{width:"100%",justifyContent:"center"}}
+                  onClick={()=>setModalEncaminhamento(null)}>
+                  Cancelar
+                </Btn>
+              </div>
+            </div>
+          </div>
+        )}
         </div>
 
         {/* Continuar onde parou */}
