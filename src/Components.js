@@ -1883,6 +1883,11 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
   const saudacao=hora<12?"Bom dia":hora<18?"Boa tarde":"Boa noite";
   const[tela,setTela]=useState("home"); // home | programas | medicos | horarios | confirmado
   const[modalEncaminhamento,setModalEncaminhamento]=useState(null);
+  const agendamentoRef=React.useRef(null);
+
+  const scrollParaAgendamento=()=>{
+    agendamentoRef.current?.scrollIntoView({behavior:"smooth",block:"start"});
+  };
   const[programas,setProgramas]=useState([]);
   const[programaSelecionado,setProgramaSelecionado]=useState(null);
   const[medicos,setMedicos]=useState([]);
@@ -1998,14 +2003,17 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
         {/* 3 caminhos principais */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:28}}>
           {/* Agendar */}
-          <div style={{background:T.surface,border:"1.5px solid "+T.green,borderRadius:12,padding:"20px 18px",
-            display:"flex",flexDirection:"column",gap:8}}>
+          <div onClick={scrollParaAgendamento}
+            style={{background:T.surface,border:"1.5px solid "+T.green,borderRadius:12,padding:"20px 18px",
+              cursor:"pointer",transition:"all 0.15s",display:"flex",flexDirection:"column",gap:8}}
+            onMouseOver={e=>e.currentTarget.style.background=T.greenBg}
+            onMouseOut={e=>e.currentTarget.style.background=T.surface}>
             <div style={{fontSize:22}}>📅</div>
             <div style={{fontSize:14,fontWeight:600,color:T.ink}}>Quero agendar</div>
             <div style={{fontSize:12,color:T.inkMid,lineHeight:1.5,flex:1}}>
               Consulta com seu médico pessoal, programa de cuidado contínuo ou especialista parceiro.
             </div>
-            <div style={{fontSize:11,color:T.green,fontWeight:500,marginTop:4}}>↓ Veja as opções abaixo</div>
+            <div style={{fontSize:11,color:T.green,fontWeight:500,marginTop:4}}>Ver opções ↓</div>
           </div>
 
           {/* Check-in */}
@@ -2042,6 +2050,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
         </div>
 
         {/* Pronto-atendimento */}
+        <div ref={agendamentoRef}>
         <Card style={{padding:"20px",marginBottom:24,display:"flex",alignItems:"center",justifyContent:"space-between",gap:16}}>
           <div style={{flex:1}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
@@ -2061,14 +2070,22 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
             <div style={{fontSize:12,color:T.inkMid}}>Atendimento próximo e contínuo, exclusivo para a Stone</div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <div onClick={()=>setModulo("dashboard")} style={{background:T.surface,border:`0.5px solid ${T.green}30`,borderRadius:8,padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,cursor:"pointer",transition:"all 0.15s"}}
+            <div onClick={()=>{
+                // Ir para agenda do médico pessoal
+                setProgramaSelecionado({nome:"Consulta com meu médico pessoal",slug:"medico-pessoal"});
+                supabase.from("pacientes").select("medico_id,medicos(id,nome,crm,especialidade)").eq("id",pacienteId).single().then(({data})=>{
+                  const med=data?.medicos;
+                  setMedicos(med?[med]:[{id:"demo-1",nome:"Dr. Rafael Mendes",crm:"CRM/SP 145678",especialidade:"Clínica Geral"}]);
+                  setTela("medicos");
+                });
+              }} style={{background:T.surface,border:"0.5px solid "+T.green+"30",borderRadius:8,padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,cursor:"pointer",transition:"all 0.15s"}}
               onMouseOver={e=>e.currentTarget.style.background=T.greenBg}
               onMouseOut={e=>e.currentTarget.style.background=T.surface}>
               <div style={{flex:1}}>
                 <div style={{fontSize:13,fontWeight:600,color:T.ink,marginBottom:3}}>Meu médico pessoal</div>
-                <div style={{fontSize:11,color:T.inkMid}}>Dr. Rafael Mendes · clínico</div>
+                <div style={{fontSize:11,color:T.inkMid}}>Agendar consulta de acompanhamento</div>
               </div>
-              <span style={{fontSize:12,color:T.green,fontWeight:500,flexShrink:0}}>Acessar ↗</span>
+              <span style={{fontSize:12,color:T.green,fontWeight:500,flexShrink:0}}>Agendar ↗</span>
             </div>
             <div onClick={()=>setModulo("ana")} style={{background:T.surface,border:`0.5px solid ${T.green}30`,borderRadius:8,padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,cursor:"pointer",transition:"all 0.15s"}}
               onMouseOver={e=>e.currentTarget.style.background=T.greenBg}
