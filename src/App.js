@@ -47,6 +47,17 @@ export default function HVV(){
 
   const handleLogin=async(userData)=>{
     setUser(userData);
+
+    // Verificar se é médico — médicos não podem entrar no app colaborador
+    const{data:ehMedico}=await supabase.from("medicos")
+      .select("id").eq("email",userData.email).maybeSingle();
+    if(ehMedico){
+      await supabase.auth.signOut();
+      setUser(null);setScreen("login");
+      alert("Este e-mail está cadastrado como médico. Acesse o app médico em hvvmedico.netlify.app");
+      return;
+    }
+
     let pid=await getPacienteId(userData.userId);
 
     if(!pid){
