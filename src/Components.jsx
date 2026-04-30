@@ -736,8 +736,7 @@ export function ScreenBoasVindas({onStart}){
       <div style={{width:"100%",maxWidth:560}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:48,justifyContent:"center"}}><div style={{width:36,height:36,borderRadius:8,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:700,fontSize:16}}>V</div><span style={{fontFamily:T.fD,fontSize:20,fontWeight:600,color:T.ink}}>Hospital Virtual Verde</span></div>
         <Card style={{padding:"0",overflow:"hidden",marginBottom:24}}>
-          <div style={{height:4,background:"linear-gradient(90deg,"+s.cor+" ,"+s.cor+"60")"}}/>
-          <div style={{padding:"40px",textAlign:"center"}}>
+          <div style={{height:4,background:"linear-gradient(90deg,"+s.cor+","+s.cor+"60)"}}/>          <div style={{padding:"40px",textAlign:"center"}}>
             <div style={{width:80,height:80,borderRadius:"50%",background:s.cor+"15",border:"2px solid "+s.cor+"30",display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,margin:"0 auto 24px"}}>{s.icon}</div>
             <div style={{fontFamily:T.fD,fontSize:26,color:T.ink,marginBottom:14,lineHeight:1.3}}>{s.titulo}</div>
             <div style={{fontSize:14,color:T.inkMid,lineHeight:1.9,maxWidth:420,margin:"0 auto"}}>{s.texto}</div>
