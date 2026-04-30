@@ -5,7 +5,7 @@ const SUPABASE_URL = "https://ahznewkkcyakkilaatas.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoem5ld2trY3lha2tpbGFhdGFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTQzMTIsImV4cCI6MjA5MTg3MDMxMn0.4nFFkuhRTNCXFnkSQDjc_JNi0yoHUBUfT4mgcQ2-3ak";
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ─── Data local (resolve problema de fuso UTC vs Brasília) ────────
+// --- Data local (resolve problema de fuso UTC vs Brasília) --------
 function dataHoje(){
   const d=new Date();
   return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
@@ -17,33 +17,33 @@ function horaAgora(){
 
 
 
-// ─── Design Tokens ────────────────────────────────────────────────
+// --- Design Tokens ------------------------------------------------
 export const T = {
-  // ── Cores base (fiel ao protótipo) ───────────────────────────
+  // -- Cores base (fiel ao protótipo) ---------------------------
   bg:          "#F7F6F2",   // --bg-page
   bgWarm:      "#F1EFE8",   // --bg-secondary
   surface:     "#FFFFFF",   // --bg-card
   surfaceMid:  "#F1EFE8",
   bgWarm2:     "#E8E6DF",
 
-  // ── Texto ─────────────────────────────────────────────────────
+  // -- Texto -----------------------------------------------------
   ink:         "#2C2C2A",   // --text-primary
   inkMid:      "#5F5E5A",   // --text-secondary
   inkLight:    "#888780",   // --text-tertiary
   inkFaint:    "#AEACA5",
 
-  // ── Stone green ───────────────────────────────────────────────
+  // -- Stone green -----------------------------------------------
   green:       "#00A868",
   greenDark:   "#1B5E20",
   greenText:   "#2E7D32",
   greenBg:     "#F0F9F4",
   greenBorder: "#C7E6D0",
 
-  // ── Bordas ────────────────────────────────────────────────────
+  // -- Bordas ----------------------------------------------------
   border:      "rgba(0,0,0,0.10)",
   borderMid:   "rgba(0,0,0,0.18)",
 
-  // ── Status ────────────────────────────────────────────────────
+  // -- Status ----------------------------------------------------
   blue:        "#185FA5",
   blueBg:      "#E6F1FB",
   teal:        "#0B7B6B",
@@ -58,25 +58,25 @@ export const T = {
   goldFaint:   "#F0F9F4",
   goldBorder:  "#C7E6D0",
 
-  // ── Sombras ───────────────────────────────────────────────────
+  // -- Sombras ---------------------------------------------------
   shadowCard:  "0 1px 3px rgba(0,0,0,0.06)",
   shadowMd:    "0 2px 8px rgba(0,0,0,0.08)",
 
-  // ── Raio ──────────────────────────────────────────────────────
+  // -- Raio ------------------------------------------------------
   rMd:  "8px",
   rLg:  "12px",
   rXl:  "16px",
 
-  // ── Tipografia ────────────────────────────────────────────────
+  // -- Tipografia ------------------------------------------------
   fB:   "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
   fD:   "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
   fS:   "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
 
-  // ── Navy (manter para app médico) ─────────────────────────────
+  // -- Navy (manter para app médico) -----------------------------
   navy:    "#1A3A6B",
   navyBg:  "#EEF2F9",
 
-  // ── Aliases de compatibilidade ────────────────────────────────
+  // -- Aliases de compatibilidade --------------------------------
   borderMid:   "rgba(0,0,0,0.18)",
   goldFaint:   "#F0F9F4",
   goldBorder:  "#C7E6D0",
@@ -108,14 +108,14 @@ export const MODULOS=[
   {id:"integracoes",label:"Integrações",icon:"🔗"},
 ];
 
-// ─── Score ────────────────────────────────────────────────────────
+// --- Score --------------------------------------------------------
 function calcScores(form,checkin){
   const f=form;
 
   // Valores padrão quando não há perfil
   if(!f)return{eixos:{"Sono":70,"Energia":70,"Estresse":60,"Humor":70,"Vínculos":65,"Bem-estar":70},total:68};
 
-  // ── Base do perfil (dados do onboarding) ──────────────────────
+  // -- Base do perfil (dados do onboarding) ----------------------
   // Sono: horas + qualidade declarada
   let sono=Math.min(100,
     (Number(f.sono)>=8?85:Number(f.sono)>=7?75:Number(f.sono)>=6?60:40)
@@ -129,7 +129,7 @@ function calcScores(form,checkin){
     +(Number(f.horas_descanso)||2)*3
   );
 
-  // Estresse: invertido — estresse alto = score baixo
+  // Estresse: invertido -- estresse alto = score baixo
   let estresse=Math.max(10,
     100-(Number(f.estresse)||5)*9
     +(f.meditacao>=1?8:0)
@@ -165,7 +165,7 @@ function calcScores(form,checkin){
     "Bem-estar": Math.round(Math.max(0,Math.min(100,bemestar))),
   };
 
-  // ── Check-in do dia sobrescreve com peso maior ─────────────────
+  // -- Check-in do dia sobrescreve com peso maior -----------------
   // Dados reais do check-in têm prioridade sobre estimativas do perfil
   if(checkin){
     // Sono: check-in tem peso 70%, perfil 30%
@@ -180,7 +180,7 @@ function calcScores(form,checkin){
         s["Energia"]*0.2 + Number(checkin.energia)*10*0.8
       )));
 
-    // Estresse: check-in invertido — estresse 8/10 = score 20
+    // Estresse: check-in invertido -- estresse 8/10 = score 20
     if(checkin.estresse)
       s["Estresse"]=Math.round(Math.max(0,Math.min(100,
         s["Estresse"]*0.3 + (10-Number(checkin.estresse))*10*0.7
@@ -216,7 +216,7 @@ function calcScores(form,checkin){
   return{eixos:s,total};
 }
 
-// ─── Supabase Helpers ─────────────────────────────────────────────
+// --- Supabase Helpers ---------------------------------------------
 async function getPacienteId(userId){
   const{data}=await supabase.from("pacientes").select("id").eq("user_id",userId).single();
   return (data&&data.id);
@@ -244,7 +244,7 @@ async function salvarCheckinDB(pacienteId,dados){
   return!error;
 }
 
-// ─── Plano de Cuidado — Banco ─────────────────────────────────────
+// --- Plano de Cuidado -- Banco -------------------------------------
 async function carregarPlanoCuidado(pacienteId){
   const{data}=await supabase.from("plano_cuidado")
     .select("*")
@@ -280,7 +280,7 @@ async function registrarTarefa(tarefaId,pacienteId,status){
   return!error;
 }
 
-// ─── Programas ────────────────────────────────────────────────────
+// --- Programas ----------------------------------------------------
 async function carregarProgramas(empresaId){
   const{data}=await supabase.from("programas")
     .select("*")
@@ -332,7 +332,7 @@ Retorne APENAS um array JSON com 6-10 tarefas no formato:
 
 Regras para frequencia_tipo:
 - "diario": tarefas que devem ser feitas todo dia (tomar medicamento, beber água, etc)
-- "n_vezes_semana": atividades com meta semanal — use meta_semanal para definir quantas vezes (ex: exercício 3x/semana = meta_semanal:3)
+- "n_vezes_semana": atividades com meta semanal -- use meta_semanal para definir quantas vezes (ex: exercício 3x/semana = meta_semanal:3)
 - "uma_vez_semana": tarefas semanais (ex: pesar na balança, revisar plano)
 - "uma_vez_mes": tarefas mensais (ex: consulta de retorno, exame)
 - "unico": tarefas pontuais que some quando concluída (ex: agendar consulta, comprar medicamento)`;
@@ -426,7 +426,7 @@ async function salvarAnaliseGenetica(pacienteId,analise,pdfNome){
     // Inserir novo
     const{error}=await supabase.from("documentos").insert({
       paciente_id:pacienteId,
-      titulo:"Laudo Genético — "+(pdfNome||"Laudo"),
+      titulo:"Laudo Genético -- "+(pdfNome||"Laudo"),
       tipo:"genetico",origem:"paciente",
       resumo:(analise&&analise.resumo)||"",
       conteudo_json:{...analise,pdfNome},
@@ -454,7 +454,7 @@ async function carregarAnaliseGenetica(pacienteId){
   }
 }
 
-// ─── UI Primitives ────────────────────────────────────────────────
+// --- UI Primitives ------------------------------------------------
 function Lbl({children,color}){return <div style={{fontSize:9,letterSpacing:"0.18em",color:color||T.inkLight,textTransform:"uppercase",marginBottom:8,fontFamily:T.fB,fontWeight:600}}>{children}</div>;}
 
 function RadialScore({value,size=80}){
@@ -607,17 +607,17 @@ function ChatIA({membro,systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pdf
         </div>
       )}
       <div style={{padding:"6px 28px",background:T.surfaceMid,borderTop:"1px solid "+T.border,flexShrink:0}}>
-        <div style={{fontSize:10,color:T.inkFaint,lineHeight:1.6}}>⚠️ Respostas de IA — valide com o seu médico pessoal antes de decisões clínicas.</div>
+        <div style={{fontSize:10,color:T.inkFaint,lineHeight:1.6}}>⚠️ Respostas de IA -- valide com o seu médico pessoal antes de decisões clínicas.</div>
       </div>
       <div style={{borderTop:"1px solid "+T.border,padding:"14px 28px",display:"flex",gap:10,alignItems:"flex-end",flexShrink:0,background:T.bgWarm}}>
         <textarea ref={inputRef} rows={1} placeholder={apiKey?placeholder:"Configure a API Key..."} value={input} onChange={e=>{setInput(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,120)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send(input);}}} disabled={loading||!apiKey} style={{flex:1,background:T.surface,border:"1.5px solid "+T.border,borderRadius:10,padding:"12px 16px",color:T.ink,fontFamily:T.fB,fontSize:13,outline:"none",lineHeight:1.6,minHeight:44,maxHeight:120,overflow:"hidden",resize:"none",opacity:apiKey?1:0.5,boxShadow:T.shadowCard}}/>
-        <button onClick={()=>send(input)} disabled={loading||!input.trim()||!apiKey} style={{width:44,height:44,borderRadius:10,background:(!loading&&input.trim()&&apiKey)?(eq&&eq.cor)||T.gold:"transparent",border:"1.5px solid "+(!loading&&input.trim()&&apiKey)?(eq&&eq.cor)||T.gold:T.border,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:(!loading&&input.trim()&&apiKey)?"#FFF":T.inkFaint,transition:"all 0.2s",flexShrink:0,fontWeight:700}}>{loading?"…":"↑"}</button>
+        <button onClick={()=>send(input)} disabled={loading||!input.trim()||!apiKey} style={{width:44,height:44,borderRadius:10,background:(!loading&&input.trim()&&apiKey)?(eq&&eq.cor)||T.gold:"transparent",border:"1.5px solid "+(!loading&&input.trim()&&apiKey)?(eq&&eq.cor)||T.gold:T.border,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:(!loading&&input.trim()&&apiKey)?"#FFF":T.inkFaint,transition:"all 0.2s",flexShrink:0,fontWeight:700}}>{loading?"...":"↑"}</button>
       </div>
     </div>
   );
 }
 
-// ─── LOGIN ────────────────────────────────────────────────────────
+// --- LOGIN --------------------------------------------------------
 export function ScreenLogin({onLogin}){
   const[mode,setMode]=useState("login");
   const[email,setEmail]=useState("");const[pass,setPass]=useState("");const[name,setName]=useState("");
@@ -690,7 +690,7 @@ export function ScreenLogin({onLogin}){
   );
 }
 
-// ─── API KEY ──────────────────────────────────────────────────────
+// --- API KEY ------------------------------------------------------
 export function ScreenApiKey({user,onConfirm,onReset}){
   const[key,setKey]=useState("");const[err,setErr]=useState("");
   return(
@@ -703,7 +703,7 @@ export function ScreenApiKey({user,onConfirm,onReset}){
             <div style={{fontSize:13,color:T.inkMid,lineHeight:1.9}}>Para ativar sua equipe de saúde, insira sua <strong style={{color:T.ink}}>chave de acesso à IA</strong>.</div>
           </div>
           <div style={{padding:"20px 32px",borderBottom:"1px solid "+T.border,background:T.bgWarm}}>
-            {[{icon:"🤖",text:"Conecta o app à IA da sua equipe HVV"},{icon:"🔒",text:"Fica salva apenas no seu dispositivo"},{icon:"💳",text:"Custo baixo — menos de R$ 2 por mês"},{icon:"🎁",text:"Se seu médico forneceu uma chave, use ela aqui"}].map((item,i)=>(<div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:8}}><span style={{fontSize:16,flexShrink:0}}>{item.icon}</span><span style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>{item.text}</span></div>))}
+            {[{icon:"🤖",text:"Conecta o app à IA da sua equipe HVV"},{icon:"🔒",text:"Fica salva apenas no seu dispositivo"},{icon:"💳",text:"Custo baixo -- menos de R$ 2 por mês"},{icon:"🎁",text:"Se seu médico forneceu uma chave, use ela aqui"}].map((item,i)=>(<div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:8}}><span style={{fontSize:16,flexShrink:0}}>{item.icon}</span><span style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>{item.text}</span></div>))}
           </div>
           <div style={{padding:"24px 32px"}}>
             <TxtInput label="Chave de Acesso (API Key)" placeholder="sk-ant-api03-..." value={key} onChange={v=>{setKey(v);setErr("");}} error={err} autoFocus/>
@@ -720,15 +720,15 @@ export function ScreenApiKey({user,onConfirm,onReset}){
   );
 }
 
-// ─── BOAS-VINDAS ──────────────────────────────────────────────────
+// --- BOAS-VINDAS --------------------------------------------------
 export function ScreenBoasVindas({onStart}){
   const[slide,setSlide]=useState(0);
   const slides=[
-    {icon:"🩺",titulo:"Seu médico pessoal te conhece de verdade",texto:"No HVV você escolhe um médico que acompanha sua saúde ao longo do tempo — não uma consulta avulsa sem histórico.",cor:T.green},
+    {icon:"🩺",titulo:"Seu médico pessoal te conhece de verdade",texto:"No HVV você escolhe um médico que acompanha sua saúde ao longo do tempo -- não uma consulta avulsa sem histórico.",cor:T.green},
     {icon:"🤝",titulo:"Sua equipe de saúde com IA",texto:"Ana coordena seu plano. Dra. Lucia cuida da nutrição. Bruno orienta sua atividade física. Rafael verifica seus medicamentos.",cor:T.teal},
-    {icon:"✅",titulo:"Check-in de 2 minutos por dia",texto:"Todo dia você registra como está — energia, sono, estresse, humor e vínculos. Sua equipe usa isso para personalizar o cuidado.",cor:T.purple},
-    {icon:"📋",titulo:"Plano de cuidado no seu ritmo",texto:"A Ana gera um plano com tarefas concretas para cada área da sua saúde — e acompanha se você está realizando.",cor:T.gold},
-    {icon:"⏱",titulo:"3 minutos para começar",texto:"Vamos montar seu perfil de saúde agora — as informações que sua equipe precisa para te conhecer desde o primeiro dia.",cor:T.green},
+    {icon:"✅",titulo:"Check-in de 2 minutos por dia",texto:"Todo dia você registra como está -- energia, sono, estresse, humor e vínculos. Sua equipe usa isso para personalizar o cuidado.",cor:T.purple},
+    {icon:"📋",titulo:"Plano de cuidado no seu ritmo",texto:"A Ana gera um plano com tarefas concretas para cada área da sua saúde -- e acompanha se você está realizando.",cor:T.gold},
+    {icon:"⏱",titulo:"3 minutos para começar",texto:"Vamos montar seu perfil de saúde agora -- as informações que sua equipe precisa para te conhecer desde o primeiro dia.",cor:T.green},
   ];
   const s=slides[slide];
   return(
@@ -753,7 +753,7 @@ export function ScreenBoasVindas({onStart}){
   );
 }
 
-// ─── ONBOARDING ───────────────────────────────────────────────────
+// --- ONBOARDING ---------------------------------------------------
 const OB_STEPS=["Identidade","Condições de Saúde","Histórico Clínico","Estilo de Vida","Rede de Apoio","Objetivos","Gadgets"];
 
 export function ScreenOnboarding({user,onComplete}){
@@ -818,7 +818,7 @@ export function ScreenOnboarding({user,onComplete}){
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
       <div style={{padding:"16px 18px",background:T.goldFaint,borderRadius:10,border:"1px solid "+T.goldBorder}}><div style={{fontSize:13,color:T.gold,fontWeight:600,marginBottom:4}}>Por que perguntamos sobre relacionamentos?</div><div style={{fontSize:12,color:T.inkMid,lineHeight:1.7}}>Vínculos e rede de apoio são determinantes de saúde tão importantes quanto sono e exercício. A Ana usa essas informações para personalizar o acompanhamento.</div></div>
       <div><Lbl>Estado civil</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{["Casado(a)","Solteiro(a)","União estável","Divorciado(a)","Prefiro não informar"].map(o=><Chip key={o} label={o} active={f.estado_civil===o} onClick={()=>set("estado_civil",o)}/>)}</div></div>
-      <div><Lbl>Tem filhos?</Lbl><div style={{display:"flex",gap:8}}>{["Não","Sim — 1 a 2","Sim — 3 ou mais","Prefiro não informar"].map(o=><Chip key={o} label={o} active={f.filhos===o} onClick={()=>set("filhos",o)}/>)}</div></div>
+      <div><Lbl>Tem filhos?</Lbl><div style={{display:"flex",gap:8}}>{["Não","Sim -- 1 a 2","Sim -- 3 ou mais","Prefiro não informar"].map(o=><Chip key={o} label={o} active={f.filhos===o} onClick={()=>set("filhos",o)}/>)}</div></div>
       <SldInput label="Qualidade da rede de apoio (família e amigos próximos)" value={f.qualidade_rede||5} onChange={v=>set("qualidade_rede",v)} min={1} max={10} unit="/10" color={T.purple}/>
       <SldInput label="Satisfação com a vida social" value={f.satisfacao_social||5} onChange={v=>set("satisfacao_social",v)} min={1} max={10} unit="/10" color={T.teal}/>
       <div><Lbl>Com que frequência você tem conexões sociais significativas?</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{["Raramente","Algumas vezes por semana","Todo dia","Prefiro não informar"].map(o=><Chip key={o} label={o} active={f.freq_social===o} onClick={()=>set("freq_social",o)}/>)}</div></div>
@@ -837,7 +837,7 @@ export function ScreenOnboarding({user,onComplete}){
       </div>
       <div style={{flex:1,padding:"48px 52px",overflowY:"auto"}}>
         <div style={{maxWidth:640,margin:"0 auto"}}>
-          <div style={{marginBottom:28}}><div style={{display:"flex",gap:10,marginBottom:10,alignItems:"center"}}><span style={{fontSize:12,letterSpacing:"0.2em",color:T.gold,fontWeight:700}}>{`0${step+1}`}</span><span style={{fontSize:11,color:T.inkLight,letterSpacing:"0.15em"}}>— {OB_STEPS[step].toUpperCase()}</span></div><div style={{height:1,background:T.border}}/></div>
+          <div style={{marginBottom:28}}><div style={{display:"flex",gap:10,marginBottom:10,alignItems:"center"}}><span style={{fontSize:12,letterSpacing:"0.2em",color:T.gold,fontWeight:700}}>{`0${step+1}`}</span><span style={{fontSize:11,color:T.inkLight,letterSpacing:"0.15em"}}>-- {OB_STEPS[step].toUpperCase()}</span></div><div style={{height:1,background:T.border}}/></div>
           <div key={step} style={{animation:"fadeUp 0.3s ease"}}>{panels[step]}</div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:40,paddingTop:24,borderTop:"1px solid "+T.border}}>
             <Btn onClick={()=>step>0&&setStep(s=>s-1)} variant="outline" disabled={step===0}>← VOLTAR</Btn>
@@ -849,7 +849,7 @@ export function ScreenOnboarding({user,onComplete}){
   );
 }
 
-// ─── APP PRINCIPAL ────────────────────────────────────────────────
+// --- APP PRINCIPAL ------------------------------------------------
 export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
   const[modulo,setModulo]=useState("home");
   const[checkinHoje,setCheckinHoje]=useState(null);
@@ -891,7 +891,7 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
       }
     }
 
-    // Verificar NPS — a cada 4 meses
+    // Verificar NPS -- a cada 4 meses
     const{data:ultimoNps}=await supabase.from("avaliacoes")
       .select("created_at")
       .eq("paciente_id",pacienteId)
@@ -901,7 +901,7 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
       .single();
 
     if(!ultimoNps){
-      // Nunca respondeu — verificar se tem pelo menos 1 consulta realizada
+      // Nunca respondeu -- verificar se tem pelo menos 1 consulta realizada
       const{count}=await supabase.from("agendamentos")
         .select("*",{count:"exact",head:true})
         .eq("paciente_id",pacienteId)
@@ -980,22 +980,22 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
   // Sistemas de prompt para cada membro
   const AVISO_IA="\n\n⚠️ IMPORTANTE: Suas respostas são orientações de IA e devem sempre ser validadas pelo seu médico pessoal antes de qualquer decisão clínica.";
   const buildPrompt=(membro)=>{
-    const base=`Perfil: ${nome}, ${(form&&form.cargo)||"Executivo"}, ${(form&&form.idade)||"—"} anos. Condições: ${((form&&form.condicoes)||[]).filter(c=>c!=="Nenhuma").join(", ")||"nenhuma"}. Medicamentos: ${((form&&form.meds)||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}. Sono: ${(form&&form.sono)||7}h qualidade ${(form&&form.qual_sono)||5}/10. Treino: ${(form&&form.freq_treino)||0}x/sem. Estresse: ${(form&&form.estresse)||5}/10. Dieta: ${(form&&form.dieta)||"—"}. Score: ${scores.total}/100.`;
-    if(membro==="nutri")return `Você é a Dra. Lucia, nutricionista clínica da equipe HVV. Seu escopo é EXCLUSIVAMENTE nutrição, alimentação, dieta e suplementação. Não responda sobre exercícios, medicamentos ou genômica — oriente o paciente a falar com o especialista correto. Tom: preciso, acolhedor e baseado em evidências. ${base}${AVISO_IA}`;
-    if(membro==="personal")return `Você é Bruno, especialista em atividade física da equipe HVV. Seu escopo é EXCLUSIVAMENTE exercício físico, treino, condicionamento e recuperação muscular. Não responda sobre nutrição, medicamentos ou genômica — oriente o paciente a falar com o especialista correto. Tom: motivador, técnico e seguro. ${base}${AVISO_IA}`;
-    if(membro==="farmaceutico")return `Você é Rafael, farmacêutico clínico da equipe HVV. Seu escopo é EXCLUSIVAMENTE medicamentos, posologia e interações medicamentosas. Não responda sobre nutrição, exercícios ou genômica. Nunca altere prescrições — apenas informe. Mencione que alertará o seu médico pessoal em caso de risco. ${base}${AVISO_IA}`;
+    const base=`Perfil: ${nome}, ${(form&&form.cargo)||"Executivo"}, ${(form&&form.idade)||"--"} anos. Condições: ${((form&&form.condicoes)||[]).filter(c=>c!=="Nenhuma").join(", ")||"nenhuma"}. Medicamentos: ${((form&&form.meds)||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}. Sono: ${(form&&form.sono)||7}h qualidade ${(form&&form.qual_sono)||5}/10. Treino: ${(form&&form.freq_treino)||0}x/sem. Estresse: ${(form&&form.estresse)||5}/10. Dieta: ${(form&&form.dieta)||"--"}. Score: ${scores.total}/100.`;
+    if(membro==="nutri")return `Você é a Dra. Lucia, nutricionista clínica da equipe HVV. Seu escopo é EXCLUSIVAMENTE nutrição, alimentação, dieta e suplementação. Não responda sobre exercícios, medicamentos ou genômica -- oriente o paciente a falar com o especialista correto. Tom: preciso, acolhedor e baseado em evidências. ${base}${AVISO_IA}`;
+    if(membro==="personal")return `Você é Bruno, especialista em atividade física da equipe HVV. Seu escopo é EXCLUSIVAMENTE exercício físico, treino, condicionamento e recuperação muscular. Não responda sobre nutrição, medicamentos ou genômica -- oriente o paciente a falar com o especialista correto. Tom: motivador, técnico e seguro. ${base}${AVISO_IA}`;
+    if(membro==="farmaceutico")return `Você é Rafael, farmacêutico clínico da equipe HVV. Seu escopo é EXCLUSIVAMENTE medicamentos, posologia e interações medicamentosas. Não responda sobre nutrição, exercícios ou genômica. Nunca altere prescrições -- apenas informe. Mencione que alertará o seu médico pessoal em caso de risco. ${base}${AVISO_IA}`;
     if(membro==="geneticista")return `Você é a Dra. Clara, geneticista clínica da equipe HVV. Seu escopo é EXCLUSIVAMENTE interpretação de laudos genéticos e variantes. Não responda sobre nutrição, exercícios ou medicamentos fora do contexto farmacogenômico. Para riscos elevados, informe que o seu médico pessoal será notificado. ${base}${AVISO_IA}`;
     if(membro==="suporte")return `Você é a Central de Atendimento HVV. Responda dúvidas sobre o app e o programa. Seja claro e amigável. Usuário: ${nome}.`;
-    // Ana — acesso total
-    const laudoCtx=(laudoGenetico&&laudoGenetico.analise)?`\n\nLAUDO GENÉTICO (${laudoGenetico.pdfNome||"disponível"}): ${laudoGenetico.analise.resumo||""}. Risco geral: ${laudoGenetico.analise.nivel_risco_geral||"—"}. Farmacogenômica: ${laudoGenetico.analise.medicamentos||"—"}.`:"\n\nLAUDO GENÉTICO: ainda não enviado.";
-    const checkinCtx=checkinHoje?`\n\nCHECK-IN REGISTRADO AGORA — ESTES SÃO OS DADOS REAIS DE HOJE:
+    // Ana -- acesso total
+    const laudoCtx=(laudoGenetico&&laudoGenetico.analise)?`\n\nLAUDO GENÉTICO (${laudoGenetico.pdfNome||"disponível"}): ${laudoGenetico.analise.resumo||""}. Risco geral: ${laudoGenetico.analise.nivel_risco_geral||"--"}. Farmacogenômica: ${laudoGenetico.analise.medicamentos||"--"}.`:"\n\nLAUDO GENÉTICO: ainda não enviado.";
+    const checkinCtx=checkinHoje?`\n\nCHECK-IN REGISTRADO AGORA -- ESTES SÃO OS DADOS REAIS DE HOJE:
 Energia: ${checkinHoje.energia}/10 | Sono: ${checkinHoje.sono}/10 | Estresse: ${checkinHoje.estresse}/10 | Humor: ${checkinHoje.humor||"-"}/10
 Vínculos: ${checkinHoje.vinculos||"-"}/10 (rede apoio: ${checkinHoje.rede_apoio||"-"}, trabalho: ${checkinHoje.relacoes_trabalho||"-"}, social: ${checkinHoje.vida_social||"-"}, pessoal: ${checkinHoje.relacionamentos_pessoais||"-"})
 Bem-estar: ${checkinHoje.bem_estar||"-"}/10${checkinHoje.sintomas?`\nSintomas: ${checkinHoje.sintomas}`:""}${checkinHoje.notas?`\nObservações do paciente: ${checkinHoje.notas}`:""}
 
-INSTRUÇÃO CRÍTICA: Estes dados ACABARAM de ser salvos. Você TEM acesso ao check-in de hoje. NÃO diga que não consegue ver os dados. Abra a conversa comentando diretamente sobre estes números — especialmente os pontos mais críticos. Se estresse >= 7, comente. Se sono <= 4, comente. Se vínculos <= 4, comente. Se o paciente deixou observações, responda a elas diretamente.`:"\nCheck-in de hoje: ainda não realizado.";
+INSTRUÇÃO CRÍTICA: Estes dados ACABARAM de ser salvos. Você TEM acesso ao check-in de hoje. NÃO diga que não consegue ver os dados. Abra a conversa comentando diretamente sobre estes números -- especialmente os pontos mais críticos. Se estresse >= 7, comente. Se sono <= 4, comente. Se vínculos <= 4, comente. Se o paciente deixou observações, responda a elas diretamente.`:"\nCheck-in de hoje: ainda não realizado.";
 
-    return `Você é Ana, enfermeira coordenadora da equipe de saúde do Hospital Virtual Verde (HVV) — benefício Stone. Você é o ponto central de contato e tem acesso a TODOS os dados do paciente.
+    return `Você é Ana, enfermeira coordenadora da equipe de saúde do Hospital Virtual Verde (HVV) -- benefício Stone. Você é o ponto central de contato e tem acesso a TODOS os dados do paciente.
 
 Seu papel: coordenar o plano integral de saúde, motivar o paciente, acompanhar os 6 eixos de vitalidade e orientar sobre saúde geral. Para nutrição, exercício ou medicamentos, direcione ao especialista correto da equipe.
 
@@ -1015,15 +1015,15 @@ ${Object.entries(scores.eixos).map(([n,sc])=>`- ${n}: ${sc}/100`).join("\n")}
 - TOTAL: ${scores.total}/100
 ${checkinCtx}${laudoCtx}
 
-Tom: acolhedor, preciso e humano. Histórico persistido — você tem memória das sessões anteriores.
+Tom: acolhedor, preciso e humano. Histórico persistido -- você tem memória das sessões anteriores.
 
-⚠️ Suas respostas são orientações de IA — sempre validar com o médico pessoal antes de decisões clínicas.`;
+⚠️ Suas respostas são orientações de IA -- sempre validar com o médico pessoal antes de decisões clínicas.`;
   };
 
   return(
     <div style={{display:"flex",height:"100vh",background:T.bg,fontFamily:T.fB,color:T.ink,overflow:"hidden"}}>
 
-      {/* Sidebar — estilo protótipo */}
+      {/* Sidebar -- estilo protótipo */}
       <div style={{width:220,flexShrink:0,borderRight:"0.5px solid "+T.border,display:"flex",flexDirection:"column",background:T.surface,height:"100vh",position:"sticky",top:0,overflow:"hidden"}}>
 
         {/* Logo */}
@@ -1053,7 +1053,7 @@ Tom: acolhedor, preciso e humano. Histórico persistido — você tem memória d
           })}
         </nav>
 
-        {/* Footer — usuário + sair */}
+        {/* Footer -- usuário + sair */}
         <div style={{padding:"12px 16px",borderTop:"0.5px solid "+T.border}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
             <div style={{width:32,height:32,borderRadius:"50%",background:T.greenBg,border:"1px solid "+T.greenBorder,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:T.greenDark,fontWeight:600,flexShrink:0}}>{initials}</div>
@@ -1112,7 +1112,7 @@ Tom: acolhedor, preciso e humano. Histórico persistido — você tem memória d
   );
 }
 
-// ─── Modal CSAT ────────────────────────────────────────────────────
+// --- Modal CSAT ----------------------------------------------------
 function ModalCsat({medicoNome,onSalvar,onPular}){
   const[nota,setNota]=useState(0);
   const[hover,setHover]=useState(0);
@@ -1185,7 +1185,7 @@ function ModalCsat({medicoNome,onSalvar,onPular}){
   );
 }
 
-// ─── Modal NPS ─────────────────────────────────────────────────────
+// --- Modal NPS -----------------------------------------------------
 function ModalNps({onSalvar,onPular}){
   const[nota,setNota]=useState(-1);
   const[comentario,setComentario]=useState("");
@@ -1272,7 +1272,7 @@ function ModalNps({onSalvar,onPular}){
   );
 }
 
-// ─── Módulo Chat genérico ─────────────────────────────────────────
+// --- Módulo Chat genérico -----------------------------------------
 function ModuloChat({membro,form,scores,apiKey,pacienteId,systemPrompt,inicialMsg,sugestoes}){
   const eq=EQUIPE.find(e=>e.id===membro);
   return(
@@ -1287,7 +1287,7 @@ function ModuloChat({membro,form,scores,apiKey,pacienteId,systemPrompt,inicialMs
   );
 }
 
-// ─── Chat da Ana com Tool Use ─────────────────────────────────────
+// --- Chat da Ana com Tool Use -------------------------------------
 // A Ana pode adicionar, atualizar e remover tarefas do plano de cuidado
 function ChatIAComTools({systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pacienteId,onPlanChange}){
   const eq=EQUIPE.find(e=>e.id==="enfermeira");
@@ -1458,18 +1458,18 @@ function ChatIAComTools({systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pa
         </div>
       )}
       <div style={{padding:"6px 28px",background:T.surfaceMid,borderTop:"1px solid "+T.border,flexShrink:0}}>
-        <div style={{fontSize:10,color:T.inkFaint,lineHeight:1.6}}>✦ A Ana pode adicionar tarefas ao seu plano — basta pedir. ⚠️ Valide decisões clínicas com seu médico.</div>
+        <div style={{fontSize:10,color:T.inkFaint,lineHeight:1.6}}>✦ A Ana pode adicionar tarefas ao seu plano -- basta pedir. ⚠️ Valide decisões clínicas com seu médico.</div>
       </div>
       <div style={{borderTop:"1px solid "+T.border,padding:"14px 28px",display:"flex",gap:10,alignItems:"flex-end",flexShrink:0,background:T.bgWarm}}>
         <textarea ref={inputRef} rows={1} placeholder={apiKey?placeholder:"Configure a API Key..."} value={input} onChange={e=>{setInput(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,120)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send(input);}}} disabled={loading||!apiKey} style={{flex:1,background:T.surface,border:"1.5px solid "+T.border,borderRadius:10,padding:"12px 16px",color:T.ink,fontFamily:T.fB,fontSize:13,outline:"none",lineHeight:1.6,minHeight:44,maxHeight:120,overflow:"hidden",resize:"none",opacity:apiKey?1:0.5,boxShadow:T.shadowCard}}/>
-        <button onClick={()=>send(input)} disabled={loading||!input.trim()||!apiKey} style={{width:44,height:44,borderRadius:10,background:(!loading&&input.trim()&&apiKey)?(eq&&eq.cor)||T.gold:"transparent",border:"1.5px solid "+(!loading&&input.trim()&&apiKey)?(eq&&eq.cor)||T.gold:T.border,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:(!loading&&input.trim()&&apiKey)?"#FFF":T.inkFaint,transition:"all 0.2s",flexShrink:0,fontWeight:700}}>{loading?"…":"↑"}</button>
+        <button onClick={()=>send(input)} disabled={loading||!input.trim()||!apiKey} style={{width:44,height:44,borderRadius:10,background:(!loading&&input.trim()&&apiKey)?(eq&&eq.cor)||T.gold:"transparent",border:"1.5px solid "+(!loading&&input.trim()&&apiKey)?(eq&&eq.cor)||T.gold:T.border,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:(!loading&&input.trim()&&apiKey)?"#FFF":T.inkFaint,transition:"all 0.2s",flexShrink:0,fontWeight:700}}>{loading?"...":"↑"}</button>
       </div>
     </div>
   );
 }
 
 
-// ─── Módulo Ana ───────────────────────────────────────────────────
+// --- Módulo Ana ---------------------------------------------------
 function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,pacienteId,getBuildPrompt,onPlanChange}){
   const[aba,setAba]=useState(checkinHoje?"chat":"checkin");
   const eq=EQUIPE.find(e=>e.id==="enfermeira");
@@ -1542,9 +1542,9 @@ function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,p
   );
 }
 
-// ─── Módulo Geneticista ───────────────────────────────────────────
+// --- Módulo Geneticista -------------------------------------------
 
-// ─── Chat isolado da Dra. Clara ───────────────────────────────────
+// --- Chat isolado da Dra. Clara -----------------------------------
 function ChatGeneticista({apiKey,analise,pdfNome,systemPrompt}){
   const eq=EQUIPE.find(e=>e.id==="geneticista");
   const inicialMsg=`Olá! Analisei seu laudo "${pdfNome||"genético"}".
@@ -1605,11 +1605,11 @@ Responda com precisão clínica baseada nestes achados.`;
         </div>
       )}
       <div style={{padding:"6px 28px",background:T.surfaceMid,borderTop:"1px solid "+T.border,flexShrink:0}}>
-        <div style={{fontSize:10,color:T.inkFaint,lineHeight:1.6}}>⚠️ Respostas de IA — valide com o seu médico pessoal antes de decisões clínicas.</div>
+        <div style={{fontSize:10,color:T.inkFaint,lineHeight:1.6}}>⚠️ Respostas de IA -- valide com o seu médico pessoal antes de decisões clínicas.</div>
       </div>
       <div style={{borderTop:"1px solid "+T.border,padding:"14px 28px",display:"flex",gap:10,alignItems:"flex-end",flexShrink:0,background:T.bgWarm}}>
         <textarea ref={inputRef} rows={1} placeholder="Pergunte sobre seus resultados genéticos..." value={input} onChange={e=>{setInput(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,120)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send(input);}}} disabled={loading||!apiKey} style={{flex:1,background:T.surface,border:"1.5px solid "+T.border,borderRadius:10,padding:"12px 16px",color:T.ink,fontFamily:T.fB,fontSize:13,outline:"none",lineHeight:1.6,minHeight:44,maxHeight:120,overflow:"hidden",resize:"none",boxShadow:T.shadowCard}}/>
-        <button onClick={()=>send(input)} disabled={loading||!input.trim()||!apiKey} style={{width:44,height:44,borderRadius:10,background:(!loading&&input.trim()&&apiKey)?eq.cor:"transparent",border:"1.5px solid "+(!loading&&input.trim()&&apiKey)?eq.cor:T.border,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:(!loading&&input.trim()&&apiKey)?"#FFF":T.inkFaint,transition:"all 0.2s",flexShrink:0,fontWeight:700}}>{loading?"…":"↑"}</button>
+        <button onClick={()=>send(input)} disabled={loading||!input.trim()||!apiKey} style={{width:44,height:44,borderRadius:10,background:(!loading&&input.trim()&&apiKey)?eq.cor:"transparent",border:"1.5px solid "+(!loading&&input.trim()&&apiKey)?eq.cor:T.border,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:(!loading&&input.trim()&&apiKey)?"#FFF":T.inkFaint,transition:"all 0.2s",flexShrink:0,fontWeight:700}}>{loading?"...":"↑"}</button>
       </div>
     </div>
   );
@@ -1641,7 +1641,7 @@ function ModuloGeneticista({form,scores,apiKey,pacienteId,systemPrompt,laudoStat
       const res=await fetch("/.netlify/functions/claude",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,system:`Analise o laudo genético. Retorne SOMENTE um objeto JSON válido, sem markdown, sem texto antes ou depois. Formato: {"resumo":"2 frases resumindo","nivel_risco_geral":"alto|moderado|baixo","achados":[{"gene":"nome","impacto":"alto|moderado|baixo","orientacao":"orientação em 1 frase"}],"nutricao":"recomendação em 1 frase","atividade":"recomendação em 1 frase","sono":"orientação em 1 frase","medicamentos":"resumo farmacogenômico em 2 frases","rastreamento":"exames prioritários em 1 frase","alertas":[{"nivel":"critico|atencao|informativo","msg":"mensagem curta"}]}. Inclua no máximo 10 achados. RETORNE APENAS O JSON.`,messages:[{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:"Analise este laudo genético."}]}]})});
       if((res.status===429||res.status===529)&&tentativa<5){
         const espera=res.status===529?10000:3000;
-        console.log(`Status ${res.status} — aguardando ${espera/1000}s (tentativa ${tentativa}/5)...`);
+        console.log(`Status ${res.status} -- aguardando ${espera/1000}s (tentativa ${tentativa}/5)...`);
         await new Promise(r=>setTimeout(r,espera*tentativa));
         return chamarAPI(b64,tentativa+1);
       }
@@ -1649,7 +1649,7 @@ function ModuloGeneticista({form,scores,apiKey,pacienteId,systemPrompt,laudoStat
     };
     try{
       const b64=await toB64(file);setPdfB64(b64);
-      // PDF não é salvo no Storage — apenas o JSON da análise é salvo na tabela documentos
+      // PDF não é salvo no Storage -- apenas o JSON da análise é salvo na tabela documentos
       console.log("b64 gerado, tamanho:",b64.length);
       console.log("Chamando API Anthropic...");
       const res=await chamarAPI(b64);
@@ -1673,7 +1673,7 @@ function ModuloGeneticista({form,scores,apiKey,pacienteId,systemPrompt,laudoStat
         await salvarAnaliseGenetica(pacienteId,parsed,file.name);
         console.log("Laudo salvo!");
       }else{
-        console.error("ERRO: pacienteId é null — laudo não será salvo");
+        console.error("ERRO: pacienteId é null -- laudo não será salvo");
       }
     }catch(e){setAnalise({erro:"Erro ao analisar. Tente novamente."});}finally{setAnalisando(false);}
   };
@@ -1718,7 +1718,7 @@ function ModuloGeneticista({form,scores,apiKey,pacienteId,systemPrompt,laudoStat
   );
 }
 
-// ─── Módulo Documentos ────────────────────────────────────────────
+// --- Módulo Documentos --------------------------------------------
 function ModuloDocumentos({apiKey,pacienteId,onPlanUpdate}){
   const fileRef=useRef(null);
   const[docs,setDocs]=useState([]);
@@ -1794,7 +1794,7 @@ function ModuloDocumentos({apiKey,pacienteId,onPlanUpdate}){
   );
 }
 
-// ─── Módulo Mensagens ─────────────────────────────────────────────
+// --- Módulo Mensagens ---------------------------------------------
 function ModuloMensagens({pacienteId,nome}){
   const[msgs,setMsgs]=useState([]);
   const[carregando,setCarregando]=useState(true);
@@ -1847,7 +1847,7 @@ function ModuloMensagens({pacienteId,nome}){
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",gap:16,textAlign:"center"}}>
             <div style={{width:80,height:80,borderRadius:"50%",background:T.tealBg,border:"2px solid "+T.teal+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:36}}>💬</div>
             <div style={{fontFamily:T.fD,fontSize:22,color:T.inkMid}}>Nenhuma mensagem ainda</div>
-            <div style={{fontSize:13,color:T.inkFaint,maxWidth:360,lineHeight:1.8}}>Envie uma mensagem para a Ana ou o seu médico pessoal — eles responderão em breve.</div>
+            <div style={{fontSize:13,color:T.inkFaint,maxWidth:360,lineHeight:1.8}}>Envie uma mensagem para a Ana ou o seu médico pessoal -- eles responderão em breve.</div>
           </div>
         )}
         {msgs.map((msg,i)=>{
@@ -1867,14 +1867,14 @@ function ModuloMensagens({pacienteId,nome}){
       </div>
       <div style={{borderTop:"1px solid "+T.border,padding:"14px 28px",display:"flex",gap:10,alignItems:"flex-end",flexShrink:0,background:T.bgWarm}}>
         <textarea ref={inputRef} rows={1} value={input} onChange={e=>{setInput(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,120)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();enviar();}}} placeholder="Escreva uma mensagem para a Ana ou seu médico pessoal..." disabled={enviando} style={{flex:1,background:T.surface,border:"1.5px solid "+T.border,borderRadius:10,padding:"12px 16px",color:T.ink,fontFamily:T.fB,fontSize:13,outline:"none",lineHeight:1.6,minHeight:44,maxHeight:120,overflow:"hidden",resize:"none",boxShadow:T.shadowCard}}/>
-        <button onClick={enviar} disabled={enviando||!input.trim()} style={{width:44,height:44,borderRadius:10,background:(!enviando&&input.trim())?T.teal:"transparent",border:"1.5px solid "+(!enviando&&input.trim())?T.teal:T.border,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:(!enviando&&input.trim())?"#FFF":T.inkFaint,transition:"all 0.2s",flexShrink:0,fontWeight:700}}>{enviando?"…":"↑"}</button>
+        <button onClick={enviar} disabled={enviando||!input.trim()} style={{width:44,height:44,borderRadius:10,background:(!enviando&&input.trim())?T.teal:"transparent",border:"1.5px solid "+(!enviando&&input.trim())?T.teal:T.border,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:(!enviando&&input.trim())?"#FFF":T.inkFaint,transition:"all 0.2s",flexShrink:0,fontWeight:700}}>{enviando?"...":"↑"}</button>
       </div>
     </div>
   );
 }
 
-// ─── Dashboard ────────────────────────────────────────────────────
-// ─── Home Principal ───────────────────────────────────────────────
+// --- Dashboard ----------------------------------------------------
+// --- Home Principal -----------------------------------------------
 function ModuloHome({form,scores,setModulo,pacienteId}){
   const nome=(form&&form.nome)||"Colaborador";
   const primeiroNome=nome.split(" ")[0];
@@ -1899,7 +1899,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
     supabase.from("pacientes").select("empresa_id").eq("id",pacienteId).single().then(async({data})=>{
       let empId=(data&&data.empresa_id);
       if(!empId){
-        // Fallback — buscar empresa Stone
+        // Fallback -- buscar empresa Stone
         const{data:emp}=await supabase.from("empresas").select("id").eq("slug","stone").single();
         empId=(emp&&emp.id);
       }
@@ -1936,7 +1936,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
     setTela("horarios");
   };
 
-  // Horários simulados — gerados dinamicamente a partir de hoje
+  // Horários simulados -- gerados dinamicamente a partir de hoje
   const HORARIOS=(()=>{
     const dias=[];
     const hoje=new Date();
@@ -1953,7 +1953,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
       const d=new Date(hoje);
       d.setDate(hoje.getDate()+i);
       if(d.getDay()===0||d.getDay()===6)continue; // pular fins de semana
-      // Simular disponibilidade parcial — remover alguns slots aleatoriamente
+      // Simular disponibilidade parcial -- remover alguns slots aleatoriamente
       const todos=slotsPorDia[count];
       const disponiveis=todos.filter((_,idx)=>idx%2===0||count%2===0?true:idx>1);
       dias.push({
@@ -1988,7 +1988,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
     setTela("confirmado");
   };
 
-  // ── TELA HOME ──────────────────────────────────────────────────
+  // -- TELA HOME --------------------------------------------------
   if(tela==="home")return(
     <div style={{flex:1,overflowY:"auto",background:T.bg,padding:"24px 32px"}}>
       <div style={{maxWidth:780,margin:"0 auto"}}>
@@ -2024,7 +2024,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
             <div style={{fontSize:22}}>✅</div>
             <div style={{fontSize:14,fontWeight:600,color:T.ink}}>Fazer check-in</div>
             <div style={{fontSize:12,color:T.inkMid,lineHeight:1.5,flex:1}}>
-              Registre como você está hoje — energia, sono, estresse, humor e bem-estar geral.
+              Registre como você está hoje -- energia, sono, estresse, humor e bem-estar geral.
             </div>
             <div style={{fontSize:11,color:T.green,fontWeight:500,marginTop:4}}>Leva menos de 1 minuto →</div>
           </div>
@@ -2045,7 +2045,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
         </div>
 
         <div style={{fontSize:12,color:T.inkFaint,textAlign:"center",marginBottom:20,letterSpacing:"0.05em"}}>
-          — OU AGENDE ABAIXO —
+          -- OU AGENDE ABAIXO --
         </div>
 
         {/* Pronto-atendimento */}
@@ -2219,7 +2219,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
     </div>
   );
 
-  // ── TELA PROGRAMAS ─────────────────────────────────────────────
+  // -- TELA PROGRAMAS ---------------------------------------------
   if(tela==="programas")return(
     <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
       <div style={{maxWidth:800,margin:"0 auto"}}>
@@ -2248,7 +2248,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
     </div>
   );
 
-  // ── TELA MÉDICOS ───────────────────────────────────────────────
+  // -- TELA MÉDICOS -----------------------------------------------
   if(tela==="medicos")return(
     <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
       <div style={{maxWidth:700,margin:"0 auto"}}>
@@ -2260,7 +2260,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
           </div>
         </div>
         <div style={{padding:"10px 14px",background:T.goldFaint,border:"1px solid "+T.goldBorder,borderRadius:8,marginBottom:24,fontSize:12,color:T.inkMid}}>
-          💡 Seu médico pessoal acompanha sua saúde ao longo do tempo — não é uma consulta avulsa. Escolha alguém com quem você queira construir um vínculo.
+          💡 Seu médico pessoal acompanha sua saúde ao longo do tempo -- não é uma consulta avulsa. Escolha alguém com quem você queira construir um vínculo.
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {medicos.map(m=>(
@@ -2284,7 +2284,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
     </div>
   );
 
-  // ── TELA HORÁRIOS ──────────────────────────────────────────────
+  // -- TELA HORÁRIOS ----------------------------------------------
   if(tela==="horarios")return(
     <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
       <div style={{maxWidth:700,margin:"0 auto"}}>
@@ -2307,7 +2307,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
           </div>
           <div style={{textAlign:"right"}}>
             <div style={{fontSize:10,color:T.inkFaint,marginBottom:2}}>DURAÇÃO</div>
-            <div style={{fontSize:13,color:T.ink,fontWeight:500}}>30–40 min</div>
+            <div style={{fontSize:13,color:T.ink,fontWeight:500}}>30-40 min</div>
           </div>
         </Card>
 
@@ -2352,7 +2352,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
                 ["Data",horarioSelecionado.data],
                 ["Horário",horarioSelecionado.hora],
                 ["Tipo","Teleconsulta"],
-                ["Duração","30–40 minutos"],
+                ["Duração","30-40 minutos"],
               ].map(([label,val])=>(
                 <div key={label} style={{padding:"10px 12px",background:"rgba(255,255,255,0.7)",borderRadius:8}}>
                   <div style={{fontSize:10,color:T.inkFaint,marginBottom:2}}>{label.toUpperCase()}</div>
@@ -2370,7 +2370,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
     </div>
   );
 
-  // ── TELA CONFIRMADO ────────────────────────────────────────────
+  // -- TELA CONFIRMADO --------------------------------------------
   if(tela==="confirmado")return(
     <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
       <div style={{maxWidth:700,margin:"0 auto"}}>
@@ -2393,7 +2393,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
             <span style={{marginLeft:"auto",padding:"3px 10px",borderRadius:8,background:T.greenBg,color:T.green,fontSize:11,fontWeight:600}}>Confirmado</span>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
-            {[["Data",(horarioSelecionado&&horarioSelecionado.data)],["Horário",(horarioSelecionado&&horarioSelecionado.hora)],["Tipo","Teleconsulta"],["Programa",(programaSelecionado&&programaSelecionado.nome)],["Duração","30–40 min"],["Link","Enviado por e-mail"]].map(([l,v])=>(
+            {[["Data",(horarioSelecionado&&horarioSelecionado.data)],["Horário",(horarioSelecionado&&horarioSelecionado.hora)],["Tipo","Teleconsulta"],["Programa",(programaSelecionado&&programaSelecionado.nome)],["Duração","30-40 min"],["Link","Enviado por e-mail"]].map(([l,v])=>(
               <div key={l} style={{padding:"10px 12px",background:T.bgWarm,borderRadius:8}}>
                 <div style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.08em",marginBottom:3}}>{l.toUpperCase()}</div>
                 <div style={{fontSize:12,color:T.ink,fontWeight:500}}>{v}</div>
@@ -2415,9 +2415,9 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
         <Card style={{padding:"18px 20px",marginBottom:16}}>
           <div style={{fontFamily:T.fD,fontSize:16,color:T.ink,marginBottom:14}}>Próximos passos</div>
           {[
-            {n:1,text:"Verifique seu e-mail — o link da videochamada será enviado 24h antes"},
+            {n:1,text:"Verifique seu e-mail -- o link da videochamada será enviado 24h antes"},
             {n:2,text:"Prepare seus exames e documentos recentes para mostrar ao médico"},
-            {n:3,text:"Faça seu check-in no dia da consulta — o médico verá seus dados atualizados"},
+            {n:3,text:"Faça seu check-in no dia da consulta -- o médico verá seus dados atualizados"},
             {n:4,text:"Entre no link 5 minutos antes do horário agendado"},
           ].map(({n,text})=>(
             <div key={n} style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:10}}>
@@ -2626,7 +2626,7 @@ function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate
               <select value={medicoSelecionado} onChange={e=>setMedicoSelecionado(e.target.value)}
                 style={{width:"100%",padding:"10px 14px",border:"1px solid "+T.border,borderRadius:8,fontFamily:T.fB,fontSize:13,background:T.surface,color:T.ink,marginTop:6}}>
                 <option value="">Selecionar médico...</option>
-                {medicos.map(m=>(<option key={m.id} value={m.id}>{m.nome} — {m.especialidade||"Clínica Geral"}</option>))}
+                {medicos.map(m=>(<option key={m.id} value={m.id}>{m.nome} -- {m.especialidade||"Clínica Geral"}</option>))}
               </select>
             </div>
             <div style={{display:"flex",gap:10}}>
@@ -2715,7 +2715,7 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
       return (registros[tarefa.id]&&registros[tarefa.id].data)===hoje;
     }
     if(tipo==="n_vezes_semana"){
-      // Meta semanal — some quando atingir N vezes
+      // Meta semanal -- some quando atingir N vezes
       const meta=tarefa.meta_semanal||3;
       return concluidasNaSemana(tarefa.id)>=meta;
     }
@@ -2735,7 +2735,7 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
     return (registros[tarefa.id]&&registros[tarefa.id].data)===hoje;
   };
 
-  // Para n_vezes_semana — mostrar progresso
+  // Para n_vezes_semana -- mostrar progresso
   const progressoSemanal=(tarefa)=>{
     if((tarefa.frequencia_tipo||tarefa.frequencia)!=="n_vezes_semana")return null;
     const meta=tarefa.meta_semanal||3;
@@ -2800,7 +2800,7 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
           // Todas as outras = hoje
           const hoje=tarefas.filter(t=>t.visivel_a_partir!=="proxima");
           const futuras=tarefas.filter(t=>t.visivel_a_partir==="proxima");
-          // Não mudar o estado — só usar para render
+          // Não mudar o estado -- só usar para render
           return null;
         })()}
 
@@ -2843,7 +2843,7 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
               );
             })()}
 
-            {/* Tarefas de episódio — prioridade máxima */}
+            {/* Tarefas de episódio -- prioridade máxima */}
             {tarefas.filter(t=>t.categoria==="episodio").length>0&&(
               <Card style={{padding:"0",overflow:"hidden",marginBottom:12,border:"1.5px solid "+T.green}}>
                 <div style={{padding:"12px 18px",background:T.greenBg,borderBottom:"1px solid "+T.greenBorder,display:"flex",alignItems:"center",gap:10}}>
@@ -2890,7 +2890,7 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
               </Card>
             )}
 
-            {/* Tarefas por área — demais */}
+            {/* Tarefas por área -- demais */}
             {areas.filter(a=>a!=="episodio").map(area=>{
               const cfg=AREA_CONFIG[area]||{label:area,icon:"📋",cor:T.gold,bg:T.goldFaint};
               const ts=tarefas.filter(t=>t.area===area&&t.categoria!=="episodio");
@@ -2925,7 +2925,7 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
               );
             })}
 
-            {/* Tarefas futuras — em breve */}
+            {/* Tarefas futuras -- em breve */}
             {(()=>{
               const hoje2=new Date().toISOString().slice(0,10);
               const futuras=tarefas.filter(t=>t.visivel_a_partir==="proxima"||(t.data_prevista&&t.data_prevista>hoje2&&t.frequencia_tipo==="unico"));
@@ -2983,7 +2983,7 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
   );
 }
 
-// ─── Integrações ──────────────────────────────────────────────────
+// --- Integrações --------------------------------------------------
 function ModuloIntegracoes(){
   const INTEGRACOES=[{id:"samsung",nome:"Samsung Health",icon:"📱",color:T.blue,plat:["Android"],passos:["Abra o Samsung Health no Android","Emparelhe Galaxy Watch via Bluetooth","Configurações → Google Fit → Conectar","HVV lê via Google Fit automaticamente"]},{id:"apple",nome:"Apple Health",icon:"❤️",color:T.red,plat:["iOS"],passos:["Abra o app Saúde no iPhone","Vá em seu nome → Apps e Dispositivos","Autorize o HVV na primeira abertura","Sincronização automática em segundo plano"]},{id:"watch",nome:"Apple Watch",icon:"⌚",color:T.blue,plat:["iOS"],passos:["Emparelhe com iPhone pelo app Watch","Ative monitoramento de sono","Ative HRV em Configurações","Dados chegam via Apple Health"]},{id:"garmin",nome:"Garmin",icon:"🏔",color:T.orange,plat:["iOS","Android"],passos:["Instale o Garmin Connect","Ative compartilhamento","Conecte ao Apple Health","HVV recebe Body Battery"]},{id:"oura",nome:"Oura Ring",icon:"💍",color:T.purple,plat:["iOS","Android"],passos:["Baixe o app Oura","Use toda noite","App Oura → Apple Health → Ativar","Android: Personal Token em ouraring.com"]},{id:"whoop",nome:"Whoop 4.0",icon:"📿",color:T.green,plat:["iOS","Android"],passos:["Baixe o app Whoop","Use 24h no pulso","Whoop → Apple Health → Conectar","Recovery Score ajusta seu treino"]},{id:"withings",nome:"Withings Scale",icon:"⚖️",color:T.gold,plat:["iOS","Android"],passos:["Instale Health Mate via Wi-Fi","Pese-se pela manhã","Health Mate → Apple Health","HVV ajusta metas"]},{id:"dexcom",nome:"Dexcom G7",icon:"📡",color:T.orange,plat:["iOS","Android"],passos:["Necessita prescrição médica","Aplique o sensor no braço","Instale o app Dexcom G7","App Dexcom → Apple Health"]}];
   const[selInt,setSelInt]=useState(null);const[connected,setConnected]=useState({});const[stepsDone,setStepsDone]=useState({});
@@ -2994,7 +2994,7 @@ function ModuloIntegracoes(){
   return(
     <div style={{flex:1,display:"flex",overflow:"hidden"}}>
       <div style={{flex:1,overflowY:"auto",padding:"24px 28px",background:T.bg}}>
-        <div style={{fontSize:10,color:T.inkFaint,letterSpacing:"0.15em",marginBottom:16}}>DISPOSITIVOS — {Object.values(connected).filter(Boolean).length} CONECTADO(S)</div>
+        <div style={{fontSize:10,color:T.inkFaint,letterSpacing:"0.15em",marginBottom:16}}>DISPOSITIVOS -- {Object.values(connected).filter(Boolean).length} CONECTADO(S)</div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
           {INTEGRACOES.map(it=>{const conn=!!connected[it.id];return(<Card key={it.id} onClick={()=>setSelInt(it.id===selInt?null:it.id)} style={{padding:"18px",border:"1.5px solid "+selInt===it.id?T.gold:conn?T.green+"60":T.border,background:selInt===it.id?T.goldFaint:T.surface}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}><div style={{width:40,height:40,borderRadius:10,background:conn?T.greenBg:it.color+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{it.icon}</div><div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:7,height:7,borderRadius:"50%",background:conn?T.green:T.surfaceMid}}/><span style={{fontSize:9,color:conn?T.green:T.inkFaint}}>{conn?"CONECTADO":"OFFLINE"}</span></div></div><div style={{fontSize:13,color:T.ink,fontWeight:600,marginBottom:6}}>{it.nome}</div><div style={{display:"flex",gap:4}}>{it.plat.map(p=><span key={p} style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:p==="iOS"?T.blueBg:T.greenBg,color:p==="iOS"?T.blue:T.green,fontFamily:T.fB}}>{p}</span>)}</div></Card>);})}
         </div>
@@ -3004,9 +3004,9 @@ function ModuloIntegracoes(){
   );
 }
 
-// ─── Processing ───────────────────────────────────────────────────
+// --- Processing ---------------------------------------------------
 export function ScreenProcessing(){
   return(<div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.fB}}><div style={{textAlign:"center",maxWidth:420,padding:32}}><div style={{fontFamily:T.fD,fontSize:52,color:T.gold,marginBottom:8,animation:"pulse 2s ease infinite",lineHeight:1}}>H</div><div style={{fontFamily:T.fD,fontSize:28,color:T.ink,marginBottom:4}}>Sua equipe está se preparando</div><div style={{fontSize:11,color:T.inkFaint,marginBottom:32,letterSpacing:"0.12em"}}>EQUIPE HDOHMANN · CONFIGURANDO SEU PLANO</div><div style={{display:"flex",flexDirection:"column",gap:10}}>{["Ana está montando seu plano de cuidado...","Coach analisando seus objetivos...","Rafael verificando seus medicamentos...","Dra. Clara aguardando seu laudo genético...","Sincronizando com o servidor..."].map((msg,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",background:T.surface,borderRadius:8,border:"1px solid "+T.border,boxShadow:T.shadowCard,animation:`fadeUp 0.4s ease ${i*0.45}s both`}}><div style={{width:7,height:7,borderRadius:"50%",background:T.green,animation:`pulse 1.5s ease ${i*0.3}s infinite`,flexShrink:0}}/><span style={{fontSize:12,color:T.inkMid}}>{msg}</span></div>))}</div></div></div>);
 }
 
-// ─── ROOT ─────────────────────────────────────────────────────────
+// --- ROOT ---------------------------------------------------------
