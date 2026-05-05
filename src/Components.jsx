@@ -2156,6 +2156,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
           <div style={{textAlign:"right",marginTop:8}}>
             <span style={{fontSize:12,color:T.inkMid}}>Não encontrou? <span onClick={()=>handleSelecionarEspecialidade("outra especialidade")} style={{color:T.green,textDecoration:"underline",cursor:"pointer"}}>Ver todas as áreas</span></span>
           </div>
+        </div>
 
         {/* Modal encaminhamento prestador externo */}
         {modalEncaminhamento&&(
@@ -2189,7 +2190,6 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
             </div>
           </div>
         )}
-        </div>
 
         {/* Continuar onde parou */}
         <div>
