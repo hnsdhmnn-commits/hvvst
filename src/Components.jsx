@@ -2872,6 +2872,148 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
   );
 }
 
+// ═════════════════════════════════════════════════════════════
+// COMPONENTE FLOR — CHEVO MASTER (Incremento 3a)
+// ═════════════════════════════════════════════════════════════
+// Visualização da flor de 6 pétalas representando os 6 eixos do c-bloom.
+// Cada pétala cresce proporcionalmente ao score do eixo (1 a 5).
+// Score médio aparece no centro.
+//
+// Uso:
+//   <Flor scores={{move:3,fuel:4,rest:2,calm:5,connect:3,soul:4}} tamanho={240} />
+//
+// Props:
+//   scores  - objeto com 6 chaves (move,fuel,rest,calm,connect,soul), valores 1-5
+//   tamanho - tamanho do SVG em pixels (default: 240)
+//
+// Cores fixas do protótipo v2 aprovado.
+// ═════════════════════════════════════════════════════════════
+
+const FLOR_EIXOS = [
+  { id: "move",    nome: "MOVE",    cor: "#E07B4A" },
+  { id: "fuel",    nome: "FUEL",    cor: "#6FA539" },
+  { id: "rest",    nome: "REST",    cor: "#4A7BA8" },
+  { id: "calm",    nome: "CALM",    cor: "#8B6FA5" },
+  { id: "connect", nome: "CONNECT", cor: "#D9A82B" },
+  { id: "soul",    nome: "SOUL",    cor: "#B07A33" }
+];
+
+export function Flor({ scores, tamanho }) {
+  const size = tamanho || 240;
+  const cx = size / 2;
+  const cy = size / 2;
+  const rMax = (size / 2) - 16;
+  const rMin = 22;
+
+  // tolerar scores ausentes ou parciais
+  const s = scores || {};
+  const get = (k) => {
+    const v = s[k];
+    if (v == null || isNaN(v)) return 3;
+    if (v < 1) return 1;
+    if (v > 5) return 5;
+    return v;
+  };
+
+  const vals = {
+    move:    get("move"),
+    fuel:    get("fuel"),
+    rest:    get("rest"),
+    calm:    get("calm"),
+    connect: get("connect"),
+    soul:    get("soul")
+  };
+
+  const score_total = (vals.move + vals.fuel + vals.rest + vals.calm + vals.connect + vals.soul) / 6;
+
+  const petalas = FLOR_EIXOS.map((eixo, i) => {
+    const angulo = -Math.PI / 2 + (i * Math.PI / 3); // começa no topo
+    const ratio = (vals[eixo.id] - 1) / 4; // 0..1
+    const r = rMin + (rMax - rMin) * (0.3 + ratio * 0.7);
+    const tipX = cx + r * Math.cos(angulo);
+    const tipY = cy + r * Math.sin(angulo);
+    const angDeg = (angulo * 180 / Math.PI);
+    const half = r * 0.42;
+    const midX = (cx + tipX) / 2;
+    const midY = (cy + tipY) / 2;
+    const len = Math.hypot(tipX - cx, tipY - cy);
+    return { eixo: eixo, tipX: tipX, tipY: tipY, angDeg: angDeg, half: half, midX: midX, midY: midY, len: len, angulo: angulo };
+  });
+
+  const linhaPontas = petalas.map(p => p.tipX + "," + p.tipY).join(" ");
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={"0 0 " + size + " " + size}
+      style={{ display: "block", animation: "flor-respira 7s ease-in-out infinite" }}
+    >
+      <defs>
+        {petalas.map(p => (
+          <radialGradient key={p.eixo.id} id={"flor-grad-" + p.eixo.id} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor={p.eixo.cor} stopOpacity="0.75" />
+            <stop offset="100%" stopColor={p.eixo.cor} stopOpacity="0.2" />
+          </radialGradient>
+        ))}
+      </defs>
+
+      <circle cx={cx} cy={cy} r={rMax} fill="none" stroke="#E5E1D6" strokeWidth="1" strokeDasharray="2 4" opacity="0.7" />
+
+      {petalas.map(p => (
+        <g key={p.eixo.id} transform={"rotate(" + (p.angDeg + 90) + " " + p.midX + " " + p.midY + ")"}>
+          <ellipse
+            cx={p.midX}
+            cy={p.midY}
+            rx={Math.max(8, p.half)}
+            ry={p.len / 2}
+            fill={"url(#flor-grad-" + p.eixo.id + ")"}
+            stroke={p.eixo.cor}
+            strokeWidth="1"
+            strokeOpacity="0.6"
+          />
+        </g>
+      ))}
+
+      <polygon
+        points={linhaPontas}
+        fill="none"
+        stroke="#4D5450"
+        strokeWidth="1"
+        strokeDasharray="3 3"
+        opacity="0.55"
+      />
+
+      {petalas.map(p => {
+        const labR = rMax + 14;
+        const labX = cx + labR * Math.cos(p.angulo);
+        const labY = cy + labR * Math.sin(p.angulo) + 4;
+        return (
+          <text
+            key={"flor-lab-" + p.eixo.id}
+            x={labX}
+            y={labY}
+            fontSize="10"
+            fontFamily="-apple-system, sans-serif"
+            fontWeight="700"
+            textAnchor="middle"
+            fill={p.eixo.cor}
+            style={{ letterSpacing: "0.1em" }}
+          >
+            {p.eixo.nome}
+          </text>
+        );
+      })}
+
+      <circle cx={cx} cy={cy} r={rMin - 4} fill="white" stroke="#E5E1D6" />
+
+      <text x={cx} y={cy + 1} fontSize="20" fontWeight="700" textAnchor="middle" fill="#1A1F1B" dominantBaseline="middle">
+        {score_total.toFixed(1)}
+      </text>
+    </svg>
+  );
+}
+
 // ─── Integrações ──────────────────────────────────────────────────
 function ModuloIntegracoes(){
   const INTEGRACOES=[{id:"samsung",nome:"Samsung Health",icon:"📱",color:T.blue,plat:["Android"],passos:["Abra o Samsung Health no Android","Emparelhe Galaxy Watch via Bluetooth","Configurações → Google Fit → Conectar","HVV lê via Google Fit automaticamente"]},{id:"apple",nome:"Apple Health",icon:"❤️",color:T.red,plat:["iOS"],passos:["Abra o app Saúde no iPhone","Vá em seu nome → Apps e Dispositivos","Autorize o HVV na primeira abertura","Sincronização automática em segundo plano"]},{id:"watch",nome:"Apple Watch",icon:"⌚",color:T.blue,plat:["iOS"],passos:["Emparelhe com iPhone pelo app Watch","Ative monitoramento de sono","Ative HRV em Configurações","Dados chegam via Apple Health"]},{id:"garmin",nome:"Garmin",icon:"🏔",color:T.orange,plat:["iOS","Android"],passos:["Instale o Garmin Connect","Ative compartilhamento","Conecte ao Apple Health","HVV recebe Body Battery"]},{id:"oura",nome:"Oura Ring",icon:"💍",color:T.purple,plat:["iOS","Android"],passos:["Baixe o app Oura","Use toda noite","App Oura → Apple Health → Ativar","Android: Personal Token em ouraring.com"]},{id:"whoop",nome:"Whoop 4.0",icon:"📿",color:T.green,plat:["iOS","Android"],passos:["Baixe o app Whoop","Use 24h no pulso","Whoop → Apple Health → Conectar","Recovery Score ajusta seu treino"]},{id:"withings",nome:"Withings Scale",icon:"⚖️",color:T.gold,plat:["iOS","Android"],passos:["Instale Health Mate via Wi-Fi","Pese-se pela manhã","Health Mate → Apple Health","HVV ajusta metas"]},{id:"dexcom",nome:"Dexcom G7",icon:"📡",color:T.orange,plat:["iOS","Android"],passos:["Necessita prescrição médica","Aplique o sensor no braço","Instale o app Dexcom G7","App Dexcom → Apple Health"]}];
