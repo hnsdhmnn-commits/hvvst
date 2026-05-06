@@ -4,15 +4,16 @@ import { T, supabase, Btn, Input, Avatar, Card, Spinner, buildPrompt,
   ScreenProcessing, AppPrincipal } from './Components';
 
 async function getPacienteId(userId){
-  const{data}
+  const{data}=await supabase.from("pacientes").select("id").eq("user_id",userId).maybeSingle();
+  return data?.id||null;
+}
+
 async function getModulosContratados(pacienteId){
   if(!pacienteId)return["bloom"];
   const{data,error}=await supabase.from("v_paciente_modulos").select("modulos_efetivos").eq("paciente_id",pacienteId).maybeSingle();
   if(error||!data)return["bloom"];
   console.log("[CHEVO MASTER] modulos efetivos:",data.modulos_efetivos);
   return data.modulos_efetivos||["bloom"];
-}=await supabase.from("pacientes").select("id").eq("user_id",userId).maybeSingle();
-  return data?.id||null;
 }
 
 export default function HVV(){
@@ -49,7 +50,7 @@ export default function HVV(){
       }
     });
     const{data:{subscription}}=supabase.auth.onAuthStateChange(async(event,session)=>{
-      if(event==="SIGNED_OUT"){setUser(null);setForm(null);setPacienteId(null);setApiKey("");setScreen("login");}
+      if(event==="SIGNED_OUT"){setUser(null);setForm(null);setPacienteId(null);setModulosContratados(["bloom"]);setApiKey("");setScreen("login");}
     });
     return()=>subscription.unsubscribe();
   },[]);
@@ -94,7 +95,7 @@ export default function HVV(){
     }
     if(pid){
       setPacienteId(pid);
-          getModulosContratados(pid).then(setModulosContratados);
+      getModulosContratados(pid).then(setModulosContratados);
       const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).maybeSingle();
       const chaveSalva=localStorage.getItem("hvv_api_key")||"";
       if(perfil && perfil.hvv_onboarding_completo===true && chaveSalva.startsWith("sk-")){
@@ -116,7 +117,7 @@ export default function HVV(){
       const pid=await getPacienteId(user.userId);
       if(pid){
         setPacienteId(pid);
-          getModulosContratados(pid).then(setModulosContratados);
+        getModulosContratados(pid).then(setModulosContratados);
         const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).single();
         // Só vai para o app se o onboarding HVV foi completado
         if(perfil && perfil.hvv_onboarding_completo===true){
@@ -134,8 +135,10 @@ export default function HVV(){
     let pid=pacienteId;
     if(!pid&&user){
       pid=await getPacienteId(user.userId);
-      if(pid)setPacienteId(pid);
-          getModulosContratados(pid).then(setModulosContratados);
+      if(pid){
+        setPacienteId(pid);
+        getModulosContratados(pid).then(setModulosContratados);
+      }
     }
     if(pid){
       try{
@@ -260,7 +263,7 @@ Retorne APENAS um array JSON com 6-8 tarefas:
   const handleLogout=async()=>{
     await supabase.auth.signOut();
     localStorage.removeItem("hvv_api_key");
-    setUser(null);setForm(null);setPacienteId(null);setApiKey("");setScreen("login");
+    setUser(null);setForm(null);setPacienteId(null);setModulosContratados(["bloom"]);setApiKey("");setScreen("login");
   };
 
   if(screen==="loading")return(
