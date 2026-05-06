@@ -3016,7 +3016,7 @@ export function Flor({ scores, tamanho }) {
 
 // ═════════════════════════════════════════════════════════════
 // ═════════════════════════════════════════════════════════════
-// MODULO CHECK-IN FLOR — CHEVO MASTER (Incremento 4a)
+// MODULO CHECK-IN FLOR — CHEVO MASTER (Incremento 4b)
 // ═════════════════════════════════════════════════════════════
 // Modal de check-in dos 6 eixos do c-bloom.
 // Aparece sobre a Vitalidade (fundo escurecido).
@@ -3024,13 +3024,13 @@ export function Flor({ scores, tamanho }) {
 // CONNECT rotaciona pelo dia da semana.
 // Observação livre opcional no fim.
 //
-// 4a: SEM gravar no banco. Apenas visual + state local.
-// 4b (depois): conectar ao Supabase bloom.checkins_flor
+// 4b: GRAVA em bloom.checkins_flor (UNIQUE paciente_id+data).
+// Trata: já fez hoje, erro genérico, sucesso.
 //
 // Props:
-//   onClose - função para fechar o modal (usuario cancelou)
-//   onSubmit - função quando o usuario completou o check-in
-//              recebe o objeto {move, fuel, rest, calm, connect, soul, observacao, connect_subaspecto}
+//   pacienteId  - id do paciente para gravação
+//   onClose     - função ao fechar (cancelar ou após sucesso)
+//   onSuccess   - função chamada após gravação bem-sucedida (para refresh)
 // ═════════════════════════════════════════════════════════════
 
 const CHECKIN_EIXOS = [
@@ -3055,7 +3055,7 @@ const CONNECT_POR_DIA = {
 
 const NOMES_DIA = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
 
-function ModuloCheckinFlor({ onClose, onSubmit }){
+function ModuloCheckinFlor({ pacienteId, onClose, onSuccess }){
   const hoje = new Date();
   const dow = hoje.getDay();
   const sub = CONNECT_POR_DIA[dow];
@@ -3064,6 +3064,8 @@ function ModuloCheckinFlor({ onClose, onSubmit }){
   const [scores, setScores] = useState({move:0, fuel:0, rest:0, calm:0, connect:0, soul:0});
   const [observacao, setObservacao] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [estado, setEstado] = useState("editando"); // editando | sucesso | ja_feito | erro
+  const [mensagemErro, setMensagemErro] = useState("");
 
   const setScore = (eixo, valor) => {
     setScores({...scores, [eixo]: Number(valor)});
@@ -3071,51 +3073,137 @@ function ModuloCheckinFlor({ onClose, onSubmit }){
 
   const completo = Object.values(scores).every(v => v > 0);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!completo || enviando) return;
+    if (!pacienteId) {
+      setEstado("erro");
+      setMensagemErro("Sem identificação do paciente. Tente sair e entrar de novo.");
+      return;
+    }
     setEnviando(true);
+    setMensagemErro("");
+
     const payload = {
-      move: scores.move,
-      fuel: scores.fuel,
-      rest: scores.rest,
-      calm: scores.calm,
-      connect: scores.connect,
-      soul: scores.soul,
-      observacao: observacao.trim() || null,
-      connect_subaspecto: sub.id
+      paciente_id: pacienteId,
+      score_move: scores.move,
+      score_fuel: scores.fuel,
+      score_rest: scores.rest,
+      score_calm: scores.calm,
+      score_connect: scores.connect,
+      score_soul: scores.soul,
+      connect_subaspecto: sub.id,
+      observacoes: observacao.trim() || null
     };
-    if (onSubmit) onSubmit(payload);
-    // Por enquanto (4a): apenas fecha o modal
+
+    console.log("[CHEVO MASTER] enviando check-in:", payload);
+
+    const { data, error } = await supabase
+      .from("checkins_flor")
+      .insert(payload)
+      .select()
+      .maybeSingle();
+
+    setEnviando(false);
+
+    if (error) {
+      console.warn("[CHEVO MASTER] erro check-in:", error);
+      // Codigo 23505 = UNIQUE constraint violation
+      if (error.code === "23505" || (error.message && error.message.indexOf("duplicate") >= 0)) {
+        setEstado("ja_feito");
+      } else {
+        setEstado("erro");
+        setMensagemErro(error.message || "Erro desconhecido ao gravar.");
+      }
+      return;
+    }
+
+    console.log("[CHEVO MASTER] check-in gravado:", data);
+    setEstado("sucesso");
+
+    // Chama onSuccess (para a Vitalidade recarregar scores)
+    if (onSuccess) onSuccess();
+
+    // Fecha automaticamente após 1.8s
     setTimeout(() => {
-      setEnviando(false);
       if (onClose) onClose();
-    }, 600);
+    }, 1800);
   };
 
+  // ═══════ Tela de SUCESSO ═══════
+  if (estado === "sucesso") {
+    return (
+      <div onClick={onClose} style={overlayStyle()}>
+        <div onClick={e => e.stopPropagation()} style={cardSimples()}>
+          <div style={{fontSize:48, marginBottom:14}}>🌸</div>
+          <div style={{fontSize:20, fontWeight:600, color:T.ink, marginBottom:8}}>
+            Check-in registrado
+          </div>
+          <div style={{fontSize:13, color:T.inkMid, lineHeight:1.55}}>
+            Sua flor foi atualizada. Continue assim.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════ Tela de JÁ FEITO ═══════
+  if (estado === "ja_feito") {
+    return (
+      <div onClick={onClose} style={overlayStyle()}>
+        <div onClick={e => e.stopPropagation()} style={cardSimples()}>
+          <div style={{fontSize:48, marginBottom:14}}>✓</div>
+          <div style={{fontSize:20, fontWeight:600, color:T.ink, marginBottom:8}}>
+            Você já fez seu check-in hoje
+          </div>
+          <div style={{fontSize:13, color:T.inkMid, lineHeight:1.55, marginBottom:18}}>
+            Volte amanhã. Um check-in por dia é o ritmo que sustenta — sem vigilância ansiosa.
+          </div>
+          <Btn onClick={onClose} variant="primary" style={{padding:"10px 24px"}}>
+            Entendi
+          </Btn>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════ Tela de ERRO ═══════
+  if (estado === "erro") {
+    return (
+      <div onClick={onClose} style={overlayStyle()}>
+        <div onClick={e => e.stopPropagation()} style={cardSimples()}>
+          <div style={{fontSize:48, marginBottom:14}}>⚠️</div>
+          <div style={{fontSize:20, fontWeight:600, color:T.ink, marginBottom:8}}>
+            Algo deu errado
+          </div>
+          <div style={{fontSize:13, color:T.inkMid, lineHeight:1.55, marginBottom:14}}>
+            Não conseguimos registrar seu check-in agora. Tente novamente em alguns instantes.
+          </div>
+          {mensagemErro && (
+            <div style={{
+              fontSize:11, color:T.inkFaint, fontFamily:"monospace",
+              padding:"8px 10px", background:T.bgWarm, borderRadius:6,
+              marginBottom:14, wordBreak:"break-word"
+            }}>
+              {mensagemErro}
+            </div>
+          )}
+          <div style={{display:"flex", gap:10, justifyContent:"center"}}>
+            <Btn onClick={onClose} variant="outline" style={{padding:"10px 18px"}}>
+              Cancelar
+            </Btn>
+            <Btn onClick={() => { setEstado("editando"); setMensagemErro(""); }} variant="primary" style={{padding:"10px 18px"}}>
+              Tentar de novo
+            </Btn>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════ Tela principal de EDITANDO ═══════
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position:"fixed", inset:0,
-        background:"rgba(26, 31, 27, 0.55)",
-        backdropFilter:"blur(4px)",
-        display:"flex", alignItems:"flex-start", justifyContent:"center",
-        padding:"40px 16px",
-        zIndex:1000,
-        overflowY:"auto"
-      }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          background:T.surface,
-          borderRadius:18,
-          padding:"24px 22px",
-          maxWidth:520, width:"100%",
-          boxShadow:"0 16px 48px rgba(26,31,27,0.18)",
-          fontFamily:T.fB
-        }}
-      >
+    <div onClick={onClose} style={overlayStyle()}>
+      <div onClick={e => e.stopPropagation()} style={cardModal()}>
         {/* Cabecalho */}
         <div style={{display:"flex", alignItems:"flex-start", gap:12, marginBottom:6}}>
           <div style={{flex:1}}>
@@ -3255,6 +3343,40 @@ function ModuloCheckinFlor({ onClose, onSubmit }){
       </div>
     </div>
   );
+}
+
+// Estilos compartilhados
+function overlayStyle(){
+  return {
+    position:"fixed", inset:0,
+    background:"rgba(26, 31, 27, 0.55)",
+    backdropFilter:"blur(4px)",
+    display:"flex", alignItems:"flex-start", justifyContent:"center",
+    padding:"40px 16px",
+    zIndex:1000,
+    overflowY:"auto"
+  };
+}
+function cardModal(){
+  return {
+    background:T.surface,
+    borderRadius:18,
+    padding:"24px 22px",
+    maxWidth:520, width:"100%",
+    boxShadow:"0 16px 48px rgba(26,31,27,0.18)",
+    fontFamily:T.fB
+  };
+}
+function cardSimples(){
+  return {
+    background:T.surface,
+    borderRadius:18,
+    padding:"32px 28px",
+    maxWidth:380, width:"100%",
+    boxShadow:"0 16px 48px rgba(26,31,27,0.18)",
+    fontFamily:T.fB,
+    textAlign:"center"
+  };
 }
 
 // MODULO VITALIDADE — CHEVO MASTER (Incremento 3)
@@ -3397,8 +3519,9 @@ function ModuloVitalidade({ pacienteId, setModulo }) {
 
       {checkinAberto && (
         <ModuloCheckinFlor
+          pacienteId={pacienteId}
           onClose={() => setCheckinAberto(false)}
-          onSubmit={(dados) => { console.log("[CHEVO MASTER] check-in 4a (sem gravar):", dados); }}
+          onSuccess={() => { console.log("[CHEVO MASTER] check-in salvo, refresh em breve"); }}
         />
       )}
     </div>
