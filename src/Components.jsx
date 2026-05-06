@@ -3015,6 +3015,248 @@ export function Flor({ scores, tamanho }) {
 }
 
 // ═════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════
+// MODULO CHECK-IN FLOR — CHEVO MASTER (Incremento 4a)
+// ═════════════════════════════════════════════════════════════
+// Modal de check-in dos 6 eixos do c-bloom.
+// Aparece sobre a Vitalidade (fundo escurecido).
+// Sliders deslizantes de 1 a 5, um por eixo.
+// CONNECT rotaciona pelo dia da semana.
+// Observação livre opcional no fim.
+//
+// 4a: SEM gravar no banco. Apenas visual + state local.
+// 4b (depois): conectar ao Supabase bloom.checkins_flor
+//
+// Props:
+//   onClose - função para fechar o modal (usuario cancelou)
+//   onSubmit - função quando o usuario completou o check-in
+//              recebe o objeto {move, fuel, rest, calm, connect, soul, observacao, connect_subaspecto}
+// ═════════════════════════════════════════════════════════════
+
+const CHECKIN_EIXOS = [
+  { id: "move",    nome: "MOVE",    cor: "#E07B4A", pergunta: "Como seu corpo se sentiu em movimento hoje?" },
+  { id: "fuel",    nome: "FUEL",    cor: "#6FA539", pergunta: "Como foi sua relação com a comida hoje?" },
+  { id: "rest",    nome: "REST",    cor: "#4A7BA8", pergunta: "Como foi seu descanso e seu sono?" },
+  { id: "calm",    nome: "CALM",    cor: "#8B6FA5", pergunta: "Como está sua sensação de calma e foco?" },
+  { id: "connect", nome: "CONNECT", cor: "#D9A82B", pergunta: null /* dinamica */ },
+  { id: "soul",    nome: "SOUL",    cor: "#B07A33", pergunta: "Você sentiu sentido no que fez hoje?" }
+];
+
+// Sub-aspectos do CONNECT por dia da semana (0=domingo, 1=segunda, ...)
+const CONNECT_POR_DIA = {
+  1: { id: "colegas",     label: "Colegas",     pergunta: "Como está sua relação com colegas de trabalho hoje?" },
+  2: { id: "lider",       label: "Liderança",   pergunta: "Como está sua relação com sua liderança hoje?" },
+  3: { id: "vida_social", label: "Vida social", pergunta: "Como está sua vida social — amigos, lazer com gente?" },
+  4: { id: "familia",     label: "Família",     pergunta: "Como está sua família e rede de apoio próxima?" },
+  5: { id: "geral",       label: "Geral",       pergunta: "Como estão suas relações em geral hoje?" },
+  6: { id: "geral",       label: "Geral",       pergunta: "Como estão suas relações em geral hoje?" },
+  0: { id: "geral",       label: "Geral",       pergunta: "Como estão suas relações em geral hoje?" }
+};
+
+const NOMES_DIA = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+
+function ModuloCheckinFlor({ onClose, onSubmit }){
+  const hoje = new Date();
+  const dow = hoje.getDay();
+  const sub = CONNECT_POR_DIA[dow];
+  const nomeDia = NOMES_DIA[dow];
+
+  const [scores, setScores] = useState({move:0, fuel:0, rest:0, calm:0, connect:0, soul:0});
+  const [observacao, setObservacao] = useState("");
+  const [enviando, setEnviando] = useState(false);
+
+  const setScore = (eixo, valor) => {
+    setScores({...scores, [eixo]: Number(valor)});
+  };
+
+  const completo = Object.values(scores).every(v => v > 0);
+
+  const handleSubmit = () => {
+    if (!completo || enviando) return;
+    setEnviando(true);
+    const payload = {
+      move: scores.move,
+      fuel: scores.fuel,
+      rest: scores.rest,
+      calm: scores.calm,
+      connect: scores.connect,
+      soul: scores.soul,
+      observacao: observacao.trim() || null,
+      connect_subaspecto: sub.id
+    };
+    if (onSubmit) onSubmit(payload);
+    // Por enquanto (4a): apenas fecha o modal
+    setTimeout(() => {
+      setEnviando(false);
+      if (onClose) onClose();
+    }, 600);
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position:"fixed", inset:0,
+        background:"rgba(26, 31, 27, 0.55)",
+        backdropFilter:"blur(4px)",
+        display:"flex", alignItems:"flex-start", justifyContent:"center",
+        padding:"40px 16px",
+        zIndex:1000,
+        overflowY:"auto"
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background:T.surface,
+          borderRadius:18,
+          padding:"24px 22px",
+          maxWidth:520, width:"100%",
+          boxShadow:"0 16px 48px rgba(26,31,27,0.18)",
+          fontFamily:T.fB
+        }}
+      >
+        {/* Cabecalho */}
+        <div style={{display:"flex", alignItems:"flex-start", gap:12, marginBottom:6}}>
+          <div style={{flex:1}}>
+            <div style={{
+              display:"inline-block",
+              background:"#F1E6C2",
+              color:"#7A5C2E",
+              padding:"3px 10px",
+              borderRadius:999,
+              fontSize:10,
+              textTransform:"uppercase",
+              letterSpacing:"0.1em",
+              fontWeight:700,
+              marginBottom:8
+            }}>
+              {nomeDia} · CONNECT em foco: {sub.label}
+            </div>
+            <div style={{fontSize:22, fontWeight:600, color:T.ink, marginBottom:4}}>
+              Como você está hoje?
+            </div>
+            <div style={{fontSize:13, color:T.inkMid}}>
+              Sem pressa. Pode responder pelo que sente agora.
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background:"none", border:"none", cursor:"pointer",
+              fontSize:22, color:T.inkFaint, lineHeight:1, padding:4
+            }}
+          >×</button>
+        </div>
+
+        {/* 6 perguntas */}
+        <div style={{marginTop:18}}>
+          {CHECKIN_EIXOS.map(eixo => {
+            const isConnect = eixo.id === "connect";
+            const pergunta = isConnect ? sub.pergunta : eixo.pergunta;
+            const valor = scores[eixo.id];
+            return (
+              <div key={eixo.id} style={{marginBottom:18, paddingBottom:14, borderBottom:"1px solid "+T.border}}>
+                <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:6}}>
+                  <span style={{width:8, height:8, borderRadius:"50%", background:eixo.cor}}/>
+                  <span style={{
+                    fontSize:10,
+                    textTransform:"uppercase",
+                    letterSpacing:"0.1em",
+                    fontWeight:700,
+                    color:eixo.cor
+                  }}>{eixo.nome}</span>
+                </div>
+                <div style={{fontSize:14, color:T.ink, marginBottom:isConnect?4:10, fontWeight:500}}>
+                  {pergunta}
+                </div>
+                {isConnect && (
+                  <div style={{fontSize:11, color:T.inkFaint, fontStyle:"italic", marginBottom:10}}>
+                    As perguntas de Connect rotacionam pelos dias da semana.
+                  </div>
+                )}
+
+                {/* Slider deslizante */}
+                <div style={{display:"flex", alignItems:"center", gap:12}}>
+                  <span style={{fontSize:11, color:T.inkFaint, minWidth:28, textAlign:"right"}}>muito mal</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="5"
+                    step="1"
+                    value={valor}
+                    onChange={e => setScore(eixo.id, e.target.value)}
+                    style={{
+                      flex:1,
+                      height:6,
+                      borderRadius:3,
+                      appearance:"none",
+                      background:"linear-gradient(to right, "+eixo.cor+" 0%, "+eixo.cor+" "+(valor*20)+"%, "+T.border+" "+(valor*20)+"%, "+T.border+" 100%)",
+                      outline:"none",
+                      cursor:"pointer"
+                    }}
+                  />
+                  <span style={{fontSize:11, color:T.inkFaint, minWidth:28}}>muito bem</span>
+                  <span style={{
+                    minWidth:36,
+                    textAlign:"center",
+                    fontSize:18,
+                    fontWeight:700,
+                    color: valor > 0 ? eixo.cor : T.inkLight
+                  }}>
+                    {valor > 0 ? valor : "—"}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Observacao livre */}
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:14, color:T.ink, fontWeight:500, marginBottom:6}}>
+              Quer registrar algo livre? <span style={{color:T.inkFaint, fontWeight:400}}>(opcional)</span>
+            </div>
+            <textarea
+              value={observacao}
+              onChange={e => setObservacao(e.target.value)}
+              placeholder="Algo que aconteceu hoje, alguma observação sobre você..."
+              style={{
+                width:"100%",
+                minHeight:70,
+                padding:12,
+                border:"1px solid "+T.border,
+                borderRadius:10,
+                fontFamily:T.fB,
+                fontSize:13.5,
+                color:T.ink,
+                background:T.bgWarm,
+                resize:"vertical",
+                outline:"none"
+              }}
+            />
+          </div>
+
+          {/* Botão de submit */}
+          <Btn
+            onClick={handleSubmit}
+            variant="primary"
+            disabled={!completo || enviando}
+            style={{
+              width:"100%",
+              padding:14,
+              opacity: (!completo || enviando) ? 0.5 : 1,
+              cursor: (!completo || enviando) ? "not-allowed" : "pointer"
+            }}
+          >
+            {enviando ? "Registrando..." : (completo ? "Registrar check-in" : "Responda os 6 eixos")}
+          </Btn>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 // MODULO VITALIDADE — CHEVO MASTER (Incremento 3)
 // ═════════════════════════════════════════════════════════════
 // Tela que substitui o ModuloDashboard quando modulo==="dashboard".
@@ -3038,6 +3280,7 @@ const VITAL_EIXOS = [
 ];
 
 function ModuloVitalidade({ pacienteId, setModulo }) {
+  const [checkinAberto, setCheckinAberto] = useState(false);
   // Por enquanto: valores neutros (3-3-3-3-3-3) com aviso.
   // No Incremento 4 (novo check-in), passaremos a buscar de bloom.scores_eixos.
   const scoresExemplo = { move: 3, fuel: 3, rest: 3, calm: 3, connect: 3, soul: 3 };
@@ -3144,18 +3387,20 @@ function ModuloVitalidade({ pacienteId, setModulo }) {
         {/* Botão fazer check-in */}
         <div style={{ textAlign: "center", marginBottom: 14 }}>
           <Btn
-            onClick={() => setModulo("ana")}
+            onClick={() => setCheckinAberto(true)}
             variant="primary"
             style={{ padding: "13px 28px" }}
           >
-            Fazer check-in com a Ana →
-          </Btn>
-          <div style={{ fontSize: 11, color: T.inkFaint, marginTop: 8 }}>
-            (em breve: novo check-in com os 6 eixos do c-bloom)
-          </div>
-        </div>
-
+            Fazer check-in dos 6 eixos →
+          </Btn>        </div>
       </div>
+
+      {checkinAberto && (
+        <ModuloCheckinFlor
+          onClose={() => setCheckinAberto(false)}
+          onSubmit={(dados) => { console.log("[CHEVO MASTER] check-in 4a (sem gravar):", dados); }}
+        />
+      )}
     </div>
   );
 }
