@@ -1082,7 +1082,7 @@ Tom: acolhedor, preciso e humano. Histórico persistido — você tem memória d
         </div>
 
         {modulo==="home"&&<ModuloHome key={"home-"+homeKey} form={form} scores={scores} setModulo={setModulo} pacienteId={pacienteId}/>}
-        {modulo==="dashboard"&&<ModuloDashboard form={form} scores={scores} setModulo={setModulo} checkinHoje={checkinHoje} planLog={planLog} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId}/>}
+        {modulo==="dashboard"&&<ModuloVitalidade pacienteId={pacienteId} setModulo={setModulo}/>}
         {modulo==="plano"&&<ModuloPlano key={planoRefresh} form={form} scores={scores} setModulo={setModulo} planLog={planLog} checkinHoje={checkinHoje} pacienteId={pacienteId} apiKey={apiKey}/>}
         {modulo==="ana"&&<ModuloAna form={form} scores={scores} apiKey={apiKey} checkinHoje={checkinHoje} onCheckinSalvo={onCheckinSalvo} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId} getBuildPrompt={buildPrompt} onPlanChange={()=>{setPlanoRefresh(r=>r+1);setModulo("plano");}}/>}
         {modulo==="nutri"&&<ModuloChat membro="nutri" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("nutri")} inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou a Dra. Lucia, sua nutricionista. Dieta atual: ${(form&&form.dieta)||"não informada"}. Score de Nutrição: ${scores.eixos["Nutrição"]}/100. Como posso ajudar?`} sugestoes={["O que devo comer antes do treino?","Como melhorar minha alimentação?","Quais suplementos são indicados para mim?","Como montar um cardápio executivo?"]}/>}
@@ -3011,6 +3011,152 @@ export function Flor({ scores, tamanho }) {
         {score_total.toFixed(1)}
       </text>
     </svg>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════
+// MODULO VITALIDADE — CHEVO MASTER (Incremento 3)
+// ═════════════════════════════════════════════════════════════
+// Tela que substitui o ModuloDashboard quando modulo==="dashboard".
+// Mostra a Flor de 6 pétalas + 6 chips dos eixos + botão de check-in.
+//
+// NOTA: enquanto o usuário não fez check-in pelo novo fluxo (Incr. 4),
+// mostra valores neutros 3-3-3-3-3-3 com aviso de "valores de exemplo".
+//
+// Props:
+//   pacienteId  - id do paciente (para buscar scores futuros)
+//   setModulo   - função para mudar de módulo (setModulo("ana") leva ao check-in atual)
+// ═════════════════════════════════════════════════════════════
+
+const VITAL_EIXOS = [
+  { id: "move",    nome: "Move",    cor: "#E07B4A", desc: "Movimento" },
+  { id: "fuel",    nome: "Fuel",    cor: "#6FA539", desc: "Alimentação" },
+  { id: "rest",    nome: "Rest",    cor: "#4A7BA8", desc: "Sono e descanso" },
+  { id: "calm",    nome: "Calm",    cor: "#8B6FA5", desc: "Foco e calma" },
+  { id: "connect", nome: "Connect", cor: "#D9A82B", desc: "Vínculos" },
+  { id: "soul",    nome: "Soul",    cor: "#B07A33", desc: "Propósito" }
+];
+
+function ModuloVitalidade({ pacienteId, setModulo }) {
+  // Por enquanto: valores neutros (3-3-3-3-3-3) com aviso.
+  // No Incremento 4 (novo check-in), passaremos a buscar de bloom.scores_eixos.
+  const scoresExemplo = { move: 3, fuel: 3, rest: 3, calm: 3, connect: 3, soul: 3 };
+  const ehExemplo = true;
+
+  return (
+    <div style={{ flex: 1, overflowY: "auto", background: T.bg, padding: "24px 32px" }}>
+      <div style={{ maxWidth: 780, margin: "0 auto" }}>
+
+        {/* Cabeçalho */}
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 11, color: T.inkFaint, letterSpacing: "0.12em", marginBottom: 4, fontWeight: 500 }}>
+            VITALIDADE · SEMANA ATUAL
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 600, color: T.ink }}>Sua flor</div>
+          <div style={{ fontSize: 13, color: T.inkMid, marginTop: 2 }}>
+            Score médio dos 6 eixos do c-bloom
+          </div>
+        </div>
+
+        {/* Aviso de valores de exemplo */}
+        {ehExemplo && (
+          <div style={{
+            background: "#F1E6C2",
+            border: "1px solid #D9A82B40",
+            borderRadius: 10,
+            padding: "12px 16px",
+            marginBottom: 20,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            fontSize: 12.5,
+            color: "#7A5C2E",
+            lineHeight: 1.5
+          }}>
+            <span style={{ fontSize: 18 }}>🌱</span>
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: 2 }}>Valores de exemplo</div>
+              <div>
+                Você ainda não fez seu primeiro check-in com os 6 eixos.
+                Faça abaixo para ver sua flor real.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Card da flor */}
+        <div style={{
+          background: T.surface,
+          borderRadius: 18,
+          padding: "28px 20px 24px",
+          marginBottom: 20,
+          border: "1px solid " + T.border,
+          boxShadow: T.shadowCard,
+          textAlign: "center",
+          position: "relative",
+          overflow: "hidden"
+        }}>
+          <div style={{ display: "grid", placeItems: "center" }}>
+            <Flor scores={scoresExemplo} tamanho={260} />
+          </div>
+
+          {/* 6 chips dos eixos */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 10,
+            marginTop: 22
+          }}>
+            {VITAL_EIXOS.map(e => (
+              <div key={e.id} style={{
+                background: T.bgWarm,
+                border: "1px solid " + T.border,
+                borderRadius: 10,
+                padding: "10px 8px",
+                textAlign: "center"
+              }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: "50%",
+                  background: e.cor,
+                  margin: "0 auto 4px"
+                }} />
+                <div style={{
+                  fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em",
+                  color: T.inkMid, fontWeight: 600, marginBottom: 2
+                }}>
+                  {e.nome}
+                </div>
+                <div style={{
+                  fontSize: 16, fontWeight: 700, color: e.cor
+                }}>
+                  {scoresExemplo[e.id].toFixed(1)}
+                </div>
+                <div style={{
+                  fontSize: 10, color: T.inkFaint, marginTop: 2
+                }}>
+                  {e.desc}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Botão fazer check-in */}
+        <div style={{ textAlign: "center", marginBottom: 14 }}>
+          <Btn
+            onClick={() => setModulo("ana")}
+            variant="primary"
+            style={{ padding: "13px 28px" }}
+          >
+            Fazer check-in com a Ana →
+          </Btn>
+          <div style={{ fontSize: 11, color: T.inkFaint, marginTop: 8 }}>
+            (em breve: novo check-in com os 6 eixos do c-bloom)
+          </div>
+        </div>
+
+      </div>
+    </div>
   );
 }
 
