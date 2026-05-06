@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+﻿import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = "https://ahznewkkcyakkilaatas.supabase.co";
@@ -1880,97 +1880,47 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
   const primeiroNome=nome.split(" ")[0];
   const hora=new Date().getHours();
   const saudacao=hora<12?"Bom dia":hora<18?"Boa tarde":"Boa noite";
-  const[tela,setTela]=useState("home"); // home | programas | medicos | horarios | confirmado
-  const[modalEncaminhamento,setModalEncaminhamento]=useState(null);
-  const agendamentoRef=React.useRef(null);
 
-  const scrollParaAgendamento=()=>{
-    agendamentoRef.current&&agendamentoRef.current.scrollIntoView({behavior:"smooth",block:"start"});
-  };
   const[programas,setProgramas]=useState([]);
-  const[programaSelecionado,setProgramaSelecionado]=useState(null);
   const[medicos,setMedicos]=useState([]);
+  const[tela,setTela]=useState("home");
+  const[programaSelecionado,setProgramaSelecionado]=useState(null);
   const[medicoSelecionado,setMedicoSelecionado]=useState(null);
   const[horarioSelecionado,setHorarioSelecionado]=useState(null);
+  const[modalEncaminhamento,setModalEncaminhamento]=useState(null);
   const[agendando,setAgendando]=useState(false);
+  const agendamentoRef=useRef(null);
 
   useEffect(()=>{
     if(!pacienteId)return;
-    supabase.from("pacientes").select("empresa_id").eq("id",pacienteId).single().then(async({data})=>{
-      let empId=(data&&data.empresa_id);
-      if(!empId){
-        // Fallback — buscar empresa Stone
-        const{data:emp}=await supabase.from("empresas").select("id").eq("slug","stone").single();
-        empId=(emp&&emp.id);
-      }
-      if(empId){
-        const progs=await carregarProgramas(empId);
-        setProgramas(progs);
-      }
+    supabase.from("pacientes").select("empresa_id").eq("id",pacienteId).single().then(({data})=>{
+      if((data&&data.empresa_id))carregarProgramas(data.empresa_id).then(setProgramas);
     });
-    carregarMedicos().then(setMedicos);
   },[pacienteId]);
 
-  const handleSelecionarPrograma=async(prog)=>{
-    // Programas vão para o médico pessoal do paciente
-    setProgramaSelecionado(prog);
-    const{data:pacData}=await supabase.from("pacientes")
-      .select("medico_id,medicos(id,nome,crm,especialidade)")
-      .eq("id",pacienteId).single();
-    const medicoPersonal=(pacData&&pacData.medicos);
-    let ms=medicoPersonal?[medicoPersonal]:await carregarMedicos();
-    if(ms.length===0){
-      ms=[{id:"demo-1",nome:"Dr. Rafael Mendes",crm:"CRM/SP 145678",especialidade:"Clínica Geral"}];
-    }
-    setMedicos(ms);
-    setTela("medicos");
+  const scrollParaAgendamento=()=>{
+    if(agendamentoRef.current)agendamentoRef.current.scrollIntoView({behavior:"smooth",block:"start"});
+  };
+
+  const handleSelecionarPrograma=(p)=>{
+    setProgramaSelecionado(p);
+    carregarMedicos().then(setMedicos);
+    setTela("programas");
   };
 
   const handleSelecionarEspecialidade=(esp)=>{
-    // Especialidades encaminham para prestador externo
-    setModalEncaminhamento({tipo:"especialidade",nome:esp});
+    setModalEncaminhamento({nome:esp});
   };
 
-  const handleSelecionarMedico=(medico)=>{
-    setMedicoSelecionado(medico);
+  const handleSelecionarMedico=(m)=>{
+    setMedicoSelecionado(m);
     setTela("horarios");
   };
 
-  // Horários simulados — gerados dinamicamente a partir de hoje
-  const HORARIOS=(()=>{
-    const dias=[];
-    const hoje=new Date();
-    const nomes=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
-    const meses=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
-    const slotsPorDia=[
-      ["08h30","09h00","10h00","11h00","14h00","15h30","16h00"],
-      ["09h00","10h30","11h00","14h30","15h00","16h30"],
-      ["08h00","09h30","10h00","14h00","15h00","16h00"],
-      ["09h00","10h00","11h30","14h00","15h30"],
-    ];
-    let count=0;
-    for(let i=1;count<4;i++){
-      const d=new Date(hoje);
-      d.setDate(hoje.getDate()+i);
-      if(d.getDay()===0||d.getDay()===6)continue; // pular fins de semana
-      // Simular disponibilidade parcial — remover alguns slots aleatoriamente
-      const todos=slotsPorDia[count];
-      const disponiveis=todos.filter((_,idx)=>idx%2===0||count%2===0?true:idx>1);
-      dias.push({
-        data:nomes[d.getDay()]+", "+d.getDate()+" "+meses[d.getMonth()],
-        dataISO:d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"),
-        slots:disponiveis
-      });
-      count++;
-    }
-    return dias;
-  })();
-
   const handleAgendar=async()=>{
-    if(!horarioSelecionado||!medicoSelecionado||!programaSelecionado)return;
+    if(!horarioSelecionado||!medicoSelecionado||!programaSelecionado||!pacienteId)return;
     setAgendando(true);
-    // Salvar agendamento no banco
-    const medicoId=await supabase.from("medicos").select("id").eq("nome",medicoSelecionado.nome).single().then(({data})=>(data&&data.id));
+    const medicoId=medicoSelecionado.id&&medicoSelecionado.id.toString().startsWith("demo-")?null:medicoSelecionado.id;
     if(medicoId){
       await supabase.from("agendamentos").insert({
         paciente_id:pacienteId,
@@ -1981,465 +1931,400 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
         status:"agendado",
         resumo:"Programa: "+(programaSelecionado.nome)
       });
-      // Inscrever no programa se ainda não estiver
       await inscreverPrograma(pacienteId,programaSelecionado.id,medicoId);
     }
     setAgendando(false);
     setTela("confirmado");
   };
 
-  // ── TELA HOME ──────────────────────────────────────────────────
-  if(tela==="home")return(
-    <div style={{flex:1,overflowY:"auto",background:T.bg,padding:"24px 32px"}}>
-      <div style={{maxWidth:780,margin:"0 auto"}}>
+  // ─────────────────────────────────────────────────────────────
+  // TELA HOME
+  // ─────────────────────────────────────────────────────────────
+  if(tela==="home"){
+    return (
+      <div style={{flex:1,overflowY:"auto",background:T.bg,padding:"24px 32px"}}>
+        <div style={{maxWidth:780,margin:"0 auto"}}>
 
-        {/* Saudação */}
-        <div style={{marginBottom:20}}>
-          <div style={{fontSize:20,fontWeight:500,color:T.ink,marginBottom:4}}>{saudacao}, {primeiroNome}</div>
-          <div style={{fontSize:13,color:T.inkMid}}>Como podemos te ajudar hoje?</div>
-        </div>
-
-        {/* 3 caminhos principais */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:28}}>
-          {/* Agendar */}
-          <div onClick={scrollParaAgendamento}
-            style={{background:T.surface,border:"1.5px solid "+T.green,borderRadius:12,padding:"20px 18px",
-              cursor:"pointer",transition:"all 0.15s",display:"flex",flexDirection:"column",gap:8}}
-            onMouseOver={e=>e.currentTarget.style.background=T.greenBg}
-            onMouseOut={e=>e.currentTarget.style.background=T.surface}>
-            <div style={{fontSize:22}}>📅</div>
-            <div style={{fontSize:14,fontWeight:600,color:T.ink}}>Quero agendar</div>
-            <div style={{fontSize:12,color:T.inkMid,lineHeight:1.5,flex:1}}>
-              Consulta com seu médico pessoal, programa de cuidado contínuo ou especialista parceiro.
-            </div>
-            <div style={{fontSize:11,color:T.green,fontWeight:500,marginTop:4}}>Ver opções ↓</div>
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:20,fontWeight:500,color:T.ink,marginBottom:4}}>{saudacao}, {primeiroNome}</div>
+            <div style={{fontSize:13,color:T.inkMid}}>Como podemos te ajudar hoje?</div>
           </div>
 
-          {/* Check-in */}
-          <div onClick={()=>setModulo("checkin")}
-            style={{background:T.surface,border:"1.5px solid "+T.border,borderRadius:12,padding:"20px 18px",
-              cursor:"pointer",transition:"all 0.15s",display:"flex",flexDirection:"column",gap:8}}
-            onMouseOver={e=>{e.currentTarget.style.borderColor=T.green;e.currentTarget.style.background=T.greenBg;}}
-            onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
-            <div style={{fontSize:22}}>✅</div>
-            <div style={{fontSize:14,fontWeight:600,color:T.ink}}>Fazer check-in</div>
-            <div style={{fontSize:12,color:T.inkMid,lineHeight:1.5,flex:1}}>
-              Registre como você está hoje — energia, sono, estresse, humor e bem-estar geral.
-            </div>
-            <div style={{fontSize:11,color:T.green,fontWeight:500,marginTop:4}}>Leva menos de 1 minuto →</div>
-          </div>
-
-          {/* Minha saúde */}
-          <div onClick={()=>setModulo("dashboard")}
-            style={{background:T.surface,border:"1.5px solid "+T.border,borderRadius:12,padding:"20px 18px",
-              cursor:"pointer",transition:"all 0.15s",display:"flex",flexDirection:"column",gap:8}}
-            onMouseOver={e=>{e.currentTarget.style.borderColor=T.blue||"#1D6FE8";e.currentTarget.style.background=T.blueBg||"#EFF6FF";}}
-            onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
-            <div style={{fontSize:22}}>📊</div>
-            <div style={{fontSize:14,fontWeight:600,color:T.ink}}>Minha saúde</div>
-            <div style={{fontSize:12,color:T.inkMid,lineHeight:1.5,flex:1}}>
-              Acompanhe seu score de vitalidade, plano de cuidado e histórico clínico.
-            </div>
-            <div style={{fontSize:11,color:T.blue||"#1D6FE8",fontWeight:500,marginTop:4}}>Ver minha saúde →</div>
-          </div>
-        </div>
-
-        <div style={{fontSize:12,color:T.inkFaint,textAlign:"center",marginBottom:20,letterSpacing:"0.05em"}}>
-          — OU AGENDE ABAIXO —
-        </div>
-
-        {/* Pronto-atendimento */}
-        <div ref={agendamentoRef}>
-        <Card style={{padding:"20px",marginBottom:24,display:"flex",alignItems:"center",justifyContent:"space-between",gap:16}}>
-          <div style={{flex:1}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-              <div style={{width:8,height:8,borderRadius:"50%",background:T.green,boxShadow:"0 0 6px "+T.green}}/>
-              <span style={{fontSize:12,color:T.green,fontWeight:500}}>Online agora</span>
-            </div>
-            <div style={{fontSize:16,fontWeight:500,color:T.ink,marginBottom:4}}>Pronto-atendimento</div>
-            <div style={{fontSize:13,color:T.inkMid}}>Para problemas agudos · clínico geral em cerca de 4 minutos</div>
-          </div>
-          <Btn onClick={()=>setModulo("ana")} variant="gold" style={{flexShrink:0}}>Iniciar agora</Btn>
-        </Card>
-
-        {/* Canais diretos Stone */}
-        <div style={{background:"linear-gradient(135deg,"+T.green+"10,"+T.greenBg+")",border:"0.5px solid "+T.green+"30",borderRadius:12,padding:"16px 18px",marginBottom:24}}>
-          <div style={{marginBottom:12}}>
-            <div style={{fontSize:15,fontWeight:500,color:T.green,marginBottom:2}}>Canais diretos Stone</div>
-            <div style={{fontSize:12,color:T.inkMid}}>Atendimento próximo e contínuo, exclusivo para a Stone</div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <div onClick={()=>{
-                // Ir para agenda do médico pessoal
-                setProgramaSelecionado({nome:"Consulta com meu médico pessoal",slug:"medico-pessoal"});
-                supabase.from("pacientes").select("medico_id,medicos(id,nome,crm,especialidade)").eq("id",pacienteId).single().then(({data})=>{
-                  const med=(data&&data.medicos);
-                  setMedicos(med?[med]:[{id:"demo-1",nome:"Dr. Rafael Mendes",crm:"CRM/SP 145678",especialidade:"Clínica Geral"}]);
-                  setTela("medicos");
-                });
-              }} style={{background:T.surface,border:"0.5px solid "+T.green+"30",borderRadius:8,padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,cursor:"pointer",transition:"all 0.15s"}}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:28}}>
+            <div onClick={scrollParaAgendamento}
+              style={{background:T.surface,border:"1.5px solid "+T.green,borderRadius:12,padding:"20px 18px",cursor:"pointer",transition:"all 0.15s",display:"flex",flexDirection:"column",gap:8}}
               onMouseOver={e=>e.currentTarget.style.background=T.greenBg}
               onMouseOut={e=>e.currentTarget.style.background=T.surface}>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:600,color:T.ink,marginBottom:3}}>Meu médico pessoal</div>
-                <div style={{fontSize:11,color:T.inkMid}}>Agendar consulta de acompanhamento</div>
-              </div>
-              <span style={{fontSize:12,color:T.green,fontWeight:500,flexShrink:0}}>Agendar ↗</span>
+              <div style={{fontSize:22}}>📅</div>
+              <div style={{fontSize:14,fontWeight:600,color:T.ink}}>Quero agendar</div>
+              <div style={{fontSize:12,color:T.inkMid,lineHeight:1.5,flex:1}}>Consulta com seu médico pessoal, programa de cuidado contínuo ou especialista parceiro.</div>
+              <div style={{fontSize:11,color:T.green,fontWeight:500,marginTop:4}}>Ver opções ↓</div>
             </div>
-            <div onClick={()=>setModulo("ana")} style={{background:T.surface,border:"0.5px solid "+T.green+"30",borderRadius:8,padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,cursor:"pointer",transition:"all 0.15s"}}
-              onMouseOver={e=>e.currentTarget.style.background=T.greenBg}
-              onMouseOut={e=>e.currentTarget.style.background=T.surface}>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:600,color:T.ink,marginBottom:3}}>Enfermagem WhatsApp</div>
-                <div style={{fontSize:11,color:T.inkMid}}>Disponível 24h · resposta rápida</div>
-              </div>
-              <span style={{fontSize:12,color:T.green,fontWeight:500,flexShrink:0}}>Abrir ↗</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Programas de cuidado contínuo */}
-        <div style={{marginBottom:28}}>
-          <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:4}}>
-            <div style={{fontSize:15,fontWeight:500,color:T.ink}}>Programas de cuidado contínuo</div>
-            <span style={{fontSize:12,color:T.inkMid,fontWeight:500}}>Caminho recomendado</span>
-          </div>
-          <div style={{fontSize:13,color:T.inkMid,lineHeight:1.6,marginBottom:14}}>Acompanhamento longitudinal com profissionais que conhecem sua história.</div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
-            {programas.map(p=>{
-              const DESC={
-                "saude-da-mulher":"Ginecologia, gestação, climatério",
-                "saude-do-homem":"Urologia, prevenção, cuidado geral",
-                "saude-da-crianca":"Pediatria, desenvolvimento, rotina",
-                "saude-emocional":"Psicologia, psiquiatria, sono, estresse",
-                "bem-estar":"Nutrição, atividade física, prevenção",
-                "emagrecimento":"Médico, nutri, atividade, comportamento",
-                "cirurgias":"Avaliação, 2ª opinião, preparo, pós-op",
-              };
-              const PROF={
-                "saude-da-mulher":"8 médicas","saude-do-homem":"6 médicos","saude-da-crianca":"5 médicos",
-                "saude-emocional":"12 profissionais","bem-estar":"9 profissionais","emagrecimento":"7 profissionais","cirurgias":"11 cirurgiões",
-              };
-              return(
-                <div key={p.id} onClick={()=>handleSelecionarPrograma(p)}
-                  style={{background:T.surface,border:"0.5px solid "+T.border,borderRadius:10,padding:"14px 16px",cursor:"pointer",transition:"all 0.15s"}}
-                  onMouseOver={e=>{e.currentTarget.style.borderColor=p.cor||T.green;e.currentTarget.style.background=p.cor||T.green+"05";}}
-                  onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
-                  <div style={{fontSize:13,fontWeight:600,color:T.ink,marginBottom:4}}>{p.nome}</div>
-                  <div style={{fontSize:11,color:T.inkLight,lineHeight:1.5,marginBottom:8}}>{DESC[p.slug]||(p.descricao?p.descricao.slice(0,40):"")}</div>
-                  <div style={{fontSize:11,color:T.blue,fontWeight:500}}>{PROF[p.slug]||"Profissionais disponíveis"}</div>
-                </div>
-              );
-            })}
-            {/* Novos programas */}
-            <div style={{background:T.bgWarm,border:"0.5px dashed "+T.border,borderRadius:10,padding:"14px 16px",display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",textAlign:"center",minHeight:90}}>
-              <div style={{fontSize:12,color:T.inkMid,fontWeight:500,marginBottom:4}}>Novos programas</div>
-              <div style={{fontSize:10,color:T.inkFaint,lineHeight:1.5}}>A Stone está expandindo o cuidado contínuo</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Cuidado por necessidade */}
-        <div style={{marginBottom:28}}>
-          <div style={{fontSize:13,fontWeight:600,color:T.inkMid,marginBottom:4}}>Cuidado por necessidade</div>
-          <div style={{fontSize:12,color:T.inkFaint,lineHeight:1.5,marginBottom:12}}>Se preferir buscar por uma área específica, encontre aqui consultas pontuais com especialistas.</div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
-            {["Coração","Pele","Hormônios","Ossos e articulações","Ouvido, nariz e garganta","Enxaqueca","Nutrição","Fisioterapia"].map(esp=>(
-              <div key={esp} onClick={()=>handleSelecionarEspecialidade(esp)}
-                style={{padding:"10px 12px",background:T.surface,border:"0.5px solid "+T.border,borderRadius:8,cursor:"pointer",fontSize:12,color:T.ink,transition:"all 0.15s"}}
-                onMouseOver={e=>{e.currentTarget.style.borderColor=T.green;}}
-                onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;}}>
-                {esp}
-              </div>
-            ))}
-          </div>
-          <div style={{textAlign:"right",marginTop:8}}>
-            <span style={{fontSize:12,color:T.inkMid}}>Não encontrou? <span onClick={()=>handleSelecionarEspecialidade("outra especialidade")} style={{color:T.green,textDecoration:"underline",cursor:"pointer"}}>Ver todas as áreas</span></span>
-          </div>
-        </div>
-
-        {/* Modal encaminhamento prestador externo */}
-        {modalEncaminhamento&&(
-          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:24}}
-            onClick={()=>setModalEncaminhamento(null)}>
-            <div style={{background:T.surface,borderRadius:16,padding:"28px 24px",maxWidth:400,width:"100%",boxShadow:"0 12px 40px rgba(0,0,0,0.15)"}}
-              onClick={e=>e.stopPropagation()}>
-              <div style={{fontSize:20,marginBottom:8}}>🏥</div>
-              <div style={{fontSize:16,fontWeight:600,color:T.ink,marginBottom:8}}>
-                {modalEncaminhamento.nome}
-              </div>
-              <div style={{fontSize:13,color:T.inkMid,lineHeight:1.7,marginBottom:20}}>
-                Para consultas com especialista em <strong>{modalEncaminhamento.nome}</strong>, você será encaminhado para um de nossos prestadores parceiros credenciados.
-              </div>
-              <div style={{padding:"12px 14px",background:T.greenBg,borderRadius:10,fontSize:12,color:T.green,marginBottom:20,lineHeight:1.6}}>
-                ✦ Seu médico pessoal será informado sobre este encaminhamento e acompanhará o resultado da sua consulta.
-              </div>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                <Btn variant="primary" style={{width:"100%",justifyContent:"center"}}
-                  onClick={()=>{
-                    setModalEncaminhamento(null);
-                    alert("Em breve você receberá o contato do prestador parceiro para agendamento. Seu médico pessoal foi notificado.");
-                  }}>
-                  Solicitar encaminhamento →
-                </Btn>
-                <Btn variant="outline" style={{width:"100%",justifyContent:"center"}}
-                  onClick={()=>setModalEncaminhamento(null)}>
-                  Cancelar
-                </Btn>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Continuar onde parou */}
-        <div>
-          <div style={{fontSize:13,fontWeight:600,color:T.ink,marginBottom:10}}>Continuar onde parou</div>
-          <div style={{padding:"14px 16px",background:T.surface,border:"0.5px solid "+T.border,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,cursor:"pointer"}} onClick={()=>setModulo("plano")}>
-            <div>
-              <div style={{fontSize:13,fontWeight:500,color:T.ink,marginBottom:2}}>Plano de cuidado ativo</div>
-              <div style={{fontSize:12,color:T.inkMid}}>Tarefas pendentes de hoje</div>
-            </div>
-            <span style={{fontSize:12,color:T.blue,fontWeight:500}}>Ver detalhes ↗</span>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <div style={{padding:"14px 16px",background:T.surface,border:"0.5px solid "+T.border,borderRadius:10,cursor:"pointer"}} onClick={()=>setModulo("documentos")}>
-              <div style={{fontSize:11,color:T.inkMid,marginBottom:4}}>Últimas prescrições</div>
-              <div style={{fontSize:13,fontWeight:500,color:T.ink,marginBottom:4}}>2 documentos disponíveis</div>
-              <div style={{fontSize:12,color:T.blue}}>Abrir prescrições ↗</div>
-            </div>
-            <div style={{padding:"14px 16px",background:T.surface,border:"0.5px solid "+T.border,borderRadius:10,cursor:"pointer"}} onClick={()=>setModulo("documentos")}>
-              <div style={{fontSize:11,color:T.inkMid,marginBottom:4}}>Último atestado</div>
-              <div style={{fontSize:13,fontWeight:500,color:T.ink,marginBottom:4}}>Emitido em 03 de abril</div>
-              <div style={{fontSize:12,color:T.blue}}>Baixar PDF ↗</div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
-
-  // ── TELA PROGRAMAS ─────────────────────────────────────────────
-  if(tela==="programas")return(
-    <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
-      <div style={{maxWidth:800,margin:"0 auto"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:28}}>
-          <button onClick={()=>setTela("home")} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:T.inkMid}}>←</button>
-          <div>
-            <div style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>Escolha um programa</div>
-            <div style={{fontSize:13,color:T.inkMid}}>Selecione a área de saúde para a sua consulta</div>
-          </div>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:14}}>
-          {programas.map(p=>(
-            <button key={p.id} onClick={()=>handleSelecionarPrograma(p)}
-              style={{padding:"22px",background:T.surface,border:"1.5px solid "+T.border,borderRadius:14,cursor:"pointer",textAlign:"left",transition:"all 0.2s",boxShadow:T.shadowCard,fontFamily:T.fB,borderLeft:"4px solid "+p.cor||T.green}}
-              onMouseOver={e=>{e.currentTarget.style.background=p.cor||T.green+"08";e.currentTarget.style.borderColor=p.cor||T.green;}}
-              onMouseOut={e=>{e.currentTarget.style.background=T.surface;e.currentTarget.style.borderColor=T.border;e.currentTarget.style.borderLeftColor=p.cor||T.green;}}>
-              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
-                <div style={{width:40,height:40,borderRadius:10,background:p.cor||T.green+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{p.icone||"🩺"}</div>
-                <div style={{fontFamily:T.fD,fontSize:16,color:T.ink}}>{p.nome}</div>
-              </div>
-              <div style={{fontSize:12,color:T.inkMid,lineHeight:1.7}}>{p.descricao}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  // ── TELA MÉDICOS ───────────────────────────────────────────────
-  if(tela==="medicos")return(
-    <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
-      <div style={{maxWidth:700,margin:"0 auto"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
-          <button onClick={()=>setTela("programas")} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:T.inkMid}}>←</button>
-          <div>
-            <div style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>Escolha seu médico</div>
-            <div style={{fontSize:13,color:T.inkMid}}>{(programaSelecionado&&programaSelecionado.nome)} · Este será seu médico pessoal neste programa</div>
-          </div>
-        </div>
-        <div style={{padding:"10px 14px",background:T.goldFaint,border:"1px solid "+T.goldBorder,borderRadius:8,marginBottom:24,fontSize:12,color:T.inkMid}}>
-          💡 Seu médico pessoal acompanha sua saúde ao longo do tempo — não é uma consulta avulsa. Escolha alguém com quem você queira construir um vínculo.
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:12}}>
-          {medicos.map(m=>(
-            <button key={m.id} onClick={()=>handleSelecionarMedico(m)}
-              style={{padding:"18px 20px",background:T.surface,border:"1.5px solid "+T.border,borderRadius:12,cursor:"pointer",display:"flex",alignItems:"center",gap:16,textAlign:"left",transition:"all 0.18s",fontFamily:T.fB}}
+            <div onClick={()=>setModulo("checkin")}
+              style={{background:T.surface,border:"1.5px solid "+T.border,borderRadius:12,padding:"20px 18px",cursor:"pointer",transition:"all 0.15s",display:"flex",flexDirection:"column",gap:8}}
               onMouseOver={e=>{e.currentTarget.style.borderColor=T.green;e.currentTarget.style.background=T.greenBg;}}
               onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
-              <div style={{width:48,height:48,borderRadius:"50%",background:T.greenBg,border:"1.5px solid "+T.green+"30",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👨‍⚕️</div>
+              <div style={{fontSize:22}}>✅</div>
+              <div style={{fontSize:14,fontWeight:600,color:T.ink}}>Fazer check-in</div>
+              <div style={{fontSize:12,color:T.inkMid,lineHeight:1.5,flex:1}}>Registre como você está hoje — energia, sono, estresse, humor e bem-estar geral.</div>
+              <div style={{fontSize:11,color:T.green,fontWeight:500,marginTop:4}}>Leva menos de 1 minuto →</div>
+            </div>
+
+            <div onClick={()=>setModulo("dashboard")}
+              style={{background:T.surface,border:"1.5px solid "+T.border,borderRadius:12,padding:"20px 18px",cursor:"pointer",transition:"all 0.15s",display:"flex",flexDirection:"column",gap:8}}
+              onMouseOver={e=>{e.currentTarget.style.borderColor=T.blue||"#1D6FE8";e.currentTarget.style.background=T.blueBg||"#EFF6FF";}}
+              onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
+              <div style={{fontSize:22}}>📊</div>
+              <div style={{fontSize:14,fontWeight:600,color:T.ink}}>Minha saúde</div>
+              <div style={{fontSize:12,color:T.inkMid,lineHeight:1.5,flex:1}}>Acompanhe seu score de vitalidade, plano de cuidado e histórico clínico.</div>
+              <div style={{fontSize:11,color:T.blue||"#1D6FE8",fontWeight:500,marginTop:4}}>Ver minha saúde →</div>
+            </div>
+          </div>
+
+          <div style={{fontSize:12,color:T.inkFaint,textAlign:"center",marginBottom:20,letterSpacing:"0.05em"}}>— OU AGENDE ABAIXO —</div>
+
+          <div ref={agendamentoRef}>
+            <Card style={{padding:"20px",marginBottom:24,display:"flex",alignItems:"center",justifyContent:"space-between",gap:16}}>
               <div style={{flex:1}}>
-                <div style={{fontSize:14,color:T.ink,fontWeight:600,marginBottom:2}}>{m.nome}</div>
-                <div style={{fontSize:12,color:T.inkMid}}>{m.especialidade||"Clínica Geral"} · CRM {m.crm}</div>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:T.green,boxShadow:"0 0 6px "+T.green}}/>
+                  <span style={{fontSize:12,color:T.green,fontWeight:500}}>Online agora</span>
+                </div>
+                <div style={{fontSize:16,fontWeight:500,color:T.ink,marginBottom:4}}>Pronto-atendimento</div>
+                <div style={{fontSize:13,color:T.inkMid}}>Para problemas agudos · clínico geral em cerca de 4 minutos</div>
               </div>
-              <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
-                <div style={{width:6,height:6,borderRadius:"50%",background:T.green}}/>
-                <span style={{fontSize:10,color:T.green}}>Disponível</span>
+              <Btn onClick={()=>setModulo("ana")} variant="gold" style={{flexShrink:0}}>Iniciar agora</Btn>
+            </Card>
+
+            <div style={{background:"linear-gradient(135deg,"+T.green+"10,"+T.greenBg+")",border:"0.5px solid "+T.green+"30",borderRadius:12,padding:"16px 18px",marginBottom:24}}>
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:15,fontWeight:500,color:T.green,marginBottom:2}}>Canais diretos Stone</div>
+                <div style={{fontSize:12,color:T.inkMid}}>Atendimento próximo e contínuo, exclusivo para a Stone</div>
               </div>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <div onClick={()=>{
+                    setProgramaSelecionado({nome:"Consulta com meu médico pessoal",slug:"medico-pessoal"});
+                    supabase.from("pacientes").select("medico_id,medicos(id,nome,crm,especialidade)").eq("id",pacienteId).single().then(({data})=>{
+                      const med=(data&&data.medicos);
+                      setMedicos(med?[med]:[{id:"demo-1",nome:"Dr. Rafael Mendes",crm:"CRM/SP 145678",especialidade:"Clínica Geral"}]);
+                      setTela("medicos");
+                    });
+                  }}
+                  style={{background:T.surface,border:"0.5px solid "+T.green+"30",borderRadius:8,padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,cursor:"pointer",transition:"all 0.15s"}}
+                  onMouseOver={e=>e.currentTarget.style.background=T.greenBg}
+                  onMouseOut={e=>e.currentTarget.style.background=T.surface}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,fontWeight:600,color:T.ink,marginBottom:3}}>Meu médico pessoal</div>
+                    <div style={{fontSize:11,color:T.inkMid}}>Agendar consulta de acompanhamento</div>
+                  </div>
+                  <span style={{fontSize:12,color:T.green,fontWeight:500,flexShrink:0}}>Agendar ↗</span>
+                </div>
 
-  // ── TELA HORÁRIOS ──────────────────────────────────────────────
-  if(tela==="horarios")return(
-    <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
-      <div style={{maxWidth:700,margin:"0 auto"}}>
-
-        {/* Cabeçalho */}
-        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
-          <button onClick={()=>setTela("medicos")} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:T.inkMid}}>←</button>
-          <div>
-            <div style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>Escolha o horário</div>
-            <div style={{fontSize:13,color:T.inkMid}}>{(programaSelecionado&&programaSelecionado.nome)}</div>
-          </div>
-        </div>
-
-        {/* Card do médico selecionado */}
-        <Card style={{padding:"16px 18px",marginBottom:20,display:"flex",alignItems:"center",gap:14}}>
-          <div style={{width:46,height:46,borderRadius:"50%",background:T.greenBg,border:"1.5px solid "+T.green+"30",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👨‍⚕️</div>
-          <div style={{flex:1}}>
-            <div style={{fontSize:14,color:T.ink,fontWeight:600}}>{(medicoSelecionado&&medicoSelecionado.nome)}</div>
-            <div style={{fontSize:12,color:T.inkMid}}>{(medicoSelecionado&&medicoSelecionado.especialidade)||"Clínica Geral"} · CRM {(medicoSelecionado&&medicoSelecionado.crm)}</div>
-          </div>
-          <div style={{textAlign:"right"}}>
-            <div style={{fontSize:10,color:T.inkFaint,marginBottom:2}}>DURAÇÃO</div>
-            <div style={{fontSize:13,color:T.ink,fontWeight:500}}>30–40 min</div>
-          </div>
-        </Card>
-
-        {/* Nota teleconsulta */}
-        <div style={{padding:"10px 14px",background:T.blueBg,border:"1px solid "+T.blue+"20",borderRadius:8,marginBottom:20,display:"flex",gap:10,alignItems:"center"}}>
-          <span style={{fontSize:18}}>📹</span>
-          <div style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>Consulta por <strong>videochamada</strong>. O link será enviado por e-mail e disponibilizado no app 30 minutos antes.</div>
-        </div>
-
-        {/* Grade de horários */}
-        <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:20}}>
-          {HORARIOS.map((dia,di)=>(
-            <Card key={di} style={{padding:"16px 18px"}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-                <div style={{fontSize:12,fontWeight:600,color:T.ink}}>{dia.data}</div>
-                <div style={{fontSize:10,color:T.inkFaint,marginLeft:"auto"}}>{dia.slots.length} horários disponíveis</div>
+                <div onClick={()=>setModulo("ana")}
+                  style={{background:T.surface,border:"0.5px solid "+T.green+"30",borderRadius:8,padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,cursor:"pointer",transition:"all 0.15s"}}
+                  onMouseOver={e=>e.currentTarget.style.background=T.greenBg}
+                  onMouseOut={e=>e.currentTarget.style.background=T.surface}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,fontWeight:600,color:T.ink,marginBottom:3}}>Enfermagem WhatsApp</div>
+                    <div style={{fontSize:11,color:T.inkMid}}>Disponível 24h · resposta rápida</div>
+                  </div>
+                  <span style={{fontSize:12,color:T.green,fontWeight:500,flexShrink:0}}>Abrir ↗</span>
+                </div>
               </div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                {dia.slots.map((slot,si)=>{
-                  const key=di+" -"+si;
-                  const sel=(horarioSelecionado&&horarioSelecionado.key)===key;
-                  return(
-                    <button key={si} onClick={()=>setHorarioSelecionado({key,hora:slot,data:dia.data,dataISO:dia.dataISO})}
-                      style={{padding:"8px 16px",borderRadius:8,border:"1.5px solid "+sel?T.green:T.border,background:sel?T.green:T.surface,color:sel?"#FFF":T.inkMid,fontSize:12,cursor:"pointer",fontFamily:T.fB,fontWeight:sel?600:400,transition:"all 0.15s"}}>
-                      {slot}
-                    </button>
+            </div>
+
+            <div style={{marginBottom:28}}>
+              <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:4}}>
+                <div style={{fontSize:15,fontWeight:500,color:T.ink}}>Programas de cuidado contínuo</div>
+                <span style={{fontSize:12,color:T.inkMid,fontWeight:500}}>Caminho recomendado</span>
+              </div>
+              <div style={{fontSize:13,color:T.inkMid,lineHeight:1.6,marginBottom:14}}>Acompanhamento longitudinal com profissionais que conhecem sua história.</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+                {programas.map(p=>{
+                  const DESC={"saude-da-mulher":"Ginecologia, gestação, climatério","saude-do-homem":"Urologia, prevenção, cuidado geral","saude-da-crianca":"Pediatria, desenvolvimento, rotina","saude-emocional":"Psicologia, psiquiatria, sono, estresse","bem-estar":"Nutrição, atividade física, prevenção","emagrecimento":"Médico, nutri, atividade, comportamento","cirurgias":"Avaliação, 2ª opinião, preparo, pós-op"};
+                  const PROF={"saude-da-mulher":"8 médicas","saude-do-homem":"6 médicos","saude-da-crianca":"5 médicos","saude-emocional":"12 profissionais","bem-estar":"9 profissionais","emagrecimento":"7 profissionais","cirurgias":"11 cirurgiões"};
+                  return (
+                    <div key={p.id} onClick={()=>handleSelecionarPrograma(p)}
+                      style={{background:T.surface,border:"0.5px solid "+T.border,borderRadius:10,padding:"14px 16px",cursor:"pointer",transition:"all 0.15s"}}
+                      onMouseOver={e=>{e.currentTarget.style.borderColor=p.cor||T.green;e.currentTarget.style.background=p.cor||T.green+"05";}}
+                      onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
+                      <div style={{fontSize:13,fontWeight:600,color:T.ink,marginBottom:4}}>{p.nome}</div>
+                      <div style={{fontSize:11,color:T.inkLight,lineHeight:1.5,marginBottom:8}}>{DESC[p.slug]||(p.descricao?p.descricao.slice(0,40):"")}</div>
+                      <div style={{fontSize:11,color:T.blue,fontWeight:500}}>{PROF[p.slug]||"Profissionais disponíveis"}</div>
+                    </div>
                   );
                 })}
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* Resumo e confirmação */}
-        {horarioSelecionado&&(
-          <Card style={{padding:"20px",background:T.goldFaint,border:"1px solid "+T.goldBorder}}>
-            <div style={{fontFamily:T.fD,fontSize:16,color:T.ink,marginBottom:14}}>Resumo do agendamento</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-              {[
-                ["Programa",(programaSelecionado&&programaSelecionado.nome)],
-                ["Médico",(medicoSelecionado&&medicoSelecionado.nome)],
-                ["Data",horarioSelecionado.data],
-                ["Horário",horarioSelecionado.hora],
-                ["Tipo","Teleconsulta"],
-                ["Duração","30–40 minutos"],
-              ].map(([label,val])=>(
-                <div key={label} style={{padding:"10px 12px",background:"rgba(255,255,255,0.7)",borderRadius:8}}>
-                  <div style={{fontSize:10,color:T.inkFaint,marginBottom:2}}>{label.toUpperCase()}</div>
-                  <div style={{fontSize:13,color:T.ink,fontWeight:500}}>{val}</div>
+                <div style={{background:T.bgWarm,border:"0.5px dashed "+T.border,borderRadius:10,padding:"14px 16px",display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",textAlign:"center",minHeight:90}}>
+                  <div style={{fontSize:12,color:T.inkMid,fontWeight:500,marginBottom:4}}>Novos programas</div>
+                  <div style={{fontSize:10,color:T.inkFaint,lineHeight:1.5}}>A Stone está expandindo o cuidado contínuo</div>
                 </div>
-              ))}
+              </div>
             </div>
-            <Btn onClick={handleAgendar} variant="gold" disabled={agendando} style={{width:"100%",padding:"13px"}}>
-              {agendando?"Confirmando agendamento...":"✓ CONFIRMAR AGENDAMENTO →"}
-            </Btn>
-          </Card>
-        )}
 
-      </div>
-    </div>
-  );
+            <div style={{marginBottom:28}}>
+              <div style={{fontSize:13,fontWeight:600,color:T.inkMid,marginBottom:4}}>Cuidado por necessidade</div>
+              <div style={{fontSize:12,color:T.inkFaint,lineHeight:1.5,marginBottom:12}}>Se preferir buscar por uma área específica, encontre aqui consultas pontuais com especialistas.</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+                {["Coração","Pele","Hormônios","Ossos e articulações","Ouvido, nariz e garganta","Enxaqueca","Nutrição","Fisioterapia"].map(esp=>(
+                  <div key={esp} onClick={()=>handleSelecionarEspecialidade(esp)}
+                    style={{padding:"10px 12px",background:T.surface,border:"0.5px solid "+T.border,borderRadius:8,cursor:"pointer",fontSize:12,color:T.ink,transition:"all 0.15s"}}
+                    onMouseOver={e=>{e.currentTarget.style.borderColor=T.green;}}
+                    onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;}}>
+                    {esp}
+                  </div>
+                ))}
+              </div>
+              <div style={{textAlign:"right",marginTop:8}}>
+                <span style={{fontSize:12,color:T.inkMid}}>Não encontrou? <span onClick={()=>handleSelecionarEspecialidade("outra especialidade")} style={{color:T.green,textDecoration:"underline",cursor:"pointer"}}>Ver todas as áreas</span></span>
+              </div>
+            </div>
 
-  // ── TELA CONFIRMADO ────────────────────────────────────────────
-  if(tela==="confirmado")return(
-    <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
-      <div style={{maxWidth:700,margin:"0 auto"}}>
-
-        {/* Header de sucesso */}
-        <div style={{textAlign:"center",padding:"28px 0 24px"}}>
-          <div style={{width:72,height:72,borderRadius:"50%",background:T.greenBg,border:"2px solid "+T.green+"40",display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,margin:"0 auto 16px"}}>✅</div>
-          <div style={{fontFamily:T.fD,fontSize:28,color:T.ink,marginBottom:6}}>Consulta agendada!</div>
-          <div style={{fontSize:14,color:T.inkMid}}>{(horarioSelecionado&&horarioSelecionado.data)} às {(horarioSelecionado&&horarioSelecionado.hora)} · {(programaSelecionado&&programaSelecionado.nome)}</div>
-        </div>
-
-        {/* Detalhes do agendamento */}
-        <Card style={{padding:"20px 22px",marginBottom:16}}>
-          <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16,paddingBottom:14,borderBottom:"0.5px solid "+T.border}}>
-            <div style={{width:46,height:46,borderRadius:"50%",background:T.greenBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👨‍⚕️</div>
             <div>
+              <div style={{fontSize:13,fontWeight:600,color:T.ink,marginBottom:10}}>Continuar onde parou</div>
+              <div onClick={()=>setModulo("plano")} style={{padding:"14px 16px",background:T.surface,border:"0.5px solid "+T.border,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,cursor:"pointer"}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:500,color:T.ink,marginBottom:2}}>Plano de cuidado ativo</div>
+                  <div style={{fontSize:12,color:T.inkMid}}>Tarefas pendentes de hoje</div>
+                </div>
+                <span style={{fontSize:12,color:T.blue,fontWeight:500}}>Ver detalhes ↗</span>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <div onClick={()=>setModulo("documentos")} style={{padding:"14px 16px",background:T.surface,border:"0.5px solid "+T.border,borderRadius:10,cursor:"pointer"}}>
+                  <div style={{fontSize:11,color:T.inkMid,marginBottom:4}}>Últimas prescrições</div>
+                  <div style={{fontSize:13,fontWeight:500,color:T.ink,marginBottom:4}}>2 documentos disponíveis</div>
+                  <div style={{fontSize:12,color:T.blue}}>Abrir prescrições ↗</div>
+                </div>
+                <div onClick={()=>setModulo("documentos")} style={{padding:"14px 16px",background:T.surface,border:"0.5px solid "+T.border,borderRadius:10,cursor:"pointer"}}>
+                  <div style={{fontSize:11,color:T.inkMid,marginBottom:4}}>Último atestado</div>
+                  <div style={{fontSize:13,fontWeight:500,color:T.ink,marginBottom:4}}>Emitido em 03 de abril</div>
+                  <div style={{fontSize:12,color:T.blue}}>Baixar PDF ↗</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {modalEncaminhamento&&(
+            <div onClick={()=>setModalEncaminhamento(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:24}}>
+              <div onClick={e=>e.stopPropagation()} style={{background:T.surface,borderRadius:16,padding:"28px 24px",maxWidth:400,width:"100%",boxShadow:"0 12px 40px rgba(0,0,0,0.15)"}}>
+                <div style={{fontSize:20,marginBottom:8}}>🏥</div>
+                <div style={{fontSize:16,fontWeight:600,color:T.ink,marginBottom:8}}>{modalEncaminhamento.nome}</div>
+                <div style={{fontSize:13,color:T.inkMid,lineHeight:1.7,marginBottom:20}}>Para consultas com especialista em <strong>{modalEncaminhamento.nome}</strong>, você será encaminhado para um de nossos prestadores parceiros credenciados.</div>
+                <div style={{padding:"12px 14px",background:T.greenBg,borderRadius:10,fontSize:12,color:T.green,marginBottom:20,lineHeight:1.6}}>✦ Seu médico pessoal será informado sobre este encaminhamento e acompanhará o resultado da sua consulta.</div>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  <Btn variant="primary" style={{width:"100%",justifyContent:"center"}} onClick={()=>{setModalEncaminhamento(null);alert("Em breve você receberá o contato do prestador parceiro para agendamento. Seu médico pessoal foi notificado.");}}>Solicitar encaminhamento →</Btn>
+                  <Btn variant="outline" style={{width:"100%",justifyContent:"center"}} onClick={()=>setModalEncaminhamento(null)}>Cancelar</Btn>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // TELA PROGRAMAS
+  // ─────────────────────────────────────────────────────────────
+  if(tela==="programas"){
+    return (
+      <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
+        <div style={{maxWidth:800,margin:"0 auto"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:28}}>
+            <button onClick={()=>setTela("home")} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:T.inkMid}}>←</button>
+            <div>
+              <div style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>Escolha um programa</div>
+              <div style={{fontSize:13,color:T.inkMid}}>Selecione a área de saúde para a sua consulta</div>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:14}}>
+            {programas.map(p=>(
+              <button key={p.id} onClick={()=>handleSelecionarPrograma(p)}
+                style={{padding:"22px",background:T.surface,border:"1.5px solid "+T.border,borderRadius:14,cursor:"pointer",textAlign:"left",transition:"all 0.2s",boxShadow:T.shadowCard,fontFamily:T.fB,borderLeft:"4px solid "+(p.cor||T.green)}}
+                onMouseOver={e=>{e.currentTarget.style.background=(p.cor||T.green)+"08";e.currentTarget.style.borderColor=p.cor||T.green;}}
+                onMouseOut={e=>{e.currentTarget.style.background=T.surface;e.currentTarget.style.borderColor=T.border;e.currentTarget.style.borderLeftColor=p.cor||T.green;}}>
+                <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+                  <div style={{width:40,height:40,borderRadius:10,background:(p.cor||T.green)+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{p.icone||"🩺"}</div>
+                  <div style={{fontFamily:T.fD,fontSize:16,color:T.ink}}>{p.nome}</div>
+                </div>
+                <div style={{fontSize:12,color:T.inkMid,lineHeight:1.7}}>{p.descricao}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // TELA MÉDICOS
+  // ─────────────────────────────────────────────────────────────
+  if(tela==="medicos"){
+    return (
+      <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
+        <div style={{maxWidth:700,margin:"0 auto"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
+            <button onClick={()=>setTela("programas")} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:T.inkMid}}>←</button>
+            <div>
+              <div style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>Escolha seu médico</div>
+              <div style={{fontSize:13,color:T.inkMid}}>{(programaSelecionado&&programaSelecionado.nome)} · Este será seu médico pessoal neste programa</div>
+            </div>
+          </div>
+          <div style={{padding:"10px 14px",background:T.goldFaint,border:"1px solid "+T.goldBorder,borderRadius:8,marginBottom:24,fontSize:12,color:T.inkMid}}>💡 Seu médico pessoal acompanha sua saúde ao longo do tempo — não é uma consulta avulsa. Escolha alguém com quem você queira construir um vínculo.</div>
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            {medicos.map(m=>(
+              <button key={m.id} onClick={()=>handleSelecionarMedico(m)}
+                style={{padding:"18px 20px",background:T.surface,border:"1.5px solid "+T.border,borderRadius:12,cursor:"pointer",display:"flex",alignItems:"center",gap:16,textAlign:"left",transition:"all 0.18s",fontFamily:T.fB}}
+                onMouseOver={e=>{e.currentTarget.style.borderColor=T.green;e.currentTarget.style.background=T.greenBg;}}
+                onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
+                <div style={{width:48,height:48,borderRadius:"50%",background:T.greenBg,border:"1.5px solid "+T.green+"30",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👨‍⚕️</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14,color:T.ink,fontWeight:600,marginBottom:2}}>{m.nome}</div>
+                  <div style={{fontSize:12,color:T.inkMid}}>{m.especialidade||"Clínica Geral"} · CRM {m.crm}</div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:T.green}}/>
+                  <span style={{fontSize:10,color:T.green}}>Disponível</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // TELA HORÁRIOS
+  // ─────────────────────────────────────────────────────────────
+  if(tela==="horarios"){
+    return (
+      <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
+        <div style={{maxWidth:700,margin:"0 auto"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+            <button onClick={()=>setTela("medicos")} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:T.inkMid}}>←</button>
+            <div>
+              <div style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>Escolha o horário</div>
+              <div style={{fontSize:13,color:T.inkMid}}>{(programaSelecionado&&programaSelecionado.nome)}</div>
+            </div>
+          </div>
+          <Card style={{padding:"16px 18px",marginBottom:20,display:"flex",alignItems:"center",gap:14}}>
+            <div style={{width:46,height:46,borderRadius:"50%",background:T.greenBg,border:"1.5px solid "+T.green+"30",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👨‍⚕️</div>
+            <div style={{flex:1}}>
               <div style={{fontSize:14,color:T.ink,fontWeight:600}}>{(medicoSelecionado&&medicoSelecionado.nome)}</div>
               <div style={{fontSize:12,color:T.inkMid}}>{(medicoSelecionado&&medicoSelecionado.especialidade)||"Clínica Geral"} · CRM {(medicoSelecionado&&medicoSelecionado.crm)}</div>
             </div>
-            <span style={{marginLeft:"auto",padding:"3px 10px",borderRadius:8,background:T.greenBg,color:T.green,fontSize:11,fontWeight:600}}>Confirmado</span>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:10,color:T.inkFaint,marginBottom:2}}>DURAÇÃO</div>
+              <div style={{fontSize:13,color:T.ink,fontWeight:500}}>30–40 min</div>
+            </div>
+          </Card>
+          <div style={{padding:"10px 14px",background:T.blueBg,border:"1px solid "+T.blue+"20",borderRadius:8,marginBottom:20,display:"flex",gap:10,alignItems:"center"}}>
+            <span style={{fontSize:18}}>📹</span>
+            <div style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>Consulta por <strong>videochamada</strong>. O link será enviado por e-mail e disponibilizado no app 30 minutos antes.</div>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
-            {[["Data",(horarioSelecionado&&horarioSelecionado.data)],["Horário",(horarioSelecionado&&horarioSelecionado.hora)],["Tipo","Teleconsulta"],["Programa",(programaSelecionado&&programaSelecionado.nome)],["Duração","30–40 min"],["Link","Enviado por e-mail"]].map(([l,v])=>(
-              <div key={l} style={{padding:"10px 12px",background:T.bgWarm,borderRadius:8}}>
-                <div style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.08em",marginBottom:3}}>{l.toUpperCase()}</div>
-                <div style={{fontSize:12,color:T.ink,fontWeight:500}}>{v}</div>
-              </div>
+          <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:20}}>
+            {HORARIOS.map((dia,di)=>(
+              <Card key={di} style={{padding:"16px 18px"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                  <div style={{fontSize:12,fontWeight:600,color:T.ink}}>{dia.data}</div>
+                  <div style={{fontSize:10,color:T.inkFaint,marginLeft:"auto"}}>{dia.slots.length} horários disponíveis</div>
+                </div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {dia.slots.map((slot,si)=>{
+                    const key=di+"-"+si;
+                    const sel=(horarioSelecionado&&horarioSelecionado.key)===key;
+                    return (
+                      <button key={si} onClick={()=>setHorarioSelecionado({key:key,hora:slot,data:dia.data,dataISO:dia.dataISO})}
+                        style={{padding:"8px 16px",borderRadius:8,border:"1.5px solid "+(sel?T.green:T.border),background:sel?T.green:T.surface,color:sel?"#FFF":T.inkMid,fontSize:12,cursor:"pointer",fontFamily:T.fB,fontWeight:sel?600:400,transition:"all 0.15s"}}>
+                        {slot}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Card>
             ))}
           </div>
-        </Card>
-
-        {/* Notificação Ana */}
-        <Card style={{padding:"16px 18px",marginBottom:16,display:"flex",alignItems:"center",gap:12,background:T.tealBg,border:"1px solid "+T.teal+"30"}}>
-          <div style={{fontSize:24,flexShrink:0}}>🩺</div>
-          <div>
-            <div style={{fontSize:13,color:T.ink,fontWeight:500,marginBottom:2}}>Ana foi notificada</div>
-            <div style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>A Ana preparará um resumo do seu perfil de saúde e histórico de check-ins para o médico antes da consulta.</div>
+          {horarioSelecionado&&(
+            <Card style={{padding:"20px",background:T.goldFaint,border:"1px solid "+T.goldBorder}}>
+              <div style={{fontFamily:T.fD,fontSize:16,color:T.ink,marginBottom:14}}>Resumo do agendamento</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+                {[["Programa",(programaSelecionado&&programaSelecionado.nome)],["Médico",(medicoSelecionado&&medicoSelecionado.nome)],["Data",horarioSelecionado.data],["Horário",horarioSelecionado.hora],["Tipo","Teleconsulta"],["Duração","30–40 minutos"]].map(([label,val])=>(
+                  <div key={label} style={{padding:"10px 12px",background:"rgba(255,255,255,0.7)",borderRadius:8}}>
+                    <div style={{fontSize:10,color:T.inkFaint,marginBottom:2}}>{label.toUpperCase()}</div>
+                    <div style={{fontSize:13,color:T.ink,fontWeight:500}}>{val}</div>
+                  </div>
+                ))}
+              </div>
+              <Btn onClick={handleAgendar} variant="gold" disabled={agendando} style={{width:"100%",padding:"13px"}}>{agendando?"Confirmando agendamento...":"✓ CONFIRMAR AGENDAMENTO →"}</Btn>
+            </Card>
+          )}
           </div>
-        </Card>
-
-        {/* Próximos passos */}
-        <Card style={{padding:"18px 20px",marginBottom:16}}>
-          <div style={{fontFamily:T.fD,fontSize:16,color:T.ink,marginBottom:14}}>Próximos passos</div>
-          {[
-            {n:1,text:"Verifique seu e-mail — o link da videochamada será enviado 24h antes"},
-            {n:2,text:"Prepare seus exames e documentos recentes para mostrar ao médico"},
-            {n:3,text:"Faça seu check-in no dia da consulta — o médico verá seus dados atualizados"},
-            {n:4,text:"Entre no link 5 minutos antes do horário agendado"},
-          ].map(({n,text})=>(
-            <div key={n} style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:10}}>
-              <div style={{width:22,height:22,borderRadius:"50%",background:T.greenBg,border:"1.5px solid "+T.green+"40",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:11,fontWeight:700,color:T.green}}>{n}</div>
-              <div style={{fontSize:12,color:T.inkMid,lineHeight:1.7,paddingTop:2}}>{text}</div>
-            </div>
-          ))}
-        </Card>
-
-        {/* Ações */}
-        <div style={{display:"flex",gap:10}}>
-          <Btn onClick={()=>setTela("home")} variant="outline" style={{flex:1}}>← Voltar ao início</Btn>
-          <Btn onClick={()=>setModulo("dashboard")} variant="teal" style={{flex:2}}>Ver minha saúde →</Btn>
         </div>
-
       </div>
-    </div>
-  );
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // TELA CONFIRMADO
+  // ─────────────────────────────────────────────────────────────
+  if(tela==="confirmado"){
+    return (
+      <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
+        <div style={{maxWidth:700,margin:"0 auto"}}>
+          <div style={{textAlign:"center",padding:"28px 0 24px"}}>
+            <div style={{width:72,height:72,borderRadius:"50%",background:T.greenBg,border:"2px solid "+T.green+"40",display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,margin:"0 auto 16px"}}>✅</div>
+            <div style={{fontFamily:T.fD,fontSize:28,color:T.ink,marginBottom:6}}>Consulta agendada!</div>
+            <div style={{fontSize:14,color:T.inkMid}}>{(horarioSelecionado&&horarioSelecionado.data)} às {(horarioSelecionado&&horarioSelecionado.hora)} · {(programaSelecionado&&programaSelecionado.nome)}</div>
+          </div>
+          <Card style={{padding:"20px 22px",marginBottom:16}}>
+            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16,paddingBottom:14,borderBottom:"0.5px solid "+T.border}}>
+              <div style={{width:46,height:46,borderRadius:"50%",background:T.greenBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>👨‍⚕️</div>
+              <div>
+                <div style={{fontSize:14,color:T.ink,fontWeight:600}}>{(medicoSelecionado&&medicoSelecionado.nome)}</div>
+                <div style={{fontSize:12,color:T.inkMid}}>{(medicoSelecionado&&medicoSelecionado.especialidade)||"Clínica Geral"} · CRM {(medicoSelecionado&&medicoSelecionado.crm)}</div>
+              </div>
+              <span style={{marginLeft:"auto",padding:"3px 10px",borderRadius:8,background:T.greenBg,color:T.green,fontSize:11,fontWeight:600}}>Confirmado</span>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+              {[["Data",(horarioSelecionado&&horarioSelecionado.data)],["Horário",(horarioSelecionado&&horarioSelecionado.hora)],["Tipo","Teleconsulta"],["Programa",(programaSelecionado&&programaSelecionado.nome)],["Duração","30–40 min"],["Link","Enviado por e-mail"]].map(([l,v])=>(
+                <div key={l} style={{padding:"10px 12px",background:T.bgWarm,borderRadius:8}}>
+                  <div style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.08em",marginBottom:3}}>{l.toUpperCase()}</div>
+                  <div style={{fontSize:12,color:T.ink,fontWeight:500}}>{v}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card style={{padding:"16px 18px",marginBottom:16,display:"flex",alignItems:"center",gap:12,background:T.tealBg,border:"1px solid "+T.teal+"30"}}>
+            <div style={{fontSize:24,flexShrink:0}}>🩺</div>
+            <div>
+              <div style={{fontSize:13,color:T.ink,fontWeight:500,marginBottom:2}}>Ana foi notificada</div>
+              <div style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>A Ana preparará um resumo do seu perfil de saúde e histórico de check-ins para o médico antes da consulta.</div>
+            </div>
+          </Card>
+          <Card style={{padding:"18px 20px",marginBottom:16}}>
+            <div style={{fontFamily:T.fD,fontSize:16,color:T.ink,marginBottom:14}}>Próximos passos</div>
+            {[{n:1,text:"Verifique seu e-mail — o link da videochamada será enviado 24h antes"},{n:2,text:"Prepare seus exames e documentos recentes para mostrar ao médico"},{n:3,text:"Faça seu check-in no dia da consulta — o médico verá seus dados atualizados"},{n:4,text:"Entre no link 5 minutos antes do horário agendado"}].map(({n,text})=>(
+              <div key={n} style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:10}}>
+                <div style={{width:22,height:22,borderRadius:"50%",background:T.greenBg,border:"1.5px solid "+T.green+"40",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:11,fontWeight:700,color:T.green}}>{n}</div>
+                <div style={{fontSize:12,color:T.inkMid,lineHeight:1.7,paddingTop:2}}>{text}</div>
+              </div>
+            ))}
+          </Card>
+          <div style={{display:"flex",gap:10}}>
+            <Btn onClick={()=>setTela("home")} variant="outline" style={{flex:1}}>← Voltar ao início</Btn>
+            <Btn onClick={()=>setModulo("dashboard")} variant="teal" style={{flex:2}}>Ver minha saúde →</Btn>
+          </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return null;
 }
-
 function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate,pacienteId}){
   const nome=(form&&form.nome)||"Colaborador";
   const primeiroNome=nome.split(" ")[0];
