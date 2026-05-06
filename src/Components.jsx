@@ -2945,8 +2945,8 @@ export function Flor({ scores, tamanho }) {
   return (
     <svg
       width={size}
-      height={size}
-      viewBox={"0 0 " + size + " " + size}
+      height={size + 32}
+      viewBox={"0 -16 " + size + " " + (size + 32)}
       style={{ display: "block", animation: "flor-respira 7s ease-in-out infinite" }}
     >
       <defs>
@@ -3097,7 +3097,7 @@ function ModuloVitalidade({ pacienteId, setModulo }) {
           overflow: "hidden"
         }}>
           <div style={{ display: "grid", placeItems: "center" }}>
-            <Flor scores={scoresExemplo} tamanho={260} />
+            <Flor scores={scoresExemplo} tamanho={290} />
           </div>
 
           {/* 6 chips dos eixos */}
