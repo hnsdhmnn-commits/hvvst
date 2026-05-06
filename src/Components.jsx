@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = "https://ahznewkkcyakkilaatas.supabase.co";
@@ -2261,7 +2261,6 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
               <Btn onClick={handleAgendar} variant="gold" disabled={agendando} style={{width:"100%",padding:"13px"}}>{agendando?"Confirmando agendamento...":"✓ CONFIRMAR AGENDAMENTO →"}</Btn>
             </Card>
           )}
-          </div>
         </div>
       </div>
     );
@@ -2316,7 +2315,6 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
           <div style={{display:"flex",gap:10}}>
             <Btn onClick={()=>setTela("home")} variant="outline" style={{flex:1}}>← Voltar ao início</Btn>
             <Btn onClick={()=>setModulo("dashboard")} variant="teal" style={{flex:2}}>Ver minha saúde →</Btn>
-          </div>
           </div>
         </div>
       </div>
