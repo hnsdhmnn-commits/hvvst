@@ -1967,7 +1967,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
               <div style={{fontSize:11,color:T.green,fontWeight:500,marginTop:4}}>Ver opções ↓</div>
             </div>
 
-            <div onClick={()=>setModulo("checkin")}
+            <div onClick={()=>setModulo("dashboard")}
               style={{background:T.surface,border:"1.5px solid "+T.border,borderRadius:12,padding:"20px 18px",cursor:"pointer",transition:"all 0.15s",display:"flex",flexDirection:"column",gap:8}}
               onMouseOver={e=>{e.currentTarget.style.borderColor=T.green;e.currentTarget.style.background=T.greenBg;}}
               onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
