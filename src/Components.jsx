@@ -1876,6 +1876,12 @@ function ModuloMensagens({pacienteId,nome}){
 // ─── Dashboard ────────────────────────────────────────────────────
 // ─── Home Principal ───────────────────────────────────────────────
 function ModuloHome({form,scores,setModulo,pacienteId}){
+  const HORARIOS=[
+    {data:"Hoje",dataISO:new Date().toISOString().slice(0,10),slots:["09h00","10h30","14h00","15h30"]},
+    {data:"Amanhã",dataISO:new Date(Date.now()+86400000).toISOString().slice(0,10),slots:["09h00","11h00","14h00","16h00"]},
+    {data:"Em 2 dias",dataISO:new Date(Date.now()+172800000).toISOString().slice(0,10),slots:["10h00","11h30","15h00"]}
+  ];
+
   const nome=(form&&form.nome)||"Colaborador";
   const primeiroNome=nome.split(" ")[0];
   const hora=new Date().getHours();
