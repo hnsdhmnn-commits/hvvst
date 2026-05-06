@@ -4,7 +4,14 @@ import { T, supabase, Btn, Input, Avatar, Card, Spinner, buildPrompt,
   ScreenProcessing, AppPrincipal } from './Components';
 
 async function getPacienteId(userId){
-  const{data}=await supabase.from("pacientes").select("id").eq("user_id",userId).maybeSingle();
+  const{data}
+async function getModulosContratados(pacienteId){
+  if(!pacienteId)return["bloom"];
+  const{data,error}=await supabase.from("v_paciente_modulos").select("modulos_efetivos").eq("paciente_id",pacienteId).maybeSingle();
+  if(error||!data)return["bloom"];
+  console.log("[CHEVO MASTER] modulos efetivos:",data.modulos_efetivos);
+  return data.modulos_efetivos||["bloom"];
+}=await supabase.from("pacientes").select("id").eq("user_id",userId).maybeSingle();
   return data?.id||null;
 }
 
@@ -14,6 +21,7 @@ export default function HVV(){
   const[apiKey,setApiKey]=useState(()=>localStorage.getItem("hvv_api_key")||"");
   const[form,setForm]=useState(null);
   const[pacienteId,setPacienteId]=useState(null);
+  const[modulosContratados,setModulosContratados]=useState(["bloom"]);
 
   useEffect(()=>{
     supabase.auth.getSession().then(async({data:{session}})=>{
@@ -23,6 +31,7 @@ export default function HVV(){
         const pid=await getPacienteId(session.user.id);
         if(pid){
           setPacienteId(pid);
+          getModulosContratados(pid).then(setModulosContratados);
           const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).single();
           const chaveSalva=localStorage.getItem("hvv_api_key")||"";
           if(perfil && perfil.hvv_onboarding_completo===true && chaveSalva.startsWith("sk-")){
@@ -85,6 +94,7 @@ export default function HVV(){
     }
     if(pid){
       setPacienteId(pid);
+          getModulosContratados(pid).then(setModulosContratados);
       const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).maybeSingle();
       const chaveSalva=localStorage.getItem("hvv_api_key")||"";
       if(perfil && perfil.hvv_onboarding_completo===true && chaveSalva.startsWith("sk-")){
@@ -106,6 +116,7 @@ export default function HVV(){
       const pid=await getPacienteId(user.userId);
       if(pid){
         setPacienteId(pid);
+          getModulosContratados(pid).then(setModulosContratados);
         const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).single();
         // Só vai para o app se o onboarding HVV foi completado
         if(perfil && perfil.hvv_onboarding_completo===true){
@@ -124,6 +135,7 @@ export default function HVV(){
     if(!pid&&user){
       pid=await getPacienteId(user.userId);
       if(pid)setPacienteId(pid);
+          getModulosContratados(pid).then(setModulosContratados);
     }
     if(pid){
       try{
@@ -265,7 +277,7 @@ Retorne APENAS um array JSON com 6-8 tarefas:
       {screen==="boasvindas" && <ScreenBoasVindas onStart={()=>setScreen("onboarding")}/>}
       {screen==="onboarding" && <ScreenOnboarding user={user} onComplete={handleOnboarding}/>}
       {screen==="processing" && <ScreenProcessing/>}
-      {screen==="app"        && <AppPrincipal user={user} form={form} apiKey={apiKey} pacienteId={pacienteId} onLogout={handleLogout}/>}
+      {screen==="app"        && <AppPrincipal user={user} form={form} apiKey={apiKey} pacienteId={pacienteId} modulosContratados={modulosContratados} onLogout={handleLogout}/>}
     </>
   );
 }
