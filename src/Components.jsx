@@ -3098,7 +3098,7 @@ function ModuloCheckinFlor({ pacienteId, onClose, onSuccess }){
     console.log("[CHEVO MASTER] enviando check-in:", payload);
 
     const { data, error } = await supabase
-      .from("checkins_flor")
+      .from("v_checkins_flor")
       .insert(payload)
       .select()
       .maybeSingle();
