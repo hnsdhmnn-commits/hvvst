@@ -3403,10 +3403,40 @@ const VITAL_EIXOS = [
 
 function ModuloVitalidade({ pacienteId, setModulo }) {
   const [checkinAberto, setCheckinAberto] = useState(false);
+  const [scoresReais, setScoresReais] = useState(null);
+
+  const buscarScores = async () => {
+    if (!pacienteId) return;
+    const { data, error } = await supabase
+      .from("v_scores_eixos")
+      .select("score_move, score_fuel, score_rest, score_calm, score_connect, score_soul")
+      .eq("paciente_id", pacienteId)
+      .maybeSingle();
+    if (error) {
+      console.warn("[CHEVO MASTER] erro ao ler scores:", error);
+      setScoresReais(null);
+    } else if (data) {
+      console.log("[CHEVO MASTER] scores reais:", data);
+      setScoresReais({
+        move: Number(data.score_move) || 3,
+        fuel: Number(data.score_fuel) || 3,
+        rest: Number(data.score_rest) || 3,
+        calm: Number(data.score_calm) || 3,
+        connect: Number(data.score_connect) || 3,
+        soul: Number(data.score_soul) || 3
+      });
+    } else {
+      console.log("[CHEVO MASTER] sem scores (paciente sem check-in)");
+      setScoresReais(null);
+    }
+  };
+
+  useEffect(() => { buscarScores(); }, [pacienteId]);
   // Por enquanto: valores neutros (3-3-3-3-3-3) com aviso.
   // No Incremento 4 (novo check-in), passaremos a buscar de bloom.scores_eixos.
   const scoresExemplo = { move: 3, fuel: 3, rest: 3, calm: 3, connect: 3, soul: 3 };
-  const ehExemplo = true;
+  const scoresParaFlor = scoresReais || scoresExemplo;
+  const ehExemplo = !scoresReais;
 
   return (
     <div style={{ flex: 1, overflowY: "auto", background: T.bg, padding: "24px 32px" }}>
@@ -3462,7 +3492,7 @@ function ModuloVitalidade({ pacienteId, setModulo }) {
           overflow: "hidden"
         }}>
           <div style={{ display: "grid", placeItems: "center" }}>
-            <Flor scores={scoresExemplo} tamanho={290} />
+            <Flor scores={scoresParaFlor} tamanho={290} />
           </div>
 
           {/* 6 chips dos eixos */}
@@ -3494,7 +3524,7 @@ function ModuloVitalidade({ pacienteId, setModulo }) {
                 <div style={{
                   fontSize: 16, fontWeight: 700, color: e.cor
                 }}>
-                  {scoresExemplo[e.id].toFixed(1)}
+                  {scoresParaFlor[e.id].toFixed(1)}
                 </div>
                 <div style={{
                   fontSize: 10, color: T.inkFaint, marginTop: 2
@@ -3521,7 +3551,7 @@ function ModuloVitalidade({ pacienteId, setModulo }) {
         <ModuloCheckinFlor
           pacienteId={pacienteId}
           onClose={() => setCheckinAberto(false)}
-          onSuccess={() => { console.log("[CHEVO MASTER] check-in salvo, refresh em breve"); }}
+          onSuccess={() => { console.log("[CHEVO MASTER] check-in salvo, recarregando scores"); buscarScores(); }}
         />
       )}
     </div>
