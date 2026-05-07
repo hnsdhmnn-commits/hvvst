@@ -1719,74 +1719,534 @@ function ModuloGeneticista({form,scores,apiKey,pacienteId,systemPrompt,laudoStat
 }
 
 // ─── Módulo Documentos ────────────────────────────────────────────
-function ModuloDocumentos({apiKey,pacienteId,onPlanUpdate}){
-  const fileRef=useRef(null);
-  const[docs,setDocs]=useState([]);
-  const[selDoc,setSelDoc]=useState(null);
-  const[carregando,setCarregando]=useState(true);
+// ═════════════════════════════════════════════════════════════
+// MODULO DOCUMENTOS — REFATORADO (Ato 1 — visual)
+// ═════════════════════════════════════════════════════════════
+// Histórico de documentos agrupado por categoria visual,
+// com busca textual e filtro de período.
+//
+// Categorias (mapeamento dos 9 tipos do banco em 5 visuais):
+//   Consultas      = consulta
+//   Medicamentos   = receita
+//   Exames         = pedido_exame + imagem
+//   Atestados      = atestado
+//   Relatórios     = relatorio + clinico + genetico
+//
+// Tipos OCULTOS (não aparecem na lista):
+//   estilo_vida (orientação, não documento — vai pro plano de cuidado)
+//
+// Painel direito (análise da IA) mantido idêntico ao original.
+// ═════════════════════════════════════════════════════════════
 
-  const TIPO_META={"genetico":{icon:"🧬",color:T.purple,bg:T.purpleBg},"imagem":{icon:"🩻",color:T.blue,bg:T.blueBg},"clinico":{icon:"🔬",color:T.teal,bg:T.tealBg},"receita":{icon:"💊",color:T.green,bg:T.greenBg},"atestado":{icon:"📋",color:T.gold,bg:T.goldFaint},"relatorio":{icon:"📄",color:T.orange,bg:T.orangeBg},"consulta":{icon:"🩺",color:T.red,bg:T.redBg},"outro":{icon:"📎",color:T.inkFaint,bg:T.surfaceMid}};
+const DOC_CATEGORIAS = [
+  { id: "consulta",     nome: "Consultas",    icon: "🩺", cor: "#C84A4A", corBg: "#FBE8E8", tipos: ["consulta"] },
+  { id: "medicamento",  nome: "Medicamentos", icon: "💊", cor: "#2E7D5A", corBg: "#E5F0E9", tipos: ["receita"] },
+  { id: "exame",        nome: "Exames",       icon: "🔬", cor: "#1E5285", corBg: "#E5EEF5", tipos: ["pedido_exame", "imagem"] },
+  { id: "atestado",     nome: "Atestados",    icon: "📋", cor: "#A87A2C", corBg: "#FBF1D9", tipos: ["atestado"] },
+  { id: "relatorio",    nome: "Relatórios",   icon: "📄", cor: "#7B5BA0", corBg: "#EFE7F5", tipos: ["relatorio", "clinico", "genetico"] }
+];
 
-  useEffect(()=>{
-    if(!pacienteId)return;
-    carregarDocumentos(pacienteId).then(data=>{
-      setDocs(data.map(d=>({id:d.id,titulo:d.titulo,tipo:d.tipo,status:"pronto",data:d.data,analise:d.conteudo_json,origem:d.origem})));
+const TIPOS_OCULTOS = ["estilo_vida"];
+
+const PERIODO_OPCOES = [
+  { id: "todos",  label: "Todos os períodos", dias: null },
+  { id: "30d",    label: "Últimos 30 dias",   dias: 30 },
+  { id: "90d",    label: "Últimos 90 dias",   dias: 90 },
+  { id: "1ano",   label: "Último ano",         dias: 365 }
+];
+
+function tipoParaCategoria(tipo){
+  for(const cat of DOC_CATEGORIAS){
+    if(cat.tipos.indexOf(tipo) >= 0) return cat;
+  }
+  return null;
+}
+
+function ModuloDocumentos({apiKey, pacienteId, onPlanUpdate}){
+  const fileRef = useRef(null);
+  const [docs, setDocs] = useState([]);
+  const [selDoc, setSelDoc] = useState(null);
+  const [carregando, setCarregando] = useState(true);
+
+  // Filtros
+  const [categoriaAtiva, setCategoriaAtiva] = useState(null); // null = todas
+  const [busca, setBusca] = useState("");
+  const [periodoId, setPeriodoId] = useState("todos");
+
+  // Mantém TIPO_META para compatibilidade com painel direito (análise da IA)
+  const TIPO_META = {
+    "genetico":   {icon:"🧬", color:T.purple,   bg:T.purpleBg},
+    "imagem":     {icon:"🩻", color:T.blue,     bg:T.blueBg},
+    "clinico":    {icon:"🔬", color:T.teal,     bg:T.tealBg},
+    "receita":    {icon:"💊", color:T.green,    bg:T.greenBg},
+    "atestado":   {icon:"📋", color:T.gold,     bg:T.goldFaint},
+    "relatorio":  {icon:"📄", color:T.orange,   bg:T.orangeBg},
+    "consulta":   {icon:"🩺", color:T.red,      bg:T.redBg},
+    "outro":      {icon:"📎", color:T.inkFaint, bg:T.surfaceMid}
+  };
+
+  useEffect(() => {
+    if(!pacienteId) return;
+    carregarDocumentos(pacienteId).then(data => {
+      // Filtra estilo_vida e outros tipos ocultos no carregamento
+      const filtrados = data.filter(d => TIPOS_OCULTOS.indexOf(d.tipo) < 0);
+      setDocs(filtrados.map(d => ({
+        id: d.id,
+        titulo: d.titulo,
+        tipo: d.tipo,
+        status: "pronto",
+        data: d.data,
+        created_at: d.created_at,
+        analise: d.conteudo_json,
+        origem: d.origem
+      })));
       setCarregando(false);
     });
-  },[pacienteId]);
+  }, [pacienteId]);
 
-  const handleDocUpload=async(files)=>{
-    if(!apiKey||!pacienteId)return;
+  const handleDocUpload = async (files) => {
+    if(!apiKey || !pacienteId) return;
     for(const file of Array.from(files)){
-      if(!file.type.includes("pdf"))continue;
-      const id="temp-"+Date.now();
-      setDocs(prev=>[{id,titulo:file.name.replace(".pdf",""),tipo:"outro",status:"analisando",data:new Date().toLocaleDateString("pt-BR"),analise:null},...prev]);
+      if(!file.type.includes("pdf")) continue;
+      const id = "temp-" + Date.now();
+      setDocs(prev => [{
+        id,
+        titulo: file.name.replace(".pdf",""),
+        tipo: "outro",
+        status: "analisando",
+        data: new Date().toLocaleDateString("pt-BR"),
+        created_at: new Date().toISOString(),
+        analise: null
+      }, ...prev]);
       setSelDoc(id);
-      const toB64=(f)=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});
+      const toB64 = (f) => new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(",")[1]);
+        r.onerror = rej;
+        r.readAsDataURL(f);
+      });
       try{
-        const b64=await toB64(file);
-        const res=await fetch("/.netlify/functions/claude",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,system:`Analise o documento de saúde e retorne APENAS JSON sem markdown: {"tipo":"genetico|imagem|clinico|receita|atestado|relatorio|consulta|outro","titulo":"título","profissional":"nome","resumo":"resumo 2-3 frases","diagnosticos":["lista"],"medicamentos":[{"nome":"","dose":"","frequencia":""}],"checklist":[{"item":"","urgencia":"alta|media|baixa"}],"alertas":[{"nivel":"critico|atencao|informativo","mensagem":""}],"impacto_plano":"impacto no plano"}`,messages:[{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:"Analise este documento."}]}]})});
-        const data=await res.json();
-        const parsed=JSON.parse(((data.content&&data.content[0]&&data.content[0].text)||"{}").replace(/```json|```/g,"").trim());
-        // Salvar no Supabase
-        const docSalvo=await salvarDocumento(pacienteId,{titulo:parsed.titulo||file.name,tipo:parsed.tipo||"outro",resumo:parsed.resumo,analise:parsed});
-        setDocs(prev=>prev.map(d=>d.id===id?{...d,id:(docSalvo&&docSalvo.id)||id,titulo:parsed.titulo||d.titulo,tipo:parsed.tipo||"outro",status:"pronto",analise:parsed}:d));
-        if(docSalvo)setSelDoc(docSalvo.id);
-        await onPlanUpdate({icon:"📄",cor:T.blue,titulo:"Documento analisado: "+(parsed.titulo||file.name||""),descricao:parsed.impacto_plano||"Documento incorporado ao plano.",data:new Date().toLocaleDateString("pt-BR")});
-      }catch{setDocs(prev=>prev.map(d=>d.id===id?{...d,status:"erro"}:d));}
+        const b64 = await toB64(file);
+        const res = await fetch("/.netlify/functions/claude", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "anthropic-dangerous-direct-browser-access": "true"
+          },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 2000,
+            system: `Analise o documento de saúde e retorne APENAS JSON sem markdown: {"tipo":"genetico|imagem|clinico|receita|atestado|relatorio|consulta|outro","titulo":"título","profissional":"nome","resumo":"resumo 2-3 frases","diagnosticos":["lista"],"medicamentos":[{"nome":"","dose":"","frequencia":""}],"checklist":[{"item":"","urgencia":"alta|media|baixa"}],"alertas":[{"nivel":"critico|atencao|informativo","mensagem":""}],"impacto_plano":"impacto no plano"}`,
+            messages: [{
+              role: "user",
+              content: [
+                {type:"document", source:{type:"base64", media_type:"application/pdf", data:b64}},
+                {type:"text", text:"Analise este documento."}
+              ]
+            }]
+          })
+        });
+        const data = await res.json();
+        const parsed = JSON.parse(((data.content && data.content[0] && data.content[0].text) || "{}").replace(/```json|```/g,"").trim());
+
+        // Se IA classificou como tipo oculto, força para "outro"
+        const tipoFinal = TIPOS_OCULTOS.indexOf(parsed.tipo) >= 0 ? "outro" : (parsed.tipo || "outro");
+
+        const docSalvo = await salvarDocumento(pacienteId, {
+          titulo: parsed.titulo || file.name,
+          tipo: tipoFinal,
+          resumo: parsed.resumo,
+          analise: parsed
+        });
+        setDocs(prev => prev.map(d => d.id === id ? {
+          ...d,
+          id: (docSalvo && docSalvo.id) || id,
+          titulo: parsed.titulo || d.titulo,
+          tipo: tipoFinal,
+          status: "pronto",
+          analise: parsed
+        } : d));
+        if(docSalvo) setSelDoc(docSalvo.id);
+        await onPlanUpdate({
+          icon: "📄",
+          cor: T.blue,
+          titulo: "Documento analisado: " + (parsed.titulo || file.name || ""),
+          descricao: parsed.impacto_plano || "Documento incorporado ao plano.",
+          data: new Date().toLocaleDateString("pt-BR")
+        });
+      } catch {
+        setDocs(prev => prev.map(d => d.id === id ? {...d, status:"erro"} : d));
+      }
     }
   };
 
-  const docAtual=docs.find(d=>d.id===selDoc);
+  // ═══════ Aplicar filtros ═══════
+  const docsFiltrados = (() => {
+    let resultado = docs;
 
-  return(
-    <div style={{flex:1,display:"flex",overflow:"hidden"}}>
-      <div style={{width:280,flexShrink:0,borderRight:"1px solid "+T.border,display:"flex",flexDirection:"column",overflow:"hidden",background:T.bgWarm}}>
+    // 1. Filtro por categoria
+    if(categoriaAtiva){
+      const cat = DOC_CATEGORIAS.find(c => c.id === categoriaAtiva);
+      if(cat){
+        resultado = resultado.filter(d => cat.tipos.indexOf(d.tipo) >= 0);
+      }
+    }
+
+    // 2. Filtro por busca textual (no título)
+    const buscaNorm = busca.trim().toLowerCase();
+    if(buscaNorm){
+      resultado = resultado.filter(d => (d.titulo || "").toLowerCase().indexOf(buscaNorm) >= 0);
+    }
+
+    // 3. Filtro por período
+    const periodo = PERIODO_OPCOES.find(p => p.id === periodoId);
+    if(periodo && periodo.dias){
+      const limite = new Date();
+      limite.setDate(limite.getDate() - periodo.dias);
+      resultado = resultado.filter(d => {
+        const dataDoc = d.created_at ? new Date(d.created_at) : null;
+        return dataDoc && dataDoc >= limite;
+      });
+    }
+
+    return resultado;
+  })();
+
+  // ═══════ Contar docs por categoria (sempre do total, não do filtrado) ═══════
+  const contagemPorCategoria = {};
+  for(const cat of DOC_CATEGORIAS){
+    contagemPorCategoria[cat.id] = docs.filter(d => cat.tipos.indexOf(d.tipo) >= 0).length;
+  }
+
+  const docAtual = docs.find(d => d.id === selDoc);
+  const filtrosAtivos = !!categoriaAtiva || !!busca.trim() || periodoId !== "todos";
+
+  return (
+    <div style={{flex:1, display:"flex", overflow:"hidden"}}>
+
+      {/* ══════════ SIDEBAR ESQUERDA ══════════ */}
+      <div style={{width:320, flexShrink:0, borderRight:"1px solid "+T.border, display:"flex", flexDirection:"column", overflow:"hidden", background:T.bgWarm}}>
+
+        {/* Caixa de upload */}
         <div style={{padding:"16px"}}>
-          <div onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();handleDocUpload(e.dataTransfer.files);}} onClick={()=>fileRef.current&&fileRef.current.click()} style={{border:"2px dashed "+T.borderMid,borderRadius:10,padding:"20px",textAlign:"center",cursor:"pointer",background:T.surface,transition:"all 0.2s"}} onMouseOver={e=>{e.currentTarget.style.borderColor=T.gold;}} onMouseOut={e=>{e.currentTarget.style.borderColor=T.borderMid;}}>
-            <div style={{fontSize:28,marginBottom:6}}>📄</div><div style={{fontSize:12,color:T.inkMid,fontWeight:500}}>Arraste PDFs aqui</div><div style={{fontSize:10,color:T.inkFaint}}>ou clique para selecionar</div>
+          <div
+            onDragOver={e => e.preventDefault()}
+            onDrop={e => {e.preventDefault(); handleDocUpload(e.dataTransfer.files);}}
+            onClick={() => fileRef.current && fileRef.current.click()}
+            style={{
+              border:"2px dashed "+T.borderMid,
+              borderRadius:10,
+              padding:"18px",
+              textAlign:"center",
+              cursor:"pointer",
+              background:T.surface,
+              transition:"all 0.2s"
+            }}
+            onMouseOver={e => {e.currentTarget.style.borderColor = T.gold;}}
+            onMouseOut={e => {e.currentTarget.style.borderColor = T.borderMid;}}
+          >
+            <div style={{fontSize:24, marginBottom:4}}>📄</div>
+            <div style={{fontSize:12, color:T.inkMid, fontWeight:500}}>Arraste PDFs aqui</div>
+            <div style={{fontSize:10, color:T.inkFaint}}>ou clique para selecionar</div>
           </div>
-          <input ref={fileRef} type="file" accept=".pdf" multiple onChange={e=>handleDocUpload(e.target.files)} style={{display:"none"}}/>
+          <input ref={fileRef} type="file" accept=".pdf" multiple onChange={e => handleDocUpload(e.target.files)} style={{display:"none"}}/>
         </div>
-        <div style={{flex:1,overflowY:"auto",padding:"0 12px 12px",display:"flex",flexDirection:"column",gap:8}}>
-          {carregando&&<div style={{textAlign:"center",padding:"20px",fontSize:11,color:T.inkFaint}}>Carregando...</div>}
-          {!carregando&&docs.length===0&&<div style={{textAlign:"center",padding:"32px 16px"}}><div style={{fontSize:28,marginBottom:10}}>📂</div><div style={{fontSize:12,color:T.inkFaint}}>Nenhum documento ainda.</div></div>}
-          {docs.map(doc=>{const tm=TIPO_META[doc.tipo]||TIPO_META.outro;const isMediaco=doc.origem==="medico";return(<div key={doc.id} onClick={()=>setSelDoc(doc.id)} style={{padding:"12px 14px",background:selDoc===doc.id?T.goldFaint:T.surface,border:"1.5px solid "+selDoc===doc.id?T.gold:T.border,borderRadius:8,cursor:"pointer",transition:"all 0.18s"}}><div style={{display:"flex",gap:10,alignItems:"flex-start"}}><div style={{width:32,height:32,borderRadius:6,background:tm.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>{tm.icon}</div><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,color:T.ink,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:4}}>{doc.titulo}</div><div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}><span style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:tm.bg,color:tm.color,fontWeight:700}}>{doc.tipo.toUpperCase()}</span>{isMediaco&&<span style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:T.navyBg||T.blueBg,color:T.blue,fontWeight:700}}>DR.</span>}<span style={{fontSize:9,color:T.inkFaint}}>{doc.data}</span></div></div>{doc.status==="analisando"&&<div style={{width:7,height:7,borderRadius:"50%",background:T.gold,animation:"pulse 1.2s ease infinite",flexShrink:0,marginTop:3}}/>}{doc.status==="pronto"&&<div style={{width:7,height:7,borderRadius:"50%",background:T.green,flexShrink:0,marginTop:3}}/>}</div></div>);})}
+
+        {/* ══════════ Cards de categoria ══════════ */}
+        <div style={{padding:"0 12px 8px"}}>
+          <div style={{
+            fontSize:10, color:T.inkFaint, letterSpacing:"0.1em",
+            textTransform:"uppercase", fontWeight:600, marginBottom:8,
+            paddingLeft:4
+          }}>
+            CATEGORIAS
+          </div>
+          <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:6}}>
+            {DOC_CATEGORIAS.map(cat => {
+              const ativo = categoriaAtiva === cat.id;
+              const qtd = contagemPorCategoria[cat.id];
+              return (
+                <div
+                  key={cat.id}
+                  onClick={() => setCategoriaAtiva(ativo ? null : cat.id)}
+                  style={{
+                    padding:"10px 8px",
+                    background: ativo ? cat.corBg : T.surface,
+                    border: "1.5px solid " + (ativo ? cat.cor : T.border),
+                    borderRadius:8,
+                    cursor:"pointer",
+                    transition:"all 0.18s",
+                    textAlign:"center"
+                  }}
+                >
+                  <div style={{fontSize:18, marginBottom:2}}>{cat.icon}</div>
+                  <div style={{fontSize:10, color:ativo?cat.cor:T.inkMid, fontWeight:600, lineHeight:1.2, marginBottom:2}}>
+                    {cat.nome}
+                  </div>
+                  <div style={{fontSize:14, color:ativo?cat.cor:T.ink, fontWeight:700}}>
+                    {qtd}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ══════════ Busca + período ══════════ */}
+        <div style={{padding:"8px 12px 4px", display:"flex", flexDirection:"column", gap:6}}>
+          <input
+            type="text"
+            placeholder="🔍 Buscar por nome..."
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            style={{
+              width:"100%",
+              padding:"8px 12px",
+              border:"1px solid "+T.border,
+              borderRadius:8,
+              fontSize:12,
+              fontFamily:T.fB,
+              background:T.surface,
+              color:T.ink,
+              outline:"none"
+            }}
+          />
+          <select
+            value={periodoId}
+            onChange={e => setPeriodoId(e.target.value)}
+            style={{
+              width:"100%",
+              padding:"7px 10px",
+              border:"1px solid "+T.border,
+              borderRadius:8,
+              fontSize:12,
+              fontFamily:T.fB,
+              background:T.surface,
+              color:T.ink,
+              outline:"none",
+              cursor:"pointer"
+            }}
+          >
+            {PERIODO_OPCOES.map(p => (
+              <option key={p.id} value={p.id}>{p.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* ══════════ Lista de documentos ══════════ */}
+        <div style={{flex:1, overflowY:"auto", padding:"8px 12px 12px", display:"flex", flexDirection:"column", gap:6}}>
+          {carregando && (
+            <div style={{textAlign:"center", padding:"20px", fontSize:11, color:T.inkFaint}}>
+              Carregando...
+            </div>
+          )}
+          {!carregando && docs.length === 0 && (
+            <div style={{textAlign:"center", padding:"24px 12px"}}>
+              <div style={{fontSize:24, marginBottom:8}}>📂</div>
+              <div style={{fontSize:11, color:T.inkFaint}}>Nenhum documento ainda.</div>
+            </div>
+          )}
+          {!carregando && docs.length > 0 && docsFiltrados.length === 0 && (
+            <div style={{textAlign:"center", padding:"24px 12px"}}>
+              <div style={{fontSize:24, marginBottom:8}}>🔍</div>
+              <div style={{fontSize:11, color:T.inkFaint, lineHeight:1.5}}>
+                Nenhum documento encontrado<br/>com esses filtros.
+              </div>
+            </div>
+          )}
+          {docsFiltrados.map(doc => {
+            const cat = tipoParaCategoria(doc.tipo);
+            const tm = TIPO_META[doc.tipo] || TIPO_META.outro;
+            const isMedico = doc.origem === "medico";
+            const ativo = selDoc === doc.id;
+            return (
+              <div
+                key={doc.id}
+                onClick={() => setSelDoc(doc.id)}
+                style={{
+                  padding:"10px 12px",
+                  background: ativo ? T.goldFaint : T.surface,
+                  border: "1.5px solid " + (ativo ? T.gold : T.border),
+                  borderRadius:8,
+                  cursor:"pointer",
+                  transition:"all 0.18s"
+                }}
+              >
+                <div style={{display:"flex", gap:10, alignItems:"flex-start"}}>
+                  <div style={{
+                    width:30, height:30, borderRadius:6,
+                    background: cat ? cat.corBg : tm.bg,
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    fontSize:14, flexShrink:0
+                  }}>
+                    {cat ? cat.icon : tm.icon}
+                  </div>
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{
+                      fontSize:12, color:T.ink, fontWeight:500,
+                      overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
+                      marginBottom:3
+                    }}>
+                      {doc.titulo}
+                    </div>
+                    <div style={{display:"flex", gap:5, alignItems:"center", flexWrap:"wrap"}}>
+                      {cat && (
+                        <span style={{
+                          fontSize:9, padding:"2px 6px", borderRadius:4,
+                          background:cat.corBg, color:cat.cor, fontWeight:700
+                        }}>
+                          {cat.nome.toUpperCase()}
+                        </span>
+                      )}
+                      {isMedico && (
+                        <span style={{
+                          fontSize:9, padding:"2px 6px", borderRadius:4,
+                          background:T.blueBg, color:T.blue, fontWeight:700
+                        }}>
+                          DR.
+                        </span>
+                      )}
+                      <span style={{fontSize:9, color:T.inkFaint}}>{doc.data}</span>
+                    </div>
+                  </div>
+                  {doc.status === "analisando" && (
+                    <div style={{
+                      width:7, height:7, borderRadius:"50%",
+                      background:T.gold,
+                      animation:"pulse 1.2s ease infinite",
+                      flexShrink:0, marginTop:3
+                    }}/>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Aviso de filtros ativos */}
+          {filtrosAtivos && docs.length > 0 && (
+            <div style={{
+              marginTop:8, padding:"8px 10px",
+              background:T.surface, border:"1px dashed "+T.border, borderRadius:6,
+              fontSize:10, color:T.inkFaint, textAlign:"center", lineHeight:1.5
+            }}>
+              {docsFiltrados.length} de {docs.length} documentos
+              <div
+                onClick={() => {setCategoriaAtiva(null); setBusca(""); setPeriodoId("todos");}}
+                style={{
+                  marginTop:4, color:T.gold, cursor:"pointer",
+                  fontWeight:600, textDecoration:"underline"
+                }}
+              >
+                Limpar filtros
+              </div>
+            </div>
+          )}
         </div>
       </div>
-      <div style={{flex:1,overflowY:"auto",padding:"28px 32px"}}>
-        {!docAtual&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:16,textAlign:"center"}}><div style={{fontSize:48}}>🩺</div><div style={{fontFamily:T.fD,fontSize:22,color:T.inkMid}}>Selecione ou envie um documento</div><div style={{fontSize:13,color:T.inkFaint,maxWidth:360,lineHeight:1.8}}>A equipe extrai diagnósticos, medicamentos e ações. Documentos do médico aparecem aqui automaticamente.</div></div>}
-        {(docAtual&&docAtual.status)==="analisando"&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"80%",gap:16,textAlign:"center"}}><div style={{fontSize:40,animation:"spin 2s linear infinite",display:"inline-block"}}>🔬</div><div style={{fontFamily:T.fD,fontSize:22,color:T.ink}}>Analisando e atualizando o plano...</div></div>}
-        {(docAtual&&docAtual.analise)&&(
-          <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:800}}>
-            <Card style={{overflow:"hidden"}}><div style={{padding:"18px 22px",borderBottom:"1px solid "+T.border,display:"flex",gap:14}}><div style={{width:44,height:44,borderRadius:8,background:(TIPO_META[docAtual.tipo]||TIPO_META.outro).bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{(TIPO_META[docAtual.tipo]||TIPO_META.outro).icon}</div><div><div style={{fontFamily:T.fD,fontSize:20,color:T.ink,marginBottom:4}}>{docAtual.analise.titulo}</div>{docAtual.analise.profissional&&<span style={{fontSize:11,color:T.inkFaint}}>Dr(a). {docAtual.analise.profissional}</span>}</div></div><div style={{padding:"16px 22px",background:T.goldFaint,display:"flex",gap:12}}><div style={{width:30,height:30,borderRadius:"50%",background:T.surface,border:"1.5px solid "+T.goldBorder,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>H</div><div><Lbl color={T.gold}>Equipe HVV · Análise</Lbl><div style={{fontSize:13,color:T.ink,lineHeight:1.75}}>{docAtual.analise.resumo}</div></div></div></Card>
-            {docAtual.analise.impacto_plano&&<Card style={{padding:"16px 20px",background:T.tealBg,border:"1px solid "+T.teal+"30"}}><div style={{display:"flex",gap:10}}><span style={{fontSize:18}}>📋</span><div><div style={{fontSize:12,color:T.teal,fontWeight:600,marginBottom:4}}>Impacto no Plano de Cuidado</div><div style={{fontSize:12,color:T.inkMid,lineHeight:1.7}}>{docAtual.analise.impacto_plano}</div></div></div></Card>}
-            {(docAtual.analise.alertas||[]).map((a,i)=>{const lv={critico:{c:T.red,bg:T.redBg,icon:"🚨"},atencao:{c:T.gold,bg:T.goldFaint,icon:"⚠️"},informativo:{c:T.blue,bg:T.blueBg,icon:"ℹ️"}}[a.nivel]||{c:T.blue,bg:T.blueBg,icon:"ℹ️"};return(<Card key={i} style={{padding:"14px 18px",background:lv.bg}}><div style={{display:"flex",gap:10}}><span style={{fontSize:16}}>{lv.icon}</span><span style={{fontSize:13,color:T.ink,lineHeight:1.6}}>{a.mensagem}</span></div></Card>);})}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-              {(docAtual.analise.diagnosticos||[]).length>0&&<Card style={{padding:"18px 20px"}}><Lbl color={T.purple}>Diagnósticos</Lbl>{docAtual.analise.diagnosticos.map((d,i)=><div key={i} style={{fontSize:12,color:T.inkMid,padding:"6px 0",borderBottom:"1px solid "+T.border}}>◆ {d}</div>)}</Card>}
-              {(docAtual.analise.medicamentos||[]).length>0&&<Card style={{padding:"18px 20px"}}><Lbl color={T.green}>💊 Medicamentos</Lbl>{docAtual.analise.medicamentos.map((m,i)=>(<div key={i} style={{padding:"8px 10px",background:T.greenBg,borderRadius:5,marginBottom:6,borderLeft:"3px solid "+T.green}}><div style={{fontSize:12,color:T.ink,fontWeight:500}}>{m.nome}</div><div style={{fontSize:11,color:T.inkFaint}}>{m.dose} {m.frequencia}</div></div>))}</Card>}
+
+      {/* ══════════ PAINEL DIREITO — análise da IA (mantido idêntico ao original) ══════════ */}
+      <div style={{flex:1, overflowY:"auto", padding:"28px 32px"}}>
+        {!docAtual && (
+          <div style={{display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100%", gap:16, textAlign:"center"}}>
+            <div style={{fontSize:48}}>🩺</div>
+            <div style={{fontFamily:T.fD, fontSize:22, color:T.inkMid}}>Selecione ou envie um documento</div>
+            <div style={{fontSize:13, color:T.inkFaint, maxWidth:360, lineHeight:1.8}}>
+              A equipe extrai diagnósticos, medicamentos e ações. Documentos do médico aparecem aqui automaticamente.
             </div>
-            {(docAtual.analise.checklist||[]).length>0&&<Card style={{padding:"18px 20px"}}><Lbl color={T.green}>✓ Ações a Executar</Lbl>{docAtual.analise.checklist.map((item,i)=>(<div key={i} style={{display:"flex",gap:10,padding:"10px 14px",background:T.bgWarm,borderRadius:8,border:"1px solid "+T.border,marginBottom:6}}><div style={{width:18,height:18,borderRadius:5,border:"2px solid "+T.border,flexShrink:0,marginTop:1}}/><span style={{fontSize:12,color:T.inkMid,lineHeight:1.5}}>{item.item}</span></div>))}</Card>}
+          </div>
+        )}
+        {(docAtual && docAtual.status) === "analisando" && (
+          <div style={{display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"80%", gap:16, textAlign:"center"}}>
+            <div style={{fontSize:40, animation:"spin 2s linear infinite", display:"inline-block"}}>🔬</div>
+            <div style={{fontFamily:T.fD, fontSize:22, color:T.ink}}>Analisando e atualizando o plano...</div>
+          </div>
+        )}
+        {(docAtual && docAtual.analise) && (
+          <div style={{display:"flex", flexDirection:"column", gap:16, maxWidth:800}}>
+            <Card style={{overflow:"hidden"}}>
+              <div style={{padding:"18px 22px", borderBottom:"1px solid "+T.border, display:"flex", gap:14}}>
+                <div style={{
+                  width:44, height:44, borderRadius:8,
+                  background:(TIPO_META[docAtual.tipo]||TIPO_META.outro).bg,
+                  display:"flex", alignItems:"center", justifyContent:"center", fontSize:22
+                }}>
+                  {(TIPO_META[docAtual.tipo]||TIPO_META.outro).icon}
+                </div>
+                <div>
+                  <div style={{fontFamily:T.fD, fontSize:20, color:T.ink, marginBottom:4}}>{docAtual.analise.titulo}</div>
+                  {docAtual.analise.profissional && (
+                    <span style={{fontSize:11, color:T.inkFaint}}>Dr(a). {docAtual.analise.profissional}</span>
+                  )}
+                </div>
+              </div>
+              <div style={{padding:"16px 22px", background:T.goldFaint, display:"flex", gap:12}}>
+                <div style={{width:30, height:30, borderRadius:"50%", background:T.surface, border:"1.5px solid "+T.goldBorder, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14}}>H</div>
+                <div>
+                  <Lbl color={T.gold}>Equipe HVV · Análise</Lbl>
+                  <div style={{fontSize:13, color:T.ink, lineHeight:1.75}}>{docAtual.analise.resumo}</div>
+                </div>
+              </div>
+            </Card>
+            {docAtual.analise.impacto_plano && (
+              <Card style={{padding:"16px 20px", background:T.tealBg, border:"1px solid "+T.teal+"30"}}>
+                <div style={{display:"flex", gap:10}}>
+                  <span style={{fontSize:18}}>📋</span>
+                  <div>
+                    <div style={{fontSize:12, color:T.teal, fontWeight:600, marginBottom:4}}>Impacto no Plano de Cuidado</div>
+                    <div style={{fontSize:12, color:T.inkMid, lineHeight:1.7}}>{docAtual.analise.impacto_plano}</div>
+                  </div>
+                </div>
+              </Card>
+            )}
+            {(docAtual.analise.alertas || []).map((a, i) => {
+              const lv = {
+                critico: {c:T.red, bg:T.redBg, icon:"🚨"},
+                atencao: {c:T.gold, bg:T.goldFaint, icon:"⚠️"},
+                informativo: {c:T.blue, bg:T.blueBg, icon:"ℹ️"}
+              }[a.nivel] || {c:T.blue, bg:T.blueBg, icon:"ℹ️"};
+              return (
+                <Card key={i} style={{padding:"14px 18px", background:lv.bg}}>
+                  <div style={{display:"flex", gap:10}}>
+                    <span style={{fontSize:16}}>{lv.icon}</span>
+                    <span style={{fontSize:13, color:T.ink, lineHeight:1.6}}>{a.mensagem}</span>
+                  </div>
+                </Card>
+              );
+            })}
+            <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:14}}>
+              {(docAtual.analise.diagnosticos || []).length > 0 && (
+                <Card style={{padding:"18px 20px"}}>
+                  <Lbl color={T.purple}>Diagnósticos</Lbl>
+                  {docAtual.analise.diagnosticos.map((d, i) => (
+                    <div key={i} style={{fontSize:12, color:T.inkMid, padding:"6px 0", borderBottom:"1px solid "+T.border}}>◆ {d}</div>
+                  ))}
+                </Card>
+              )}
+              {(docAtual.analise.medicamentos || []).length > 0 && (
+                <Card style={{padding:"18px 20px"}}>
+                  <Lbl color={T.green}>💊 Medicamentos</Lbl>
+                  {docAtual.analise.medicamentos.map((m, i) => (
+                    <div key={i} style={{padding:"8px 10px", background:T.greenBg, borderRadius:5, marginBottom:6, borderLeft:"3px solid "+T.green}}>
+                      <div style={{fontSize:12, color:T.ink, fontWeight:500}}>{m.nome}</div>
+                      <div style={{fontSize:11, color:T.inkFaint}}>{m.dose} {m.frequencia}</div>
+                    </div>
+                  ))}
+                </Card>
+              )}
+            </div>
+            {(docAtual.analise.checklist || []).length > 0 && (
+              <Card style={{padding:"18px 20px"}}>
+                <Lbl color={T.green}>✓ Ações a Executar</Lbl>
+                {docAtual.analise.checklist.map((item, i) => (
+                  <div key={i} style={{display:"flex", gap:10, padding:"10px 14px", background:T.bgWarm, borderRadius:8, border:"1px solid "+T.border, marginBottom:6}}>
+                    <div style={{width:18, height:18, borderRadius:5, border:"2px solid "+T.border, flexShrink:0, marginTop:1}}/>
+                    <span style={{fontSize:12, color:T.inkMid, lineHeight:1.5}}>{item.item}</span>
+                  </div>
+                ))}
+              </Card>
+            )}
           </div>
         )}
       </div>
@@ -1794,7 +2254,7 @@ function ModuloDocumentos({apiKey,pacienteId,onPlanUpdate}){
   );
 }
 
-// ─── Módulo Mensagens ─────────────────────────────────────────────
+
 function ModuloMensagens({pacienteId,nome}){
   const[msgs,setMsgs]=useState([]);
   const[carregando,setCarregando]=useState(true);
