@@ -1762,49 +1762,6 @@ function tipoParaCategoria(tipo){
   return null;
 }
 
-// ═════════════════════════════════════════════════════════════
-// MODULO DOCUMENTOS — REFATORADO (Ato 1 — visual)
-// ═════════════════════════════════════════════════════════════
-// Histórico de documentos agrupado por categoria visual,
-// com busca textual e filtro de período.
-//
-// Categorias (mapeamento dos 9 tipos do banco em 5 visuais):
-//   Consultas      = consulta
-//   Medicamentos   = receita
-//   Exames         = pedido_exame + imagem
-//   Atestados      = atestado
-//   Relatórios     = relatorio + clinico + genetico
-//
-// Tipos OCULTOS (não aparecem na lista):
-//   estilo_vida (orientação, não documento — vai pro plano de cuidado)
-//
-// Painel direito (análise da IA) mantido idêntico ao original.
-// ═════════════════════════════════════════════════════════════
-
-const DOC_CATEGORIAS = [
-  { id: "consulta",     nome: "Consultas",    icon: "🩺", cor: "#C84A4A", corBg: "#FBE8E8", tipos: ["consulta"] },
-  { id: "medicamento",  nome: "Medicamentos", icon: "💊", cor: "#2E7D5A", corBg: "#E5F0E9", tipos: ["receita"] },
-  { id: "exame",        nome: "Exames",       icon: "🔬", cor: "#1E5285", corBg: "#E5EEF5", tipos: ["pedido_exame", "imagem"] },
-  { id: "atestado",     nome: "Atestados",    icon: "📋", cor: "#A87A2C", corBg: "#FBF1D9", tipos: ["atestado"] },
-  { id: "relatorio",    nome: "Relatórios",   icon: "📄", cor: "#7B5BA0", corBg: "#EFE7F5", tipos: ["relatorio", "clinico", "genetico"] }
-];
-
-const TIPOS_OCULTOS = ["estilo_vida"];
-
-const PERIODO_OPCOES = [
-  { id: "todos",  label: "Todos os períodos", dias: null },
-  { id: "30d",    label: "Últimos 30 dias",   dias: 30 },
-  { id: "90d",    label: "Últimos 90 dias",   dias: 90 },
-  { id: "1ano",   label: "Último ano",         dias: 365 }
-];
-
-function tipoParaCategoria(tipo){
-  for(const cat of DOC_CATEGORIAS){
-    if(cat.tipos.indexOf(tipo) >= 0) return cat;
-  }
-  return null;
-}
-
 function ModuloDocumentos({apiKey, pacienteId, onPlanUpdate}){
   const fileRef = useRef(null);
   const [docs, setDocs] = useState([]);
