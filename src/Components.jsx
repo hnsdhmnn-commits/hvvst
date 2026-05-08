@@ -1739,14 +1739,13 @@ function ModuloGeneticista({form,scores,apiKey,pacienteId,systemPrompt,laudoStat
 // ═════════════════════════════════════════════════════════════
 
 const DOC_CATEGORIAS = [
-  { id: "consulta",     nome: "Consultas",    icon: "🩺", cor: "#C84A4A", corBg: "#FBE8E8", tipos: ["consulta"] },
   { id: "medicamento",  nome: "Medicamentos", icon: "💊", cor: "#2E7D5A", corBg: "#E5F0E9", tipos: ["receita"] },
-  { id: "exame",        nome: "Exames",       icon: "🔬", cor: "#1E5285", corBg: "#E5EEF5", tipos: ["pedido_exame", "imagem"] },
+  { id: "exame",        nome: "Exames",       icon: "🔬", cor: "#1E5285", corBg: "#E5EEF5", tipos: ["pedido_exame"] },
   { id: "atestado",     nome: "Atestados",    icon: "📋", cor: "#A87A2C", corBg: "#FBF1D9", tipos: ["atestado"] },
-  { id: "relatorio",    nome: "Relatórios",   icon: "📄", cor: "#7B5BA0", corBg: "#EFE7F5", tipos: ["relatorio", "clinico", "genetico"] }
+  { id: "relatorio",    nome: "Relatórios",   icon: "📄", cor: "#7B5BA0", corBg: "#EFE7F5", tipos: ["relatorio"] }
 ];
 
-const TIPOS_OCULTOS = ["estilo_vida"];
+const TIPOS_OCULTOS = ["estilo_vida", "consulta", "clinico", "genetico", "imagem"];
 
 const PERIODO_OPCOES = [
   { id: "todos",  label: "Todos os períodos", dias: null },
