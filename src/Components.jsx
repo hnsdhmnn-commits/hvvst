@@ -666,7 +666,6 @@ export function ScreenLogin({onLogin}){
           <div style={{width:72,height:72,borderRadius:16,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:20,boxShadow:"0 4px 20px "+T.green+"40"}}><span style={{fontSize:28,color:"#FFF",fontWeight:700}}>V</span></div>
           <div style={{fontFamily:T.fD,fontSize:24,color:T.ink,marginBottom:4}}>Hospital Virtual Verde</div>
           <div style={{fontSize:11,color:T.green,letterSpacing:"0.18em",marginBottom:28,fontWeight:600}}>BENEFÍCIO STONE · SAÚDE CONTÍNUA</div>
-          <div style={{fontSize:13,color:T.inkMid,lineHeight:2,marginBottom:20,borderLeft:"3px solid "+T.goldBorder,paddingLeft:20}}>Especialista em Medicina do Estilo de Vida dedicado a desenvolver saúde e produtividade de executivos de alta performance.</div>
           <div style={{fontSize:13,color:T.inkMid,lineHeight:2}}>Cuide das 6 dimensões da sua vitalidade. Veja sua <em>potência florescer</em>. E se uma doença surgir, tratamos com base nas melhores evidências.</div>
         </div>
         <div><Lbl>Sua equipe de cuidado</Lbl><div style={{display:"flex",gap:16,marginTop:12}}>{EQUIPE.map(e=>(<div key={e.id} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8}}><div style={{width:48,height:48,borderRadius:"50%",background:e.bg,border:"1.5px solid "+e.cor+"40",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,boxShadow:T.shadowCard}}>{e.icon}</div><span style={{fontSize:9,color:T.inkLight,textAlign:"center"}}>{e.nome}</span></div>))}</div></div>
