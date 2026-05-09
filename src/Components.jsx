@@ -3404,7 +3404,7 @@ export function Flor({ scores, tamanho }) {
     <svg
       width={size}
       height={size + 32}
-      viewBox={"0 -16 " + size + " " + (size + 32)}
+      viewBox={"-30 -16 " + (size + 60) + " " + (size + 32)}
       style={{ display: "block", animation: "flor-respira 7s ease-in-out infinite" }}
     >
       <defs>
@@ -3454,7 +3454,7 @@ export function Flor({ scores, tamanho }) {
             fontSize="10"
             fontFamily="-apple-system, sans-serif"
             fontWeight="700"
-            textAnchor="middle"
+            textAnchor={Math.cos(p.angulo) > 0.3 ? "start" : (Math.cos(p.angulo) < -0.3 ? "end" : "middle")}
             fill={p.eixo.cor}
             style={{ letterSpacing: "0.1em" }}
           >
