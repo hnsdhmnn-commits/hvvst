@@ -724,9 +724,9 @@ export function ScreenApiKey({user,onConfirm,onReset}){
 export function ScreenBoasVindas({onStart}){
   const[slide,setSlide]=useState(0);
   const slides=[
-    {icon:"🩺",titulo:"Seu médico pessoal te conhece de verdade",texto:"No HVV você escolhe um médico que acompanha sua saúde ao longo do tempo — não uma consulta avulsa sem histórico.",cor:T.green},
-    {icon:"🤝",titulo:"Sua equipe de saúde com IA",texto:"Florence coordena seu plano. Dra. Lucia cuida da nutrição. Bruno orienta sua atividade física. Rafael verifica seus medicamentos.",cor:T.teal},
-    {icon:"✅",titulo:"Check-in de 2 minutos por dia",texto:"Todo dia você registra como está — energia, sono, estresse, humor e vínculos. Sua equipe usa isso para personalizar o cuidado.",cor:T.purple},
+    {icon:"FLOR",titulo:"Sua vitalidade tem 6 eixos. Juntos, eles formam sua flor.",texto:"Movimento, Consumo, Descanso, Calma, Vínculos e Propósito — pétalas que crescem com você, dia após dia. Sua flor não é uma nota: é um termômetro vivo do seu bem-estar. Buscamos equilíbrio entre as dimensões, não perfeição em cada uma.",cor:T.gold},
+    {icon:"🌸",titulo:"Uma equipe inteira ao seu lado",texto:"Florence é sua coordenadora. Junto com ela, 6 especialistas: Léo (movimento), Sophia (consumo: comida, remédios e tudo que você leva pra dentro do seu corpo), Theo (descanso), Luna (calma), Iris (vínculos) e Otto (propósito).",cor:T.teal},
+    {icon:"🌱",titulo:"Um momento por dia para você doar atenção a você mesmo",texto:"Em 2 minutos você revisita os 6 eixos da sua vitalidade. Aqui você faz sua flor — sua potência — crescer todos os dias.",cor:T.purple},
     {icon:"📋",titulo:"Plano de cuidado no seu ritmo",texto:"A Florence gera um plano com tarefas concretas para cada área da sua saúde — e acompanha se você está realizando.",cor:T.gold},
     {icon:"⏱",titulo:"3 minutos para começar",texto:"Vamos montar seu perfil de saúde agora — as informações que sua equipe precisa para te conhecer desde o primeiro dia.",cor:T.green},
   ];
@@ -737,7 +737,7 @@ export function ScreenBoasVindas({onStart}){
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:48,justifyContent:"center"}}><div style={{width:36,height:36,borderRadius:8,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:700,fontSize:16}}>V</div><span style={{fontFamily:T.fD,fontSize:20,fontWeight:600,color:T.ink}}>Hospital Virtual Verde</span></div>
         <Card style={{padding:"0",overflow:"hidden",marginBottom:24}}>
           <div style={{height:4,background:"linear-gradient(90deg,"+s.cor+","+s.cor+"60)"}}/>          <div style={{padding:"40px",textAlign:"center"}}>
-            <div style={{width:80,height:80,borderRadius:"50%",background:s.cor+"15",border:"2px solid "+s.cor+"30",display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,margin:"0 auto 24px"}}>{s.icon}</div>
+            <div style={{width:80,height:80,borderRadius:"50%",background:s.cor+"15",border:"2px solid "+s.cor+"30",display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,margin:"0 auto 24px"}}>{s.icon==="FLOR" ? <MiniFlor size={64}/> : s.icon}</div>
             <div style={{fontFamily:T.fD,fontSize:26,color:T.ink,marginBottom:14,lineHeight:1.3}}>{s.titulo}</div>
             <div style={{fontSize:14,color:T.inkMid,lineHeight:1.9,maxWidth:420,margin:"0 auto"}}>{s.texto}</div>
           </div>
