@@ -663,8 +663,8 @@ export function ScreenLogin({onLogin}){
       <div style={{width:"44%",flexShrink:0,background:T.surface,borderRight:"1px solid "+T.border,padding:"52px",display:"flex",flexDirection:"column",justifyContent:"space-between",boxShadow:"4px 0 24px rgba(60,50,30,0.06)"}}>
         <div>
           <div style={{marginBottom:24,textAlign:"left"}}><img src="/saude-no-verde.jpg" alt="Saúde no Verde - Stone" style={{maxWidth:280,height:"auto",borderRadius:12,boxShadow:"0 2px 12px rgba(0,0,0,0.08)"}}/></div><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:52}}><div style={{width:36,height:36,borderRadius:8,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:700,fontSize:16}}>V</div><span style={{fontFamily:T.fD,fontSize:18,fontWeight:500,color:T.inkMid}}>Hospital Virtual Verde</span></div>
-          <div style={{width:72,height:72,borderRadius:16,background:T.green,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:20,boxShadow:"0 4px 20px "+T.green+"40"}}><span style={{fontSize:28,color:"#FFF",fontWeight:700}}>V</span></div>
-          <div style={{fontFamily:T.fD,fontSize:24,color:T.ink,marginBottom:4}}>Hospital Virtual Verde</div>
+          
+          
           
           <div style={{fontSize:13,color:T.inkMid,lineHeight:2}}>Cuide das 6 dimensões da sua vitalidade. Veja sua <em>potência florescer</em>. E se uma doença surgir, tratamos com base nas melhores evidências.</div>
         </div>
