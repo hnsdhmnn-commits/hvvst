@@ -3402,9 +3402,9 @@ export function Flor({ scores, tamanho }) {
 
   return (
     <svg
-      width={size + 60}
+      width={size + 100}
       height={size + 32}
-      viewBox={"-30 -16 " + (size + 60) + " " + (size + 32)}
+      viewBox={"-50 -16 " + (size + 100) + " " + (size + 32)}
       style={{ display: "block", animation: "flor-respira 7s ease-in-out infinite" }}
     >
       <defs>
