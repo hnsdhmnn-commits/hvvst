@@ -247,11 +247,15 @@ async function salvarCheckinDB(pacienteId,dados){
 // ─── Plano de Cuidado — Banco ─────────────────────────────────────
 async function carregarPlanoCuidado(pacienteId){
   const{data}=await supabase.from("plano_cuidado")
-    .select("*")
+    .select("*, episodio_acoes(tipo)")
     .eq("paciente_id",pacienteId)
     .eq("ativo",true)
     .order("area").order("ordem");
-  return data||[];
+  // Achata: copia tipo da episodio_acao para um campo plano (acao_tipo)
+  return (data||[]).map(t=>({
+    ...t,
+    acao_tipo: t.episodio_acoes ? t.episodio_acoes.tipo : null,
+  }));
 }
 
 // ─── Vacinação (CHEVO MASTER) ─────────────────────────────────────
@@ -3192,9 +3196,19 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
   // Aba "prescricoes": origem='medico' E NÃO categoria='episodio'
   // Aba "episodios": categoria='episodio'
   // Aba "vacinacao": vem de vacinas (não de plano_cuidado)
+  // ─── Particionar tarefas por aba ──────────────────────────────────
+  // Aba "estilo": origem='ana' (Florence)
+  // Aba "prescricoes": medicamentos + exames + orientações fora de episódio
+  //                    + medicamentos vindos de episódio (acao_tipo='medicamento')
+  // Aba "episodios": tarefas de episódio EXCETO medicamentos
+  // Aba "vacinacao": vem de vacinas (não de plano_cuidado)
+  const ehMedicamentoDeEpisodio = (t)=> t.categoria==="episodio" && t.acao_tipo==="medicamento";
   const tEstilo     = tarefas.filter(t=>t.origem==="ana"||t.origem==="florence");
-  const tPrescricoes= tarefas.filter(t=>t.origem==="medico"&&t.categoria!=="episodio");
-  const tEpisodios  = tarefas.filter(t=>t.categoria==="episodio");
+  const tPrescricoes= tarefas.filter(t=>
+    (t.origem==="medico" && t.categoria!=="episodio")  // prescrição direta do médico
+    || ehMedicamentoDeEpisodio(t)                       // medicamento que veio de episódio
+  );
+  const tEpisodios  = tarefas.filter(t=>t.categoria==="episodio" && !ehMedicamentoDeEpisodio(t));
 
   // ─── Adesão geral (últimos 30 dias) ───────────────────────────────
   const totalEsperado = tarefas.reduce((acc,t)=>{
@@ -3299,11 +3313,12 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
     };
 
     // Particionar em grupos
-    const medicamentosHoje  = tarefas.filter(t=>t.categoria==="medicamento" && aindaFalta(t));
-    const episodioHoje      = tarefas.filter(t=>t.categoria==="episodio" && t.categoria!=="medicamento" && aindaFalta(t));
-    const florenceHoje      = tEstilo.filter(t=>aindaFalta(t));
-    const prescricoesHoje   = tPrescricoes.filter(t=>aindaFalta(t)).filter(t=>!medicamentosHoje.includes(t));
-    const examesPendentes   = tarefas.filter(t=>t.categoria==="exame" && aindaFalta(t) && !episodioHoje.includes(t));
+    // Episódio: tudo do episódio EXCETO medicamentos
+    // Florence: recomendações Florence
+    // Prescrições: tudo de tPrescricoes (já inclui medicamentos vindos de episódio)
+    const episodioHoje      = tEpisodios.filter(aindaFalta);
+    const florenceHoje      = tEstilo.filter(aindaFalta);
+    const prescricoesHoje   = tPrescricoes.filter(aindaFalta);
 
     // Concluídas hoje (todas as tarefas que NÃO estão em "ainda falta")
     const concluidasHoje = tarefas.filter(t=>{
@@ -3324,7 +3339,7 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
     });
 
     // Total de itens em aberto
-    const totalAberto = medicamentosHoje.length + episodioHoje.length + florenceHoje.length + prescricoesHoje.length + examesPendentes.length + vacinasUrgentes.length;
+    const totalAberto = episodioHoje.length + florenceHoje.length + prescricoesHoje.length + vacinasUrgentes.length;
 
     if(totalAberto===0 && concluidasHoje.length===0){
       return(
@@ -3390,19 +3405,7 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
           </Card>
         )}
 
-        {/* 2. Medicamentos */}
-        {medicamentosHoje.length>0&&(
-          <Card style={{padding:"0",overflow:"hidden",marginBottom:12,borderLeft:"4px solid "+T.green}}>
-            <div style={{padding:"12px 18px",background:T.greenBg,borderBottom:"1px solid "+T.greenBorder,display:"flex",alignItems:"center",gap:10}}>
-              <span style={{fontSize:18}}>💊</span>
-              <span style={{fontFamily:T.fD,fontSize:14,color:T.green,letterSpacing:"0.05em"}}>MEDICAMENTOS</span>
-              <span style={{marginLeft:"auto",fontSize:11,color:T.green,fontWeight:600}}>{medicamentosHoje.length}</span>
-            </div>
-            {medicamentosHoje.map(t=>renderTarefa(t,T.green))}
-          </Card>
-        )}
-
-        {/* 3. Episódio */}
+        {/* 2. Episódio (sem medicamentos) */}
         {episodioHoje.length>0&&(
           <Card style={{padding:"0",overflow:"hidden",marginBottom:12,borderLeft:"4px solid "+T.green}}>
             <div style={{padding:"12px 18px",background:T.greenBg,borderBottom:"1px solid "+T.greenBorder,display:"flex",alignItems:"center",gap:10}}>
@@ -3414,7 +3417,7 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
           </Card>
         )}
 
-        {/* 4. Florence */}
+        {/* 3. Florence */}
         {florenceHoje.length>0&&(
           <Card style={{padding:"0",overflow:"hidden",marginBottom:12,borderLeft:"4px solid "+T.gold}}>
             <div style={{padding:"12px 18px",background:T.goldFaint,borderBottom:"1px solid "+T.goldBorder,display:"flex",alignItems:"center",gap:10}}>
@@ -3429,11 +3432,11 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
           </Card>
         )}
 
-        {/* 5. Prescrições do médico (não medicamento, não episódio) */}
+        {/* 4. Prescrições do médico (medicamentos + exames + orientações) */}
         {prescricoesHoje.length>0&&(
           <Card style={{padding:"0",overflow:"hidden",marginBottom:12,borderLeft:"4px solid "+T.blue}}>
             <div style={{padding:"12px 18px",background:T.blueBg,borderBottom:"1px solid "+T.blue+"20",display:"flex",alignItems:"center",gap:10}}>
-              <span style={{fontSize:18}}>📋</span>
+              <span style={{fontSize:18}}>💊</span>
               <span style={{fontFamily:T.fD,fontSize:14,color:T.blue,letterSpacing:"0.05em"}}>PRESCRIÇÕES DO MÉDICO</span>
               <span style={{marginLeft:"auto",fontSize:11,color:T.blue,fontWeight:600}}>{prescricoesHoje.length}</span>
             </div>
@@ -3441,19 +3444,7 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
           </Card>
         )}
 
-        {/* 6. Exames pendentes */}
-        {examesPendentes.length>0&&(
-          <Card style={{padding:"0",overflow:"hidden",marginBottom:12,borderLeft:"4px solid "+T.purple}}>
-            <div style={{padding:"12px 18px",background:T.purpleBg,borderBottom:"1px solid "+T.purple+"20",display:"flex",alignItems:"center",gap:10}}>
-              <span style={{fontSize:18}}>🔬</span>
-              <span style={{fontFamily:T.fD,fontSize:14,color:T.purple,letterSpacing:"0.05em"}}>EXAMES A REALIZAR</span>
-              <span style={{marginLeft:"auto",fontSize:11,color:T.purple,fontWeight:600}}>{examesPendentes.length}</span>
-            </div>
-            {examesPendentes.map(t=>renderTarefa(t,T.purple))}
-          </Card>
-        )}
-
-        {/* 7. Concluídas hoje */}
+        {/* 5. Concluídas hoje */}
         {concluidasHoje.length>0 && renderConcluidasHoje(concluidasHoje)}
       </>
     );
