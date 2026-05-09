@@ -3348,12 +3348,12 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
 // ═════════════════════════════════════════════════════════════
 
 const FLOR_EIXOS = [
-  { id: "move",    nome: "MOVE",    cor: "#E07B4A" },
-  { id: "fuel",    nome: "FUEL",    cor: "#6FA539" },
-  { id: "rest",    nome: "REST",    cor: "#4A7BA8" },
-  { id: "calm",    nome: "CALM",    cor: "#8B6FA5" },
-  { id: "connect", nome: "CONNECT", cor: "#D9A82B" },
-  { id: "soul",    nome: "SOUL",    cor: "#B07A33" }
+  { id: "move",    nome: "MOVIMENTO", cor: "#E07B4A" },
+  { id: "fuel",    nome: "CONSUMO",   cor: "#6FA539" },
+  { id: "rest",    nome: "DESCANSO",  cor: "#4A7BA8" },
+  { id: "calm",    nome: "CALMA",     cor: "#8B6FA5" },
+  { id: "connect", nome: "V },
+  { id: "soul",    nome: "PROP }
 ];
 
 export function Flor({ scores, tamanho }) {
@@ -3492,12 +3492,12 @@ export function Flor({ scores, tamanho }) {
 // ═════════════════════════════════════════════════════════════
 
 const CHECKIN_EIXOS = [
-  { id: "move",    nome: "MOVE",    cor: "#E07B4A", pergunta: "Como seu corpo se sentiu em movimento hoje?" },
-  { id: "fuel",    nome: "FUEL",    cor: "#6FA539", pergunta: "Como foi sua relação com a comida hoje?" },
-  { id: "rest",    nome: "REST",    cor: "#4A7BA8", pergunta: "Como foi seu descanso e seu sono?" },
-  { id: "calm",    nome: "CALM",    cor: "#8B6FA5", pergunta: "Como está sua sensação de calma e foco?" },
-  { id: "connect", nome: "CONNECT", cor: "#D9A82B", pergunta: null /* dinamica */ },
-  { id: "soul",    nome: "SOUL",    cor: "#B07A33", pergunta: "Você sentiu sentido no que fez hoje?" }
+  { id: "move",    nome: "MOVIMENTO", cor: "#E07B4A", pergunta: "Como seu corpo se sentiu em movimento hoje?" },
+  { id: "fuel",    nome: "CONSUMO",   cor: "#6FA539", pergunta: "Como foi seu consumo hoje? (comida, hidratação, álcool, café…)" },
+  { id: "rest",    nome: "DESCANSO",  cor: "#4A7BA8", pergunta: "Como foi seu descanso e seu sono?" },
+  { id: "calm",    nome: "CALMA",     cor: "#8B6FA5", pergunta: "Como está sua sensação de calma e foco?" },
+  { id: "connect", nome: "V, pergunta: null /* dinamica */ },
+  { id: "soul",    nome: "PROP, pergunta: "Você sentiu sentido no que fez hoje?" }
 ];
 
 // Sub-aspectos do CONNECT por dia da semana (0=domingo, 1=segunda, ...)
@@ -3851,12 +3851,12 @@ function cardSimples(){
 // ═════════════════════════════════════════════════════════════
 
 const VITAL_EIXOS = [
-  { id: "move",    nome: "Move",    cor: "#E07B4A", desc: "Movimento" },
-  { id: "fuel",    nome: "Fuel",    cor: "#6FA539", desc: "Alimentação" },
-  { id: "rest",    nome: "Rest",    cor: "#4A7BA8", desc: "Sono e descanso" },
-  { id: "calm",    nome: "Calm",    cor: "#8B6FA5", desc: "Foco e calma" },
-  { id: "connect", nome: "Connect", cor: "#D9A82B", desc: "Vínculos" },
-  { id: "soul",    nome: "Soul",    cor: "#B07A33", desc: "Propósito" }
+  { id: "move",    nome: "Movimento", cor: "#E07B4A", desc: "exercício e mobilidade" },
+  { id: "fuel",    nome: "Consumo",   cor: "#6FA539", desc: "comida e hidratação" },
+  { id: "rest",    nome: "Descanso",  cor: "#4A7BA8", desc: "sono e pausas" },
+  { id: "calm",    nome: "Calma",     cor: "#8B6FA5", desc: "foco e equilíbrio" },
+  { id: "connect", nome: "Vínculos",  cor: "#D9A82B", desc: "relações" },
+  { id: "soul",    nome: "Propósito", cor: "#B07A33", desc: "sentido" }
 ];
 
 function ModuloVitalidade({ pacienteId, setModulo }) {
