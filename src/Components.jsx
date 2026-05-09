@@ -3058,7 +3058,7 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
   const[desfechos,setDesfechos]=useState([]);
   const[loading,setLoading]=useState(true);
   const[gerando,setGerando]=useState(false);
-  const[abaAtiva,setAbaAtiva]=useState("estilo"); // estilo | prescricoes | episodios | vacinacao
+  const[abaAtiva,setAbaAtiva]=useState("hoje"); // hoje | estilo | prescricoes | episodios | vacinacao
   const eq=EQUIPE.find(e=>e.id==="enfermeira");
 
   // Mapa eixo → label PT-BR + cor (alinhado com FLOR_EIXOS)
@@ -3266,6 +3266,215 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
     );
   };
 
+  // ─── Aba Hoje (lista priorizada de tarefas do dia) ────────────────
+  const renderAbaHoje=()=>{
+    const hojeStr = dataHoje();
+    const hoje = new Date();
+    const horaAtual = hoje.getHours();
+    const saudacao = horaAtual < 12 ? "Bom dia" : horaAtual < 18 ? "Boa tarde" : "Boa noite";
+
+    // Tarefa "ainda precisa fazer hoje"?
+    const aindaFalta = (t)=>{
+      const tipo=t.frequencia_tipo||t.frequencia||"diario";
+      if(t.visivel_a_partir==="proxima")return false;
+      if(tipo==="unico")return !registros[t.id];
+      if(tipo==="diario")return !((registros[t.id]&&registros[t.id].data)===hojeStr);
+      if(tipo==="n_vezes_semana"){
+        const meta=t.meta_semanal||3;
+        return concluidasNaSemana(t.id) < meta;
+      }
+      if(tipo==="uma_vez_semana"){
+        const seg=inicioSemana();
+        const tem = Object.entries(registrosPorData[t.id]||{})
+          .some(([data,status])=>data>=seg && status==="concluido");
+        return !tem;
+      }
+      if(tipo==="uma_vez_mes" || tipo==="mensal"){
+        const mesAtual=hojeStr.slice(0,7);
+        const tem = Object.entries(registrosPorData[t.id]||{})
+          .some(([data,status])=>data.startsWith(mesAtual) && status==="concluido");
+        return !tem;
+      }
+      return true;
+    };
+
+    // Particionar em grupos
+    const medicamentosHoje  = tarefas.filter(t=>t.categoria==="medicamento" && aindaFalta(t));
+    const episodioHoje      = tarefas.filter(t=>t.categoria==="episodio" && t.categoria!=="medicamento" && aindaFalta(t));
+    const florenceHoje      = tEstilo.filter(t=>aindaFalta(t));
+    const prescricoesHoje   = tPrescricoes.filter(t=>aindaFalta(t)).filter(t=>!medicamentosHoje.includes(t));
+    const examesPendentes   = tarefas.filter(t=>t.categoria==="exame" && aindaFalta(t) && !episodioHoje.includes(t));
+
+    // Concluídas hoje (todas as tarefas que NÃO estão em "ainda falta")
+    const concluidasHoje = tarefas.filter(t=>{
+      if(t.visivel_a_partir==="proxima")return false;
+      const tipo=t.frequencia_tipo||t.frequencia||"diario";
+      if(tipo==="diario") return (registros[t.id]&&registros[t.id].data)===hojeStr;
+      // pra outros tipos, conta se foi marcado hoje
+      return (registrosPorData[t.id]||{})[hojeStr]==="concluido";
+    });
+
+    // Vacinas urgentes (vencidas ou pendentes-pra-fazer)
+    const vacinasUrgentes = vacinasAplicaveis.filter(v=>{
+      const reg=vacinas.registros.find(r=>r.config_id===v.id);
+      if(!reg)return true; // sem registro = pendente
+      if(reg.status==="atrasada")return true;
+      if(reg.proximo_previsto && new Date(reg.proximo_previsto+"T12:00:00") < new Date())return true;
+      return false;
+    });
+
+    // Total de itens em aberto
+    const totalAberto = medicamentosHoje.length + episodioHoje.length + florenceHoje.length + prescricoesHoje.length + examesPendentes.length + vacinasUrgentes.length;
+
+    if(totalAberto===0 && concluidasHoje.length===0){
+      return(
+        <Card style={{padding:"40px",textAlign:"center"}}>
+          <div style={{fontSize:48,marginBottom:16}}>🌅</div>
+          <div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginBottom:8}}>Você não tem tarefas para hoje</div>
+          <div style={{fontSize:12,color:T.inkMid,lineHeight:1.7,maxWidth:380,margin:"0 auto"}}>Volte amanhã ou explore as outras abas para conhecer seu plano completo.</div>
+        </Card>
+      );
+    }
+
+    if(totalAberto===0 && concluidasHoje.length>0){
+      return(
+        <>
+          <Card style={{padding:"40px",textAlign:"center",marginBottom:16,background:T.greenBg,border:"1px solid "+T.greenBorder}}>
+            <div style={{fontSize:48,marginBottom:16}}>🎉</div>
+            <div style={{fontFamily:T.fD,fontSize:20,color:T.green,marginBottom:8}}>Tudo em dia, {(form&&form.nome)?form.nome.split(" ")[0]:""}!</div>
+            <div style={{fontSize:12,color:T.inkMid,lineHeight:1.7,maxWidth:380,margin:"0 auto"}}>Você completou {concluidasHoje.length} tarefa{concluidasHoje.length!==1?"s":""} hoje. Continue assim.</div>
+          </Card>
+          {renderConcluidasHoje(concluidasHoje)}
+        </>
+      );
+    }
+
+    return(
+      <>
+        {/* Saudação + contador */}
+        <div style={{marginBottom:16,padding:"14px 18px",background:T.bgWarm,borderRadius:10}}>
+          <div style={{fontSize:13,color:T.inkMid}}>{saudacao}, {(form&&form.nome)?form.nome.split(" ")[0]:""}.</div>
+          <div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginTop:2}}>Você tem <strong>{totalAberto} tarefa{totalAberto!==1?"s":""}</strong> hoje.</div>
+        </div>
+
+        {/* 1. Vacinas urgentes (vencidas) */}
+        {vacinasUrgentes.length>0&&(
+          <Card style={{padding:"0",overflow:"hidden",marginBottom:12,borderLeft:"4px solid "+T.red}}>
+            <div style={{padding:"12px 18px",background:"#FEE",borderBottom:"1px solid "+T.redBg,display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:18}}>🚨</span>
+              <span style={{fontFamily:T.fD,fontSize:14,color:T.red,letterSpacing:"0.05em"}}>VACINAÇÃO — ATENÇÃO</span>
+              <span style={{marginLeft:"auto",fontSize:11,color:T.red,fontWeight:600}}>{vacinasUrgentes.length}</span>
+            </div>
+            {vacinasUrgentes.map(v=>{
+              const reg=vacinas.registros.find(r=>r.config_id===v.id);
+              const vencida = reg && (reg.status==="atrasada" || (reg.proximo_previsto && new Date(reg.proximo_previsto+"T12:00:00") < new Date()));
+              return(
+                <div key={v.id} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"12px 18px",borderBottom:"1px solid "+T.border}}>
+                  <span style={{fontSize:18,flexShrink:0,marginTop:1}}>💉</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,color:T.ink,fontWeight:500,marginBottom:2}}>{v.nome}</div>
+                    {v.descricao&&<div style={{fontSize:11,color:T.inkFaint,lineHeight:1.5}}>{v.descricao}</div>}
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6,flexShrink:0}}>
+                    <span style={{fontSize:9,padding:"3px 8px",borderRadius:4,background:vencida?"#FEE":T.orangeBg,color:vencida?T.red:T.orange,fontWeight:700}}>
+                      {vencida?"VENCIDA":"A FAZER"}
+                    </span>
+                    <button onClick={()=>handleMarcarVacina(v.id)}
+                      style={{fontSize:10,padding:"4px 10px",border:"1px solid "+(vencida?T.red:T.orange),borderRadius:6,background:"#FFF",color:vencida?T.red:T.orange,cursor:"pointer",fontWeight:600,whiteSpace:"nowrap"}}>
+                      Já tomei
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </Card>
+        )}
+
+        {/* 2. Medicamentos */}
+        {medicamentosHoje.length>0&&(
+          <Card style={{padding:"0",overflow:"hidden",marginBottom:12,borderLeft:"4px solid "+T.green}}>
+            <div style={{padding:"12px 18px",background:T.greenBg,borderBottom:"1px solid "+T.greenBorder,display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:18}}>💊</span>
+              <span style={{fontFamily:T.fD,fontSize:14,color:T.green,letterSpacing:"0.05em"}}>MEDICAMENTOS</span>
+              <span style={{marginLeft:"auto",fontSize:11,color:T.green,fontWeight:600}}>{medicamentosHoje.length}</span>
+            </div>
+            {medicamentosHoje.map(t=>renderTarefa(t,T.green))}
+          </Card>
+        )}
+
+        {/* 3. Episódio */}
+        {episodioHoje.length>0&&(
+          <Card style={{padding:"0",overflow:"hidden",marginBottom:12,borderLeft:"4px solid "+T.green}}>
+            <div style={{padding:"12px 18px",background:T.greenBg,borderBottom:"1px solid "+T.greenBorder,display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:18}}>🏥</span>
+              <span style={{fontFamily:T.fD,fontSize:14,color:T.green,letterSpacing:"0.05em"}}>PROTOCOLO CLÍNICO</span>
+              <span style={{marginLeft:"auto",fontSize:11,color:T.green,fontWeight:600}}>{episodioHoje.length}</span>
+            </div>
+            {episodioHoje.map(t=>renderTarefa(t,T.green))}
+          </Card>
+        )}
+
+        {/* 4. Florence */}
+        {florenceHoje.length>0&&(
+          <Card style={{padding:"0",overflow:"hidden",marginBottom:12,borderLeft:"4px solid "+T.gold}}>
+            <div style={{padding:"12px 18px",background:T.goldFaint,borderBottom:"1px solid "+T.goldBorder,display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:18}}>🌿</span>
+              <span style={{fontFamily:T.fD,fontSize:14,color:T.gold,letterSpacing:"0.05em"}}>RECOMENDAÇÕES FLORENCE</span>
+              <span style={{marginLeft:"auto",fontSize:11,color:T.gold,fontWeight:600}}>{florenceHoje.length}</span>
+            </div>
+            {florenceHoje.map(t=>{
+              const info = EIXO_INFO[t.eixo] || {};
+              return renderTarefa(t,info.cor||T.gold);
+            })}
+          </Card>
+        )}
+
+        {/* 5. Prescrições do médico (não medicamento, não episódio) */}
+        {prescricoesHoje.length>0&&(
+          <Card style={{padding:"0",overflow:"hidden",marginBottom:12,borderLeft:"4px solid "+T.blue}}>
+            <div style={{padding:"12px 18px",background:T.blueBg,borderBottom:"1px solid "+T.blue+"20",display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:18}}>📋</span>
+              <span style={{fontFamily:T.fD,fontSize:14,color:T.blue,letterSpacing:"0.05em"}}>PRESCRIÇÕES DO MÉDICO</span>
+              <span style={{marginLeft:"auto",fontSize:11,color:T.blue,fontWeight:600}}>{prescricoesHoje.length}</span>
+            </div>
+            {prescricoesHoje.map(t=>renderTarefa(t,T.blue))}
+          </Card>
+        )}
+
+        {/* 6. Exames pendentes */}
+        {examesPendentes.length>0&&(
+          <Card style={{padding:"0",overflow:"hidden",marginBottom:12,borderLeft:"4px solid "+T.purple}}>
+            <div style={{padding:"12px 18px",background:T.purpleBg,borderBottom:"1px solid "+T.purple+"20",display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:18}}>🔬</span>
+              <span style={{fontFamily:T.fD,fontSize:14,color:T.purple,letterSpacing:"0.05em"}}>EXAMES A REALIZAR</span>
+              <span style={{marginLeft:"auto",fontSize:11,color:T.purple,fontWeight:600}}>{examesPendentes.length}</span>
+            </div>
+            {examesPendentes.map(t=>renderTarefa(t,T.purple))}
+          </Card>
+        )}
+
+        {/* 7. Concluídas hoje */}
+        {concluidasHoje.length>0 && renderConcluidasHoje(concluidasHoje)}
+      </>
+    );
+  };
+
+  const renderConcluidasHoje=(concluidasHoje)=>(
+    <Card style={{padding:"0",overflow:"hidden",marginBottom:12,opacity:0.75}}>
+      <div style={{padding:"12px 18px",background:T.surfaceMid,borderBottom:"1px solid "+T.border,display:"flex",alignItems:"center",gap:10}}>
+        <span style={{fontSize:18}}>✓</span>
+        <span style={{fontFamily:T.fD,fontSize:14,color:T.inkMid,letterSpacing:"0.05em"}}>CONCLUÍDAS HOJE</span>
+        <span style={{marginLeft:"auto",fontSize:11,color:T.inkMid,fontWeight:600}}>{concluidasHoje.length}</span>
+      </div>
+      {concluidasHoje.map(t=>(
+        <div key={t.id} style={{padding:"10px 18px",borderBottom:"1px solid "+T.border,display:"flex",gap:10,alignItems:"center"}}>
+          <span style={{fontSize:14,color:T.green}}>✓</span>
+          <span style={{fontSize:12,color:T.inkMid,textDecoration:"line-through",flex:1}}>{t.titulo}</span>
+        </div>
+      ))}
+    </Card>
+  );
+
   // ─── Aba Estilo de Vida (Florence, agrupado por eixo) ─────────────
   const renderAbaEstilo=()=>{
     if(tEstilo.length===0)return(
@@ -3460,8 +3669,43 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
     );
   };
 
+  // ─── Contagem para o badge da aba "Hoje" ──────────────────────────
+  const contarAbertasHoje = ()=>{
+    const hojeStr = dataHoje();
+    const aindaFalta = (t)=>{
+      const tipo=t.frequencia_tipo||t.frequencia||"diario";
+      if(t.visivel_a_partir==="proxima")return false;
+      if(tipo==="unico")return !registros[t.id];
+      if(tipo==="diario")return !((registros[t.id]&&registros[t.id].data)===hojeStr);
+      if(tipo==="n_vezes_semana"){
+        const meta=t.meta_semanal||3;
+        return concluidasNaSemana(t.id) < meta;
+      }
+      if(tipo==="uma_vez_semana"){
+        const seg=inicioSemana();
+        return !Object.entries(registrosPorData[t.id]||{}).some(([data,status])=>data>=seg && status==="concluido");
+      }
+      if(tipo==="uma_vez_mes" || tipo==="mensal"){
+        const mesAtual=hojeStr.slice(0,7);
+        return !Object.entries(registrosPorData[t.id]||{}).some(([data,status])=>data.startsWith(mesAtual) && status==="concluido");
+      }
+      return true;
+    };
+    const tarefasAbertas = tarefas.filter(aindaFalta).length;
+    const vacinasUrgentesCount = vacinasAplicaveis.filter(v=>{
+      const reg=vacinas.registros.find(r=>r.config_id===v.id);
+      if(!reg)return true;
+      if(reg.status==="atrasada")return true;
+      if(reg.proximo_previsto && new Date(reg.proximo_previsto+"T12:00:00") < new Date())return true;
+      return false;
+    }).length;
+    return tarefasAbertas + vacinasUrgentesCount;
+  };
+  const totalHoje = contarAbertasHoje();
+
   // ─── ESTRUTURA PRINCIPAL ──────────────────────────────────────────
   const ABAS=[
+    {id:"hoje",        label:"Hoje",           icon:"📅", count:totalHoje, pendente:true},
     {id:"estilo",      label:"Estilo de vida", icon:"🌿", count:tEstilo.length},
     {id:"prescricoes", label:"Prescrições",    icon:"💊", count:tPrescricoes.length},
     {id:"episodios",   label:"Episódios",      icon:"🏥", count:tEpisodios.length},
@@ -3517,6 +3761,7 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
 
             {/* Conteúdo da aba */}
             <div>
+              {abaAtiva==="hoje"        && renderAbaHoje()}
               {abaAtiva==="estilo"      && renderAbaEstilo()}
               {abaAtiva==="prescricoes" && renderAbaPrescricoes()}
               {abaAtiva==="episodios"   && renderAbaEpisodios()}
