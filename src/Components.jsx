@@ -3352,8 +3352,8 @@ const FLOR_EIXOS = [
   { id: "fuel",    nome: "CONSUMO",   cor: "#6FA539" },
   { id: "rest",    nome: "DESCANSO",  cor: "#4A7BA8" },
   { id: "calm",    nome: "CALMA",     cor: "#8B6FA5" },
-  { id: "connect", nome: "V },
-  { id: "soul",    nome: "PROP }
+  { id: "connect", nome: "VÍNCULOS",  cor: "#D9A82B" },
+  { id: "soul",    nome: "PROPÓSITO", cor: "#B07A33" }
 ];
 
 export function Flor({ scores, tamanho }) {
