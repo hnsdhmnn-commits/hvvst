@@ -4038,8 +4038,139 @@ function ModuloIntegracoes(){
 }
 
 // ─── Processing ───────────────────────────────────────────────────
-export function ScreenProcessing(){
-  return(<div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.fB}}><div style={{textAlign:"center",maxWidth:420,padding:32}}><div style={{fontFamily:T.fD,fontSize:52,color:T.gold,marginBottom:8,animation:"pulse 2s ease infinite",lineHeight:1}}>H</div><div style={{fontFamily:T.fD,fontSize:28,color:T.ink,marginBottom:4}}>Sua equipe está se preparando</div><div style={{fontSize:11,color:T.inkFaint,marginBottom:32,letterSpacing:"0.12em"}}>EQUIPE HDOHMANN · CONFIGURANDO SEU PLANO</div><div style={{display:"flex",flexDirection:"column",gap:10}}>{["Ana está montando seu plano de cuidado...","Coach analisando seus objetivos...","Rafael verificando seus medicamentos...","Dra. Clara aguardando seu laudo genético...","Sincronizando com o servidor..."].map((msg,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",background:T.surface,borderRadius:8,border:"1px solid "+T.border,boxShadow:T.shadowCard,animation:`fadeUp 0.4s ease ${i*0.45}s both`}}><div style={{width:7,height:7,borderRadius:"50%",background:T.green,animation:`pulse 1.5s ease ${i*0.3}s infinite`,flexShrink:0}}/><span style={{fontSize:12,color:T.inkMid}}>{msg}</span></div>))}</div></div></div>);
+// ═════════════════════════════════════════════════════════════
+// SCREEN PROCESSING — HVV (refatorado com tom acolhedor)
+// ═════════════════════════════════════════════════════════════
+// Tela de espera após onboarding.
+// Mostra mini-flor animada + saudação acolhedora + Florence + 6 eixos.
+// Tom: acolhedor, sem pressa. Identidade ancorada em "cuidado".
+// ═════════════════════════════════════════════════════════════
+
+const SP_EIXOS = [
+  { id: "move",    cor: "#E07B4A", msg: "Movimento: pensando como cuidar do seu corpo com movimento" },
+  { id: "fuel",    cor: "#6FA539", msg: "Consumo: cuidando de tudo que você leva para dentro do seu corpo" },
+  { id: "rest",    cor: "#4A7BA8", msg: "Descanso: cuidando do seu sono e das suas pausas" },
+  { id: "calm",    cor: "#8B6FA5", msg: "Calma: cuidando do seu equilíbrio emocional" },
+  { id: "connect", cor: "#D9A82B", msg: "Vínculos: olhando suas relações de família, amizade, trabalho" },
+  { id: "soul",    cor: "#B07A33", msg: "Propósito: olhando seus valores e o que faz seus dias valerem a pena" }
+];
+
+// Mini-flor (versão simplificada, ícone-logo no topo)
+function MiniFlor({ size }){
+  const s = size || 72;
+  const cx = s / 2;
+  const cy = s / 2;
+  const rPetala = (s / 2) - 6;
+  return (
+    <svg width={s} height={s} viewBox={"0 0 " + s + " " + s} style={{display:"block", animation:"flor-respira 5s ease-in-out infinite"}}>
+      {SP_EIXOS.map((eixo, i) => {
+        const ang = -Math.PI/2 + (i * Math.PI / 3);
+        const tipX = cx + rPetala * Math.cos(ang);
+        const tipY = cy + rPetala * Math.sin(ang);
+        const midX = (cx + tipX) / 2;
+        const midY = (cy + tipY) / 2;
+        const angDeg = (ang * 180 / Math.PI) + 90;
+        const half = rPetala * 0.32;
+        const len = Math.hypot(tipX - cx, tipY - cy);
+        return (
+          <g key={eixo.id} transform={"rotate(" + angDeg + " " + midX + " " + midY + ")"}>
+            <ellipse cx={midX} cy={midY} rx={half} ry={len/2} fill={eixo.cor} fillOpacity="0.55" stroke={eixo.cor} strokeOpacity="0.8" strokeWidth="0.8"/>
+          </g>
+        );
+      })}
+      <circle cx={cx} cy={cy} r={rPetala * 0.18} fill="white" stroke="#E5E1D6" strokeWidth="0.8"/>
+    </svg>
+  );
 }
+
+export function ScreenProcessing(){
+  return (
+    <div style={{minHeight:"100vh", background:T.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:T.fB, padding:"24px"}}>
+      <div style={{textAlign:"center", maxWidth:520, width:"100%"}}>
+
+        {/* Logo: mini-flor animada */}
+        <div style={{marginBottom:20, display:"flex", justifyContent:"center"}}>
+          <MiniFlor size={76}/>
+        </div>
+
+        {/* Título */}
+        <div style={{fontFamily:T.fD, fontSize:30, color:T.ink, marginBottom:8, lineHeight:1.2}}>
+          Bem-vindo ao HVV
+        </div>
+        <div style={{fontSize:14, color:T.inkMid, marginBottom:24, lineHeight:1.5, fontStyle:"italic"}}>
+          Estamos preparando seu cuidado, com calma.
+        </div>
+
+        {/* Selo */}
+        <div style={{fontSize:10, color:T.inkFaint, marginBottom:24, letterSpacing:"0.14em", fontWeight:600}}>
+          EQUIPE HVV · CONFIGURANDO SEU CUIDADO
+        </div>
+
+        {/* Florence em destaque */}
+        <div style={{
+          display:"flex", alignItems:"center", gap:14,
+          padding:"15px 18px",
+          background:T.surface,
+          borderRadius:10,
+          border:"1.5px solid " + T.gold,
+          boxShadow:T.shadowCard,
+          marginBottom:14,
+          animation:"fadeUp 0.5s ease 0s both"
+        }}>
+          <div style={{
+            width:32, height:32, borderRadius:"50%",
+            background:T.goldFaint,
+            display:"flex", alignItems:"center", justifyContent:"center",
+            flexShrink:0,
+            border:"1.5px solid " + T.goldBorder
+          }}>
+            <span style={{fontSize:18}}>🌸</span>
+          </div>
+          <div style={{flex:1, textAlign:"left"}}>
+            <div style={{fontSize:10, color:T.gold, fontWeight:700, letterSpacing:"0.12em", marginBottom:3}}>
+              FLORENCE · COORDENADORA DE CUIDADO
+            </div>
+            <div style={{fontSize:13, color:T.ink, lineHeight:1.4}}>
+              Florence preparando seu acolhimento
+            </div>
+          </div>
+          <div style={{
+            width:8, height:8, borderRadius:"50%",
+            background:T.gold,
+            animation:"pulse 1.5s ease infinite",
+            flexShrink:0
+          }}/>
+        </div>
+
+        {/* 6 Eixos */}
+        <div style={{display:"flex", flexDirection:"column", gap:9}}>
+          {SP_EIXOS.map((eixo, i) => (
+            <div key={eixo.id} style={{
+              display:"flex", alignItems:"center", gap:12,
+              padding:"12px 16px",
+              background:T.surface,
+              borderRadius:8,
+              border:"1px solid " + T.border,
+              boxShadow:T.shadowCard,
+              animation: "fadeUp 0.5s ease " + ((i+1) * 0.6) + "s both"
+            }}>
+              <div style={{
+                width:8, height:8, borderRadius:"50%",
+                background: eixo.cor,
+                animation: "pulse 1.5s ease " + ((i+1) * 0.2) + "s infinite",
+                flexShrink:0
+              }}/>
+              <span style={{fontSize:12.5, color:T.inkMid, lineHeight:1.45, textAlign:"left"}}>
+                {eixo.msg}
+              </span>
+            </div>
+          ))}
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 
 // ─── ROOT ─────────────────────────────────────────────────────────
