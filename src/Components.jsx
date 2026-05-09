@@ -254,6 +254,57 @@ async function carregarPlanoCuidado(pacienteId){
   return data||[];
 }
 
+// ─── Vacinação (CHEVO MASTER) ─────────────────────────────────────
+async function carregarVacinas(pacienteId,empresaId){
+  // 1. Config aplicável (gênero, idade) da empresa
+  // 2. Registros do paciente
+  const{data:cfg}=await supabase.from("vacinacao_config")
+    .select("*")
+    .eq("empresa_id",empresaId)
+    .eq("ativo",true)
+    .order("idade_inicio");
+  const{data:regs}=await supabase.from("vacinacao_registros")
+    .select("*")
+    .eq("paciente_id",pacienteId)
+    .order("data_aplicada",{ascending:false});
+  return{config:cfg||[],registros:regs||[]};
+}
+
+async function registrarVacina(configId,pacienteId,dataAplicada,doseNumero){
+  const{error}=await supabase.from("vacinacao_registros").insert({
+    config_id:configId,
+    paciente_id:pacienteId,
+    data_aplicada:dataAplicada||new Date().toISOString().slice(0,10),
+    dose_numero:doseNumero||1,
+    status:"aplicada",
+  });
+  return!error;
+}
+
+// ─── Desfechos do episódio (PROMs/medições) ───────────────────────
+async function carregarDesfechosPaciente(pacienteId){
+  // Desfechos vinculados aos episódios ativos do paciente
+  const{data:pe}=await supabase.from("paciente_episodios")
+    .select("id,episodio_id")
+    .eq("paciente_id",pacienteId)
+    .eq("status","ativo");
+  if(!pe||pe.length===0)return[];
+  const epIds=pe.map(p=>p.episodio_id);
+  const{data:desf}=await supabase.from("episodio_desfechos")
+    .select("*")
+    .in("episodio_id",epIds)
+    .order("ordem");
+  // Anexa registros mais recentes
+  const{data:regs}=await supabase.from("desfechos_registros")
+    .select("*")
+    .eq("paciente_id",pacienteId)
+    .order("data",{ascending:false});
+  return(desf||[]).map(d=>({
+    ...d,
+    ultimo_registro:(regs||[]).find(r=>r.config_id===d.id),
+  }));
+}
+
 async function carregarRegistrosHoje(pacienteId){
   // Buscar registros dos últimos 31 dias para cobrir todas as frequências
   const d=new Date();
@@ -857,6 +908,15 @@ export function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
   const[homeKey,setHomeKey]=useState(0);
   const[modalCsat,setModalCsat]=useState(null); // {agendamento_id, medico_nome}
   const[modalNps,setModalNps]=useState(false);
+  const[empresaId,setEmpresaId]=useState(null);
+
+  // Carregar empresa_id do paciente uma vez
+  useEffect(()=>{
+    if(!pacienteId)return;
+    supabase.from("pacientes").select("empresa_id").eq("id",pacienteId).single().then(({data})=>{
+      if(data&&data.empresa_id)setEmpresaId(data.empresa_id);
+    });
+  },[pacienteId]);
 
   // Verificar CSAT e NPS pendentes ao carregar
   useEffect(()=>{
@@ -1082,7 +1142,7 @@ Tom: acolhedor, preciso e humano. Histórico persistido — você tem memória d
 
         {modulo==="home"&&<ModuloHome key={"home-"+homeKey} form={form} scores={scores} setModulo={setModulo} pacienteId={pacienteId}/>}
         {modulo==="dashboard"&&<ModuloVitalidade pacienteId={pacienteId} setModulo={setModulo}/>}
-        {modulo==="plano"&&<ModuloPlano key={planoRefresh} form={form} scores={scores} setModulo={setModulo} planLog={planLog} checkinHoje={checkinHoje} pacienteId={pacienteId} apiKey={apiKey}/>}
+        {modulo==="plano"&&<ModuloPlano key={planoRefresh} form={form} scores={scores} setModulo={setModulo} planLog={planLog} checkinHoje={checkinHoje} pacienteId={pacienteId} apiKey={apiKey} empresaId={empresaId}/>}
         {modulo==="ana"&&<ModuloAna form={form} scores={scores} apiKey={apiKey} checkinHoje={checkinHoje} onCheckinSalvo={onCheckinSalvo} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId} getBuildPrompt={buildPrompt} onPlanChange={()=>{setPlanoRefresh(r=>r+1);setModulo("plano");}}/>}
         {modulo==="nutri"&&<ModuloChat membro="nutri" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("nutri")} inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou a Dra. Lucia, sua nutricionista. Dieta atual: ${(form&&form.dieta)||"não informada"}. Score de Nutrição: ${scores.eixos["Nutrição"]}/100. Como posso ajudar?`} sugestoes={["O que devo comer antes do treino?","Como melhorar minha alimentação?","Quais suplementos são indicados para mim?","Como montar um cardápio executivo?"]}/>}
         {modulo==="personal"&&<ModuloChat membro="personal" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("personal")} inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou o Bruno, seu especialista em atividade física. Treino atual: ${(form&&form.freq_treino)||0}x/semana. Score de Atividade: ${scores.eixos["Atividade"]}/100. Como posso ajudar?`} sugestoes={["Monte um treino para minha rotina executiva","Como treinar com pouco tempo?","Qual a melhor atividade para reduzir estresse?","Como melhorar minha recuperação?"]}/>}
@@ -2990,33 +3050,45 @@ function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate
 }
 
 
-function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKey}){
+function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKey,empresaId}){
   const[tarefas,setTarefas]=useState([]);
   const[registros,setRegistros]=useState({});
   const[registrosPorData,setRegistrosPorData]=useState({});
+  const[vacinas,setVacinas]=useState({config:[],registros:[]});
+  const[desfechos,setDesfechos]=useState([]);
   const[loading,setLoading]=useState(true);
   const[gerando,setGerando]=useState(false);
+  const[abaAtiva,setAbaAtiva]=useState("estilo"); // estilo | prescricoes | episodios | vacinacao
   const eq=EQUIPE.find(e=>e.id==="enfermeira");
 
-  const AREA_CONFIG={
-    saude_geral:{label:"Saúde Geral",icon:"🩺",cor:T.green,bg:T.greenBg},
-    nutricao:{label:"Nutrição",icon:"🥗",cor:T.gold,bg:T.goldFaint},
-    atividade:{label:"Atividade Física",icon:"🏃",cor:T.teal,bg:T.tealBg},
-    emocional:{label:"Saúde Emocional",icon:"🧘",cor:T.purple,bg:T.purpleBg},
-    vinculos:{label:"Vínculos",icon:"🤝",cor:T.blue,bg:T.blueBg},
-    prevencao:{label:"Prevenção",icon:"🔬",cor:T.orange,bg:T.orangeBg},
+  // Mapa eixo → label PT-BR + cor (alinhado com FLOR_EIXOS)
+  const EIXO_INFO={
+    move:    {nome:"MOVIMENTO", cor:"#E07B4A", icon:"🏃"},
+    fuel:    {nome:"CONSUMO",   cor:"#6FA539", icon:"🥗"},
+    rest:    {nome:"DESCANSO",  cor:"#4A7BA8", icon:"🌙"},
+    calm:    {nome:"CALMA",     cor:"#8B6FA5", icon:"🧘"},
+    connect: {nome:"VÍNCULOS",  cor:"#D9A82B", icon:"🤝"},
+    soul:    {nome:"PROPÓSITO", cor:"#B07A33", icon:"✨"},
+  };
+
+  const CAT_INFO={
+    medicamento:{label:"Medicamento", icon:"💊", cor:T.green},
+    exame:      {label:"Exame",       icon:"🔬", cor:T.purple},
+    estilo_vida:{label:"Estilo de vida", icon:"🌿", cor:T.blue},
+    consulta:   {label:"Consulta",    icon:"📋", cor:T.gold},
   };
 
   useEffect(()=>{
     if(!pacienteId)return;
     (async()=>{
       setLoading(true);
-      const[ts,rs]=await Promise.all([
+      const[ts,rs,vac,desf]=await Promise.all([
         carregarPlanoCuidado(pacienteId),
         carregarRegistrosHoje(pacienteId),
+        empresaId?carregarVacinas(pacienteId,empresaId):Promise.resolve({config:[],registros:[]}),
+        carregarDesfechosPaciente(pacienteId),
       ]);
       setTarefas(ts);
-      // Mapear registros por tarefa_id
       const mapa={};
       const porData={};
       rs.forEach(r=>{
@@ -3026,21 +3098,21 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
       });
       setRegistros(mapa);
       setRegistrosPorData(porData);
+      setVacinas(vac);
+      setDesfechos(desf);
       setLoading(false);
     })();
-  },[pacienteId]);
+  },[pacienteId,empresaId]);
 
-  // Retorna início da semana atual (segunda-feira)
   const inicioSemana=()=>{
     const d=new Date();
     const dia=d.getDay();
-    const diff=dia===0?-6:1-dia; // ajuste para segunda
+    const diff=dia===0?-6:1-dia;
     const seg=new Date(d);
     seg.setDate(d.getDate()+diff);
     return seg.getFullYear()+"-"+String(seg.getMonth()+1).padStart(2,"0")+"-"+String(seg.getDate()).padStart(2,"0");
   };
 
-  // Quantas vezes a tarefa foi concluída nesta semana
   const concluidasNaSemana=(tarefaId)=>{
     const seg=inicioSemana();
     return Object.entries(registrosPorData[tarefaId]||{})
@@ -3051,37 +3123,25 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
   const isTarefaConcluida=(tarefa)=>{
     const tipo=tarefa.frequencia_tipo||tarefa.frequencia||"diario";
     const hoje=dataHoje();
-
-    if(tipo==="unico"){
-      // Aparece uma vez, some quando marcado
-      return !!registros[tarefa.id];
-    }
-    if(tipo==="diario"){
-      // Reseta todo dia
-      return (registros[tarefa.id]&&registros[tarefa.id].data)===hoje;
-    }
+    if(tipo==="unico")return !!registros[tarefa.id];
+    if(tipo==="diario")return (registros[tarefa.id]&&registros[tarefa.id].data)===hoje;
     if(tipo==="n_vezes_semana"){
-      // Meta semanal — some quando atingir N vezes
       const meta=tarefa.meta_semanal||3;
       return concluidasNaSemana(tarefa.id)>=meta;
     }
     if(tipo==="uma_vez_semana"){
-      // Marcado nesta semana
       const seg=inicioSemana();
       return Object.entries(registrosPorData[tarefa.id]||{})
         .some(([data,status])=>data>=seg && status==="concluido");
     }
     if(tipo==="uma_vez_mes" || tipo==="mensal"){
-      // Marcado neste mês
-      const mesAtual=dataHoje().slice(0,7); // YYYY-MM
+      const mesAtual=dataHoje().slice(0,7);
       return Object.entries(registrosPorData[tarefa.id]||{})
         .some(([data,status])=>data.startsWith(mesAtual) && status==="concluido");
     }
-    // fallback diário
     return (registros[tarefa.id]&&registros[tarefa.id].data)===hoje;
   };
 
-  // Para n_vezes_semana — mostrar progresso
   const progressoSemanal=(tarefa)=>{
     if((tarefa.frequencia_tipo||tarefa.frequencia)!=="n_vezes_semana")return null;
     const meta=tarefa.meta_semanal||3;
@@ -3093,15 +3153,12 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
     const tipo=tarefa.frequencia_tipo||tarefa.frequencia||"diario";
     const hoje=dataHoje();
     const feita=isTarefaConcluida(tarefa);
-
     if(tipo==="n_vezes_semana" && !feita){
-      // Adicionar mais uma ocorrência hoje
       const novoReg={status:"concluido",data:hoje};
       setRegistros(prev=>({...prev,[tarefa.id]:novoReg}));
       setRegistrosPorData(prev=>({...prev,[tarefa.id]:{...(prev[tarefa.id]||{}),[hoje]:"concluido"}}));
       await registrarTarefa(tarefa.id,pacienteId,"concluido");
     } else if(feita && tipo!=="unico"){
-      // Desmarcar ocorrência de hoje
       setRegistros(prev=>{const n={...prev};delete n[tarefa.id];return n;});
       setRegistrosPorData(prev=>({...prev,[tarefa.id]:{...(prev[tarefa.id]||{}),[hoje]:"pendente"}}));
       await registrarTarefa(tarefa.id,pacienteId,"pendente");
@@ -3122,8 +3179,52 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
     setGerando(false);
   };
 
-  const concluidas=tarefas.filter(t=>isTarefaConcluida(t)).length;
-  const areas=[...new Set(tarefas.map(t=>t.area))];
+  const handleMarcarVacina=async(configId)=>{
+    const ok=await registrarVacina(configId,pacienteId);
+    if(ok){
+      const vac=await carregarVacinas(pacienteId,empresaId);
+      setVacinas(vac);
+    }
+  };
+
+  // ─── Particionar tarefas por aba ──────────────────────────────────
+  // Aba "estilo": origem='ana' (Florence)
+  // Aba "prescricoes": origem='medico' E NÃO categoria='episodio'
+  // Aba "episodios": categoria='episodio'
+  // Aba "vacinacao": vem de vacinas (não de plano_cuidado)
+  const tEstilo     = tarefas.filter(t=>t.origem==="ana"||t.origem==="florence");
+  const tPrescricoes= tarefas.filter(t=>t.origem==="medico"&&t.categoria!=="episodio");
+  const tEpisodios  = tarefas.filter(t=>t.categoria==="episodio");
+
+  // ─── Adesão geral (últimos 30 dias) ───────────────────────────────
+  const totalEsperado = tarefas.reduce((acc,t)=>{
+    const tipo=t.frequencia_tipo||t.frequencia||"diario";
+    if(tipo==="diario")return acc+30;
+    if(tipo==="n_vezes_semana")return acc+(t.meta_semanal||3)*4;
+    if(tipo==="uma_vez_semana")return acc+4;
+    if(tipo==="uma_vez_mes")return acc+1;
+    if(tipo==="unico")return acc+(isTarefaConcluida(t)?1:1);
+    return acc+30;
+  },0);
+  const totalFeito = Object.values(registrosPorData).reduce((acc,reg)=>{
+    return acc + Object.values(reg).filter(s=>s==="concluido").length;
+  },0);
+  const adesaoPercent = totalEsperado>0 ? Math.round((totalFeito/totalEsperado)*100) : 0;
+
+  // ─── Vacinas pendentes ────────────────────────────────────────────
+  const idadeAprox = (form&&form.idade) ? parseInt(form.idade) : 42;
+  const vacinasAplicaveis = vacinas.config.filter(v=>{
+    if(idadeAprox<v.idade_inicio)return false;
+    if(v.idade_fim&&idadeAprox>v.idade_fim)return false;
+    return true;
+  });
+  const vacinasPendentes = vacinasAplicaveis.filter(v=>{
+    const reg=vacinas.registros.find(r=>r.config_id===v.id);
+    if(!reg)return true;
+    if(reg.status==="atrasada")return true;
+    if(reg.proximo_previsto && new Date(reg.proximo_previsto) < new Date())return true;
+    return false;
+  }).length;
 
   if(loading)return(
     <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -3131,26 +3232,260 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
     </div>
   );
 
+  // ─── Renderização de uma tarefa (reutilizável) ────────────────────
+  const renderTarefa=(tarefa,corBorda)=>{
+    const feita=isTarefaConcluida(tarefa);
+    const isProxima=tarefa.visivel_a_partir==="proxima";
+    const prog=progressoSemanal(tarefa);
+    return(
+      <div key={tarefa.id} onClick={()=>!isProxima&&toggleTarefa(tarefa)}
+        style={{display:"flex",gap:12,alignItems:"flex-start",padding:"12px 18px",
+          borderBottom:"1px solid "+T.border,
+          cursor:isProxima?"default":"pointer",
+          background:feita?T.surfaceMid:isProxima?"rgba(0,0,0,0.02)":"transparent",
+          opacity:isProxima?0.7:1,
+          transition:"background 0.15s"}}>
+        <div style={{width:22,height:22,borderRadius:6,
+          border:"2px solid "+(feita?(corBorda||T.green):isProxima?T.border:(corBorda||T.green)),
+          background:feita?(corBorda||T.green):"transparent",
+          display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
+          {feita?<span style={{fontSize:11,color:"#FFF",fontWeight:700}}>✓</span>
+            :isProxima?<span style={{fontSize:10,color:T.inkFaint}}>→</span>:null}
+        </div>
+        <div style={{flex:1}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+            <div style={{fontSize:13,color:feita?T.inkFaint:T.ink,fontWeight:500,textDecoration:feita?"line-through":"none"}}>{tarefa.titulo}</div>
+            {isProxima&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:4,background:T.surfaceMid,color:T.inkMid,fontWeight:600}}>EM BREVE</span>}
+          </div>
+          {tarefa.descricao&&<div style={{fontSize:11,color:T.inkFaint,lineHeight:1.5}}>{tarefa.descricao}</div>}
+        </div>
+        <span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:T.bgWarm,color:T.inkMid,fontWeight:700,flexShrink:0,marginTop:2,whiteSpace:"nowrap"}}>
+          {prog?(prog.feitas+"/"+prog.meta+"x SEM"):(tarefa.frequencia_tipo||tarefa.frequencia||"diario").toUpperCase().replace("_"," ")}
+        </span>
+      </div>
+    );
+  };
+
+  // ─── Aba Estilo de Vida (Florence, agrupado por eixo) ─────────────
+  const renderAbaEstilo=()=>{
+    if(tEstilo.length===0)return(
+      <Card style={{padding:"40px",textAlign:"center"}}>
+        <div style={{fontSize:48,marginBottom:16}}>🌿</div>
+        <div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginBottom:8}}>Sem recomendações da Florence ainda</div>
+        <div style={{fontSize:12,color:T.inkMid,lineHeight:1.7,maxWidth:380,margin:"0 auto 20px"}}>Converse com a Florence para receber recomendações de estilo de vida personalizadas.</div>
+        <Btn onClick={()=>setModulo("ana")} variant="gold">Falar com Florence →</Btn>
+      </Card>
+    );
+    return Object.keys(EIXO_INFO).map(eixoKey=>{
+      const ts=tEstilo.filter(t=>t.eixo===eixoKey);
+      if(ts.length===0)return null;
+      const info=EIXO_INFO[eixoKey];
+      const done=ts.filter(t=>isTarefaConcluida(t)).length;
+      return(
+        <Card key={eixoKey} style={{padding:"0",overflow:"hidden",marginBottom:12,borderLeft:"4px solid "+info.cor}}>
+          <div style={{padding:"12px 18px",background:info.cor+"10",borderBottom:"1px solid "+info.cor+"20",display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:18}}>{info.icon}</span>
+            <span style={{fontFamily:T.fD,fontSize:15,color:info.cor,letterSpacing:"0.05em"}}>{info.nome}</span>
+            <span style={{marginLeft:"auto",fontSize:11,color:info.cor,fontWeight:600}}>{done}/{ts.length}</span>
+          </div>
+          {ts.map(t=>renderTarefa(t,info.cor))}
+        </Card>
+      );
+    });
+    // Eixos sem tarefa não aparecem
+  };
+
+  // ─── Aba Prescrições (Médico, agrupado por categoria) ─────────────
+  const renderAbaPrescricoes=()=>{
+    if(tPrescricoes.length===0)return(
+      <Card style={{padding:"40px",textAlign:"center"}}>
+        <div style={{fontSize:48,marginBottom:16}}>💊</div>
+        <div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginBottom:8}}>Nenhuma prescrição ativa</div>
+        <div style={{fontSize:12,color:T.inkMid,lineHeight:1.7,maxWidth:380,margin:"0 auto"}}>Quando seu médico prescrever medicamentos, exames ou orientações, eles aparecerão aqui.</div>
+      </Card>
+    );
+    const cats=["medicamento","exame","estilo_vida","consulta"];
+    return cats.map(cat=>{
+      const ts=tPrescricoes.filter(t=>t.categoria===cat);
+      if(ts.length===0)return null;
+      const info=CAT_INFO[cat];
+      const done=ts.filter(t=>isTarefaConcluida(t)).length;
+      return(
+        <Card key={cat} style={{padding:"0",overflow:"hidden",marginBottom:12,borderLeft:"4px solid "+info.cor}}>
+          <div style={{padding:"12px 18px",background:info.cor+"10",borderBottom:"1px solid "+info.cor+"20",display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:18}}>{info.icon}</span>
+            <span style={{fontFamily:T.fD,fontSize:15,color:info.cor,letterSpacing:"0.05em"}}>{info.label.toUpperCase()}</span>
+            <span style={{marginLeft:"auto",fontSize:11,color:info.cor,fontWeight:600}}>{done}/{ts.length}</span>
+          </div>
+          {ts.map(t=>renderTarefa(t,info.cor))}
+        </Card>
+      );
+    });
+  };
+
+  // ─── Aba Episódios (clínicos + medições/PROMs) ────────────────────
+  const renderAbaEpisodios=()=>{
+    if(tEpisodios.length===0&&desfechos.length===0)return(
+      <Card style={{padding:"40px",textAlign:"center"}}>
+        <div style={{fontSize:48,marginBottom:16}}>🏥</div>
+        <div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginBottom:8}}>Nenhum episódio clínico ativo</div>
+        <div style={{fontSize:12,color:T.inkMid,lineHeight:1.7,maxWidth:380,margin:"0 auto"}}>Episódios são protocolos de acompanhamento de condições de saúde específicas, ativados pelo seu médico.</div>
+      </Card>
+    );
+    // Agrupar por paciente_episodio_id (1 episódio = 1 card grande)
+    const epsMap={};
+    tEpisodios.forEach(t=>{
+      const k=t.paciente_episodio_id||"sem_episodio";
+      if(!epsMap[k])epsMap[k]={tarefas:[],id:k};
+      epsMap[k].tarefas.push(t);
+    });
+    return Object.values(epsMap).map((ep,idx)=>{
+      const done=ep.tarefas.filter(t=>isTarefaConcluida(t)).length;
+      return(
+        <Card key={ep.id} style={{padding:"0",overflow:"hidden",marginBottom:16,border:"1.5px solid "+T.green}}>
+          <div style={{padding:"12px 18px",background:T.greenBg,borderBottom:"1px solid "+T.greenBorder,display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:18}}>🏥</span>
+            <div style={{flex:1}}>
+              <span style={{fontFamily:T.fD,fontSize:15,color:T.green,letterSpacing:"0.05em"}}>PROTOCOLO CLÍNICO</span>
+              <span style={{fontSize:11,color:T.inkMid,marginLeft:8}}>Prioridade alta</span>
+            </div>
+            <span style={{fontSize:11,padding:"3px 10px",borderRadius:10,background:T.green,color:"#FFF",fontWeight:700}}>{done}/{ep.tarefas.length}</span>
+          </div>
+          {ep.tarefas.map(t=>renderTarefa(t,T.green))}
+          {desfechos.length>0&&idx===0&&(
+            <>
+              <div style={{padding:"10px 18px",background:T.bgWarm,borderTop:"1px dashed "+T.greenBorder,fontSize:10,letterSpacing:"0.12em",color:T.inkFaint,fontWeight:600}}>
+                MEDIÇÕES DO TRATAMENTO
+              </div>
+              {desfechos.map(d=>(
+                <div key={d.id} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"12px 18px",borderBottom:"1px solid "+T.border}}>
+                  <span style={{fontSize:18,flexShrink:0,marginTop:1}}>📊</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,color:T.ink,fontWeight:500,marginBottom:2}}>{d.nome}</div>
+                    {d.descricao&&<div style={{fontSize:11,color:T.inkFaint,lineHeight:1.5}}>{d.descricao}</div>}
+                    {d.ultimo_registro&&(
+                      <div style={{fontSize:11,color:T.green,marginTop:4}}>
+                        Último: {d.ultimo_registro.valor_numerico||d.ultimo_registro.valor_texto||"-"} {d.unidade||""} ({new Date(d.ultimo_registro.data+"T12:00:00").toLocaleDateString("pt-BR")})
+                      </div>
+                    )}
+                  </div>
+                  <span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:T.surfaceMid,color:T.inkMid,fontWeight:700,whiteSpace:"nowrap",flexShrink:0,marginTop:2}}>
+                    {(d.frequencia_coleta||"").toUpperCase()}
+                  </span>
+                </div>
+              ))}
+            </>
+          )}
+        </Card>
+      );
+    });
+  };
+
+  // ─── Aba Vacinação ────────────────────────────────────────────────
+  const renderAbaVacinacao=()=>{
+    if(vacinasAplicaveis.length===0)return(
+      <Card style={{padding:"40px",textAlign:"center"}}>
+        <div style={{fontSize:48,marginBottom:16}}>💉</div>
+        <div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginBottom:8}}>Calendário vacinal não disponível</div>
+        <div style={{fontSize:12,color:T.inkMid,lineHeight:1.7,maxWidth:380,margin:"0 auto"}}>Sua empresa ainda não cadastrou um calendário de vacinação.</div>
+      </Card>
+    );
+    const hoje=new Date();
+    return(
+      <Card style={{padding:"0",overflow:"hidden",marginBottom:12}}>
+        <div style={{padding:"12px 18px",background:T.bgWarm,borderBottom:"1px solid "+T.border,fontSize:11,color:T.inkMid,letterSpacing:"0.08em"}}>
+          {vacinasAplicaveis.length} VACINAS NO SEU CALENDÁRIO · {vacinasPendentes} PENDENTE{vacinasPendentes!==1?"S":""}
+        </div>
+        {vacinasAplicaveis.map(v=>{
+          const reg=vacinas.registros.find(r=>r.config_id===v.id);
+          let status="pendente";
+          let statusLabel="A FAZER";
+          let cor=T.orange;
+          let bgCor=T.orangeBg;
+          if(reg){
+            if(reg.status==="aplicada"){
+              status="aplicada";
+              statusLabel="EM DIA";
+              cor=T.green;
+              bgCor=T.greenBg;
+              if(reg.proximo_previsto){
+                const prox=new Date(reg.proximo_previsto+"T12:00:00");
+                if(prox<hoje){status="atrasada";statusLabel="VENCIDA";cor=T.red;bgCor="#FEE";}
+                else{
+                  const diasRestantes=Math.floor((prox-hoje)/(1000*3600*24));
+                  if(diasRestantes<(v.alerta_dias_antes||30)){
+                    statusLabel="VENCE EM "+diasRestantes+"D";
+                    cor=T.orange;
+                    bgCor=T.orangeBg;
+                  }
+                }
+              }
+            } else if(reg.status==="atrasada"){
+              status="atrasada";statusLabel="VENCIDA";cor=T.red;bgCor="#FEE";
+            }
+          }
+          return(
+            <div key={v.id} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"14px 18px",borderBottom:"1px solid "+T.border}}>
+              <div style={{width:32,height:32,borderRadius:"50%",background:bgCor,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>
+                💉
+              </div>
+              <div style={{flex:1}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
+                  <div style={{fontSize:13,color:T.ink,fontWeight:500}}>{v.nome}</div>
+                  {v.decisao_compartilhada&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:4,background:T.purpleBg,color:T.purple,fontWeight:600}}>DECISÃO COMPARTILHADA</span>}
+                </div>
+                {v.descricao&&<div style={{fontSize:11,color:T.inkFaint,lineHeight:1.5}}>{v.descricao}</div>}
+                {reg&&reg.data_aplicada&&<div style={{fontSize:11,color:T.inkMid,marginTop:4}}>
+                  Última dose: {new Date(reg.data_aplicada+"T12:00:00").toLocaleDateString("pt-BR")} (dose {reg.dose_numero||1})
+                </div>}
+                {reg&&reg.proximo_previsto&&status!=="atrasada"&&<div style={{fontSize:11,color:T.inkMid,marginTop:2}}>
+                  Próxima: {new Date(reg.proximo_previsto+"T12:00:00").toLocaleDateString("pt-BR")}
+                </div>}
+              </div>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6,flexShrink:0}}>
+                <span style={{fontSize:9,padding:"3px 8px",borderRadius:4,background:bgCor,color:cor,fontWeight:700,whiteSpace:"nowrap"}}>
+                  {statusLabel}
+                </span>
+                {(status==="pendente"||status==="atrasada")&&(
+                  <button onClick={()=>handleMarcarVacina(v.id)}
+                    style={{fontSize:10,padding:"4px 10px",border:"1px solid "+cor,borderRadius:6,background:"#FFF",color:cor,cursor:"pointer",fontFamily:T.f,fontWeight:600,whiteSpace:"nowrap"}}>
+                    Já tomei
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </Card>
+    );
+  };
+
+  // ─── ESTRUTURA PRINCIPAL ──────────────────────────────────────────
+  const ABAS=[
+    {id:"estilo",      label:"Estilo de vida", icon:"🌿", count:tEstilo.length},
+    {id:"prescricoes", label:"Prescrições",    icon:"💊", count:tPrescricoes.length},
+    {id:"episodios",   label:"Episódios",      icon:"🏥", count:tEpisodios.length},
+    {id:"vacinacao",   label:"Vacinação",      icon:"💉", count:vacinasPendentes, pendente:true},
+  ];
+
   return(
     <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
       <div style={{maxWidth:1000,margin:"0 auto"}}>
-        <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:24}}>
+        {/* Cabeçalho */}
+        <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:20}}>
           <div style={{width:50,height:50,borderRadius:"50%",background:eq.bg,border:"1.5px solid "+eq.cor+"40",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{eq.icon}</div>
-          <div><div style={{fontFamily:T.fD,fontSize:26,color:T.ink}}>Plano de Cuidado</div><div style={{fontSize:11,color:T.inkFaint}}>Coordenado pela Ana · {tarefas.length} tarefas ativas · {concluidas} concluídas hoje</div></div>
-          <div style={{marginLeft:"auto",textAlign:"right"}}><div style={{fontSize:9,color:T.inkFaint}}>VITALIDADE</div><div style={{fontFamily:T.fD,fontSize:30,color:scores.total>=75?T.green:scores.total>=50?T.gold:T.red,fontWeight:700}}>{scores.total}<span style={{fontSize:14,color:T.inkFaint}}>/100</span></div></div>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:T.fD,fontSize:26,color:T.ink}}>Plano de Cuidado</div>
+            <div style={{fontSize:11,color:T.inkFaint}}>{tarefas.length} tarefas ativas · adesão {adesaoPercent}% (últimos 30 dias)</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.1em"}}>VITALIDADE</div>
+            <div style={{fontFamily:T.fD,fontSize:30,color:scores.total>=75?T.green:scores.total>=50?T.gold:T.red,fontWeight:700}}>{scores.total}<span style={{fontSize:14,color:T.inkFaint}}>/100</span></div>
+          </div>
         </div>
 
-        {/* Separar tarefas de hoje vs futuras */}
-        {(()=>{
-          // Tarefas únicas futuras = visivel_a_partir="proxima"
-          // Todas as outras = hoje
-          const hoje=tarefas.filter(t=>t.visivel_a_partir!=="proxima");
-          const futuras=tarefas.filter(t=>t.visivel_a_partir==="proxima");
-          // Não mudar o estado — só usar para render
-          return null;
-        })()}
-
-        {tarefas.length===0?(
+        {/* Vazio (sem tarefas E sem vacinas E sem desfechos) */}
+        {tarefas.length===0&&vacinasAplicaveis.length===0&&desfechos.length===0?(
           <Card style={{padding:"40px",textAlign:"center"}}>
             <div style={{fontSize:48,marginBottom:16}}>📋</div>
             <div style={{fontFamily:T.fD,fontSize:22,color:T.ink,marginBottom:8}}>Seu plano ainda não foi gerado</div>
@@ -3161,167 +3496,32 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
           </Card>
         ):(
           <>
-            {/* Progresso geral */}
-            <Card style={{padding:"20px 24px",marginBottom:16}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                <div style={{fontFamily:T.fD,fontSize:18,color:T.ink}}>Progresso de hoje</div>
-                <div style={{fontSize:13,color:T.inkMid}}>{concluidas}/{tarefas.length} concluídas</div>
-              </div>
-              <div style={{height:8,background:T.surfaceMid,borderRadius:4,overflow:"hidden"}}>
-                <div style={{height:"100%",width:tarefas.length?(concluidas/tarefas.length)*100:0+"%" ,background:"linear-gradient(90deg,"+T.gold+","+T.green+")",transition:"width 0.3s",borderRadius:4}}/>
-              </div>
-            </Card>
-
-            {/* Separação hoje vs futuro */}
-            {(()=>{
-              const hoje2=new Date().toISOString().slice(0,10);
-              const futuras=tarefas.filter(t=>t.visivel_a_partir==="proxima"||(t.data_prevista&&t.data_prevista>hoje2&&t.frequencia_tipo==="unico"));
-              const hoje=tarefas.filter(t=>!futuras.includes(t));
-              const concluidasHoje=hoje.filter(t=>isTarefaConcluida(t)).length;
-              return(
-                <>
-                  {futuras.length>0&&(
-                    <div style={{fontSize:11,color:T.inkFaint,letterSpacing:"0.1em",marginBottom:8}}>
-                      HOJE · {concluidasHoje}/{hoje.length} concluídas
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-
-            {/* Tarefas de episódio — prioridade máxima */}
-            {tarefas.filter(t=>t.categoria==="episodio").length>0&&(
-              <Card style={{padding:"0",overflow:"hidden",marginBottom:12,border:"1.5px solid "+T.green}}>
-                <div style={{padding:"12px 18px",background:T.greenBg,borderBottom:"1px solid "+T.greenBorder,display:"flex",alignItems:"center",gap:10}}>
-                  <span style={{fontSize:18}}>🏥</span>
-                  <div style={{flex:1}}>
-                    <span style={{fontFamily:T.fD,fontSize:16,color:T.green}}>Protocolo clínico</span>
-                    <span style={{fontSize:11,color:T.inkMid,marginLeft:8}}>Prioridade alta</span>
-                  </div>
-                  <span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:T.green,color:"#FFF",fontWeight:600}}>
-                    {tarefas.filter(t=>t.categoria==="episodio"&&isTarefaConcluida(t)).length}/{tarefas.filter(t=>t.categoria==="episodio").length}
-                  </span>
-                </div>
-                {tarefas.filter(t=>t.categoria==="episodio").map(tarefa=>{
-                  const feita=isTarefaConcluida(tarefa);
-                  const isProxima=tarefa.visivel_a_partir==="proxima";
-                  return(
-                    <div key={tarefa.id} onClick={()=>!isProxima&&toggleTarefa(tarefa)}
-                      style={{display:"flex",gap:12,alignItems:"flex-start",padding:"12px 18px",
-                        borderBottom:"1px solid "+T.border,
-                        cursor:isProxima?"default":"pointer",
-                        background:feita?T.greenBg:isProxima?"rgba(0,168,104,0.03)":"transparent",
-                        opacity:isProxima?0.7:1,
-                        transition:"background 0.15s"}}>
-                      <div style={{width:22,height:22,borderRadius:6,
-                        border:"2px solid "+feita?T.green:isProxima?T.greenBorder:T.green,
-                        background:feita?T.green:"transparent",
-                        display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
-                        {feita?<span style={{fontSize:11,color:"#FFF",fontWeight:700}}>✓</span>
-                          :isProxima?<span style={{fontSize:10,color:T.green}}>→</span>:null}
-                      </div>
-                      <div style={{flex:1}}>
-                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                          <div style={{fontSize:13,color:feita?T.inkFaint:T.ink,fontWeight:500,textDecoration:feita?"line-through":"none"}}>{tarefa.titulo}</div>
-                          {isProxima&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:4,background:T.greenBg,color:T.green,fontWeight:600}}>PRÓXIMA</span>}
-                        </div>
-                        {tarefa.descricao&&<div style={{fontSize:11,color:T.inkFaint,lineHeight:1.5}}>{tarefa.descricao}</div>}
-                      </div>
-                      <span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:T.greenBg,color:T.green,fontWeight:700,flexShrink:0,marginTop:2}}>
-                        {isProxima?"EM BREVE":"OBRIGATÓRIO"}
+            {/* Abas */}
+            <div style={{display:"flex",gap:6,marginBottom:18,borderBottom:"1px solid "+T.border,overflowX:"auto"}}>
+              {ABAS.map(aba=>{
+                const ativa=abaAtiva===aba.id;
+                return(
+                  <button key={aba.id} onClick={()=>setAbaAtiva(aba.id)}
+                    style={{padding:"10px 16px",background:"transparent",border:"none",borderBottom:ativa?"2px solid "+T.green:"2px solid transparent",cursor:"pointer",fontFamily:T.f,fontSize:13,color:ativa?T.green:T.inkMid,fontWeight:ativa?600:400,display:"flex",alignItems:"center",gap:6,marginBottom:-1,whiteSpace:"nowrap"}}>
+                    <span style={{fontSize:16}}>{aba.icon}</span>
+                    <span>{aba.label}</span>
+                    {aba.count>0&&(
+                      <span style={{fontSize:10,padding:"2px 7px",borderRadius:10,background:aba.pendente&&aba.count>0?T.orangeBg:(ativa?T.greenBg:T.surfaceMid),color:aba.pendente&&aba.count>0?T.orange:(ativa?T.green:T.inkMid),fontWeight:700,minWidth:18,textAlign:"center"}}>
+                        {aba.count}
                       </span>
-                    </div>
-                  );
-                })}
-              </Card>
-            )}
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
-            {/* Tarefas por área — demais */}
-            {areas.filter(a=>a!=="episodio").map(area=>{
-              const cfg=AREA_CONFIG[area]||{label:area,icon:"📋",cor:T.gold,bg:T.goldFaint};
-              const ts=tarefas.filter(t=>t.area===area&&t.categoria!=="episodio");
-              if(ts.length===0)return null;
-              const done=ts.filter(t=>isTarefaConcluida(t)).length;
-              return(
-                <Card key={area} style={{padding:"0",overflow:"hidden",marginBottom:12}}>
-                  <div style={{padding:"12px 18px",background:cfg.bg,borderBottom:"1px solid "+cfg.cor+"20",display:"flex",alignItems:"center",gap:10}}>
-                    <span style={{fontSize:18}}>{cfg.icon}</span>
-                    <span style={{fontFamily:T.fD,fontSize:16,color:T.ink}}>{cfg.label}</span>
-                    <span style={{marginLeft:"auto",fontSize:11,color:cfg.cor,fontWeight:600}}>{done}/{ts.length}</span>
-                  </div>
-                  {ts.map(tarefa=>{
-                    const feita=isTarefaConcluida(tarefa);
-                    return(
-                      <div key={tarefa.id} onClick={()=>toggleTarefa(tarefa)}
-                        style={{display:"flex",gap:12,alignItems:"flex-start",padding:"12px 18px",borderBottom:"1px solid "+T.border,cursor:"pointer",background:feita?T.surfaceMid:"transparent",transition:"background 0.15s"}}>
-                        <div style={{width:22,height:22,borderRadius:6,border:"2px solid "+feita?T.green:cfg.cor,background:feita?T.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
-                          {feita&&<span style={{fontSize:11,color:"#FFF",fontWeight:700}}>✓</span>}
-                        </div>
-                        <div style={{flex:1}}>
-                          <div style={{fontSize:13,color:feita?T.inkFaint:T.ink,fontWeight:500,textDecoration:feita?"line-through":"none",marginBottom:2}}>{tarefa.titulo}</div>
-                          {tarefa.descricao&&<div style={{fontSize:11,color:T.inkFaint,lineHeight:1.5}}>{tarefa.descricao}</div>}
-                        </div>
-                        <span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:cfg.bg,color:cfg.cor,fontWeight:700,flexShrink:0,marginTop:2}}>
-                          {(()=>{const prog=progressoSemanal(tarefa);return prog?(prog.feitas+"/"+prog.meta+"x SEMANA"):(tarefa.frequencia_tipo||tarefa.frequencia||"diario").toUpperCase().replace("_"," ");})()}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </Card>
-              );
-            })}
-
-            {/* Tarefas futuras — em breve */}
-            {(()=>{
-              const hoje2=new Date().toISOString().slice(0,10);
-              const futuras=tarefas.filter(t=>t.visivel_a_partir==="proxima"||(t.data_prevista&&t.data_prevista>hoje2&&t.frequencia_tipo==="unico"));
-              if(futuras.length===0)return null;
-              return(
-              <div style={{marginTop:8}}>
-                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-                  <div style={{flex:1,height:1,background:T.border}}/>
-                  <span style={{fontSize:10,color:T.inkFaint,letterSpacing:"0.12em",whiteSpace:"nowrap"}}>EM BREVE</span>
-                  <div style={{flex:1,height:1,background:T.border}}/>
-                </div>
-                <Card style={{padding:"0",overflow:"hidden",marginBottom:12,border:"1px dashed "+T.border}}>
-                  {futuras.map(tarefa=>(
-                    <div key={tarefa.id}
-                      style={{display:"flex",gap:12,alignItems:"flex-start",padding:"12px 18px",
-                        borderBottom:"1px solid "+T.border,
-                        background:"transparent",opacity:0.6}}>
-                      <div style={{width:22,height:22,borderRadius:6,border:"2px dashed "+T.border,
-                        display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
-                        <span style={{fontSize:12,color:T.inkFaint}}>→</span>
-                      </div>
-                      <div style={{flex:1}}>
-                        <div style={{fontSize:13,color:T.inkMid,fontWeight:500,marginBottom:2}}>{tarefa.titulo}</div>
-                        {tarefa.descricao&&<div style={{fontSize:11,color:T.inkFaint,lineHeight:1.5}}>{tarefa.descricao}</div>}
-                      </div>
-                      <span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:T.bgWarm,color:T.inkFaint,fontWeight:600,flexShrink:0,marginTop:2}}>
-                        {tarefa.data_prevista?new Date(tarefa.data_prevista+"T12:00:00").toLocaleDateString("pt-BR",{day:"numeric",month:"short"}):"EM BREVE"}
-                      </span>
-                    </div>
-                  ))}
-                </Card>
-              </div>
-              );
-            })()}
-
-            {/* Scores por eixo */}
-            <Card style={{padding:"20px",marginBottom:16}}>
-              <Lbl>Vitalidade por eixo</Lbl>
-              <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:12}}>
-                {Object.entries(scores.eixos).map(([n,sc],i)=>(
-                  <div key={i} style={{display:"flex",alignItems:"center",gap:12}}>
-                    <span style={{fontSize:11,color:T.inkMid,width:120,flexShrink:0}}>{n}</span>
-                    <div style={{flex:1,height:5,background:T.surfaceMid,borderRadius:3,overflow:"hidden"}}>
-                      <div style={{height:"100%",width:sc+"%" ,background:AXIS_COLORS[n]||T.gold,borderRadius:3}}/>
-                    </div>
-                    <span style={{fontSize:13,color:AXIS_COLORS[n]||T.gold,fontFamily:T.fD,fontWeight:700,width:28,textAlign:"right"}}>{sc}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            {/* Conteúdo da aba */}
+            <div>
+              {abaAtiva==="estilo"      && renderAbaEstilo()}
+              {abaAtiva==="prescricoes" && renderAbaPrescricoes()}
+              {abaAtiva==="episodios"   && renderAbaEpisodios()}
+              {abaAtiva==="vacinacao"   && renderAbaVacinacao()}
+            </div>
           </>
         )}
       </div>
