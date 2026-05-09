@@ -3496,8 +3496,8 @@ const CHECKIN_EIXOS = [
   { id: "fuel",    nome: "CONSUMO",   cor: "#6FA539", pergunta: "Como foi seu consumo hoje? (comida, hidratação, álcool, café…)" },
   { id: "rest",    nome: "DESCANSO",  cor: "#4A7BA8", pergunta: "Como foi seu descanso e seu sono?" },
   { id: "calm",    nome: "CALMA",     cor: "#8B6FA5", pergunta: "Como está sua sensação de calma e foco?" },
-  { id: "connect", nome: "V, pergunta: null /* dinamica */ },
-  { id: "soul",    nome: "PROP, pergunta: "Você sentiu sentido no que fez hoje?" }
+  { id: "connect", nome: "VÍNCULOS",  cor: "#D9A82B", pergunta: null /* dinamica */ },
+  { id: "soul",    nome: "PROPÓSITO", cor: "#B07A33", pergunta: "Você sentiu sentido no que fez hoje?" }
 ];
 
 // Sub-aspectos do CONNECT por dia da semana (0=domingo, 1=segunda, ...)
