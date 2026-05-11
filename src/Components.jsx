@@ -2482,7 +2482,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
             <div style={{fontSize:13,color:T.inkMid}}>Como podemos te ajudar hoje?</div>
           </div>
 
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:28}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12,marginBottom:28}}>
             <div onClick={scrollParaAgendamento}
               style={{background:T.surface,border:"1.5px solid "+T.green,borderRadius:12,padding:"20px 18px",cursor:"pointer",transition:"all 0.15s",display:"flex",flexDirection:"column",gap:8}}
               onMouseOver={e=>e.currentTarget.style.background=T.greenBg}
@@ -2495,26 +2495,14 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
 
             <div onClick={()=>setModulo("dashboard")}
               style={{background:T.surface,border:"1.5px solid "+T.border,borderRadius:12,padding:"20px 18px",cursor:"pointer",transition:"all 0.15s",display:"flex",flexDirection:"column",gap:8}}
-              onMouseOver={e=>{e.currentTarget.style.borderColor=T.green;e.currentTarget.style.background=T.greenBg;}}
-              onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
-              <div style={{fontSize:22}}>✅</div>
-              <div style={{fontSize:14,fontWeight:600,color:T.ink}}>Fazer check-in</div>
-              <div style={{fontSize:12,color:T.inkMid,lineHeight:1.5,flex:1}}>Registre como você está hoje — energia, sono, estresse, humor e bem-estar geral.</div>
-              <div style={{fontSize:11,color:T.green,fontWeight:500,marginTop:4}}>Leva menos de 1 minuto →</div>
-            </div>
-
-            <div onClick={()=>setModulo("dashboard")}
-              style={{background:T.surface,border:"1.5px solid "+T.border,borderRadius:12,padding:"20px 18px",cursor:"pointer",transition:"all 0.15s",display:"flex",flexDirection:"column",gap:8}}
               onMouseOver={e=>{e.currentTarget.style.borderColor=T.blue||"#1D6FE8";e.currentTarget.style.background=T.blueBg||"#EFF6FF";}}
               onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.background=T.surface;}}>
               <div style={{fontSize:22}}>📊</div>
-              <div style={{fontSize:14,fontWeight:600,color:T.ink}}>Minha saúde</div>
-              <div style={{fontSize:12,color:T.inkMid,lineHeight:1.5,flex:1}}>Acompanhe seu score de vitalidade, plano de cuidado e histórico clínico.</div>
-              <div style={{fontSize:11,color:T.blue||"#1D6FE8",fontWeight:500,marginTop:4}}>Ver minha saúde →</div>
+              <div style={{fontSize:14,fontWeight:600,color:T.ink}}>Minha saúde · Check-in</div>
+              <div style={{fontSize:12,color:T.inkMid,lineHeight:1.5,flex:1}}>Faça seu check-in diário e acompanhe seu score de vitalidade, plano de cuidado e histórico clínico.</div>
+              <div style={{fontSize:11,color:T.blue||"#1D6FE8",fontWeight:500,marginTop:4}}>Entrar →</div>
             </div>
           </div>
-
-          <div style={{fontSize:12,color:T.inkFaint,textAlign:"center",marginBottom:20,letterSpacing:"0.05em"}}>— OU AGENDE ABAIXO —</div>
 
           <div ref={agendamentoRef}>
             <Card style={{padding:"20px",marginBottom:24,display:"flex",alignItems:"center",justifyContent:"space-between",gap:16}}>
