@@ -34,11 +34,13 @@ export default function HVV(){
           setPacienteId(pid);
           getModulosContratados(pid).then(setModulosContratados);
           const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).single();
+          const{data:pac}=await supabase.from("pacientes").select("nome").eq("id",pid).single();
+          const perfilComNome=perfil?{...perfil,nome:pac?.nome||perfil.nome}:perfil;
           const chaveSalva=localStorage.getItem("hvv_api_key")||"";
-          if(perfil && perfil.hvv_onboarding_completo===true && chaveSalva.startsWith("sk-")){
-            setForm(perfil);setApiKey(chaveSalva);setScreen("app");
-          } else if(perfil && perfil.hvv_onboarding_completo===true){
-            setForm(perfil);setScreen("apikey");
+          if(perfilComNome && perfilComNome.hvv_onboarding_completo===true && chaveSalva.startsWith("sk-")){
+            setForm(perfilComNome);setApiKey(chaveSalva);setScreen("app");
+          } else if(perfilComNome && perfilComNome.hvv_onboarding_completo===true){
+            setForm(perfilComNome);setScreen("apikey");
           } else {
             setScreen("apikey");
           }
@@ -97,11 +99,13 @@ export default function HVV(){
       setPacienteId(pid);
       getModulosContratados(pid).then(setModulosContratados);
       const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).maybeSingle();
+      const{data:pac2}=await supabase.from("pacientes").select("nome").eq("id",pid).single();
+      const perfilComNome=perfil?{...perfil,nome:pac2?.nome||perfil.nome}:perfil;
       const chaveSalva=localStorage.getItem("hvv_api_key")||"";
-      if(perfil && perfil.hvv_onboarding_completo===true && chaveSalva.startsWith("sk-")){
-        setForm(perfil);setApiKey(chaveSalva);setScreen("app");
-      } else if(perfil){
-        setForm(perfil);setScreen("apikey");
+      if(perfilComNome && perfilComNome.hvv_onboarding_completo===true && chaveSalva.startsWith("sk-")){
+        setForm(perfilComNome);setApiKey(chaveSalva);setScreen("app");
+      } else if(perfilComNome){
+        setForm(perfilComNome);setScreen("apikey");
       } else {
         setForm(null);setScreen("apikey");
       }
@@ -119,9 +123,11 @@ export default function HVV(){
         setPacienteId(pid);
         getModulosContratados(pid).then(setModulosContratados);
         const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).single();
+        const{data:pac3}=await supabase.from("pacientes").select("nome").eq("id",pid).single();
+        const perfilComNome=perfil?{...perfil,nome:pac3?.nome||perfil.nome}:perfil;
         // Só vai para o app se o onboarding HVV foi completado
-        if(perfil && perfil.hvv_onboarding_completo===true){
-          setForm(perfil);setScreen("app");return;
+        if(perfilComNome && perfilComNome.hvv_onboarding_completo===true){
+          setForm(perfilComNome);setScreen("app");return;
         }
       }
     }
