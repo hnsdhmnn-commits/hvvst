@@ -866,11 +866,11 @@ export function ScreenOnboarding({user,onComplete}){
       <div><Lbl>Gadgets e dispositivos</Lbl><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>{GADGETS_OB.map(g=>{const active=(f.gadgets||[]).includes(g);return(<button key={g} onClick={()=>tog("gadgets",g)} style={{display:"flex",alignItems:"center",gap:10,padding:"13px 16px",background:active?T.tealBg:T.bgWarm,border:"1.5px solid "+active?T.teal:T.border,borderRadius:10,cursor:"pointer",transition:"all 0.18s",fontFamily:T.fB,boxShadow:T.shadowCard}}><span style={{fontSize:12,color:active?T.teal:T.ink,fontWeight:500}}>{g}</span>{active&&<span style={{marginLeft:"auto",color:T.teal}}>✓</span>}</button>);})}</div></div>
       <Card style={{padding:"20px",background:T.goldFaint,border:"1px solid "+T.goldBorder}}>
         <Lbl color={T.gold}>Como seu plano é atualizado automaticamente</Lbl>
-        {[{icon:"⌚",t:"Gadgets",d:"Apple Watch, Oura, Garmin enviam dados em tempo real."},{icon:"📄",t:"Documentos",d:"Novos exames ou laudos são incorporados imediatamente."},{icon:"✅",t:"Check-in diário",d:"Ana faz um check-in rápido todo dia."}].map((item,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:10}}><span style={{fontSize:20,flexShrink:0}}>{item.icon}</span><div><div style={{fontSize:12,color:T.ink,fontWeight:600}}>{item.t}</div><div style={{fontSize:11,color:T.inkMid,lineHeight:1.7}}>{item.d}</div></div></div>))}
+        {[{icon:"⌚",t:"Gadgets",d:"Apple Watch, Oura, Garmin enviam dados em tempo real."},{icon:"📄",t:"Documentos",d:"Novos exames ou laudos são incorporados imediatamente."},{icon:"✅",t:"Check-in diário",d:"A Florence pede um check-in rápido todo dia."}].map((item,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:10}}><span style={{fontSize:20,flexShrink:0}}>{item.icon}</span><div><div style={{fontSize:12,color:T.ink,fontWeight:600}}>{item.t}</div><div style={{fontSize:11,color:T.inkMid,lineHeight:1.7}}>{item.d}</div></div></div>))}
       </Card>
     </div>,
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
-      <div style={{padding:"16px 18px",background:T.goldFaint,borderRadius:10,border:"1px solid "+T.goldBorder}}><div style={{fontSize:13,color:T.gold,fontWeight:600,marginBottom:4}}>Por que perguntamos sobre relacionamentos?</div><div style={{fontSize:12,color:T.inkMid,lineHeight:1.7}}>Vínculos e rede de apoio são determinantes de saúde tão importantes quanto sono e exercício. A Ana usa essas informações para personalizar o acompanhamento.</div></div>
+      <div style={{padding:"16px 18px",background:T.goldFaint,borderRadius:10,border:"1px solid "+T.goldBorder}}><div style={{fontSize:13,color:T.gold,fontWeight:600,marginBottom:4}}>Por que perguntamos sobre relacionamentos?</div><div style={{fontSize:12,color:T.inkMid,lineHeight:1.7}}>Vínculos e rede de apoio são determinantes de saúde tão importantes quanto sono e exercício. A Florence usa essas informações para personalizar o acompanhamento.</div></div>
       <div><Lbl>Estado civil</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{["Casado(a)","Solteiro(a)","União estável","Divorciado(a)","Prefiro não informar"].map(o=><Chip key={o} label={o} active={f.estado_civil===o} onClick={()=>set("estado_civil",o)}/>)}</div></div>
       <div><Lbl>Tem filhos?</Lbl><div style={{display:"flex",gap:8}}>{["Não","Sim — 1 a 2","Sim — 3 ou mais","Prefiro não informar"].map(o=><Chip key={o} label={o} active={f.filhos===o} onClick={()=>set("filhos",o)}/>)}</div></div>
       <SldInput label="Qualidade da rede de apoio (família e amigos próximos)" value={f.qualidade_rede||5} onChange={v=>set("qualidade_rede",v)} min={1} max={10} unit="/10" color={T.purple}/>
@@ -1560,7 +1560,7 @@ function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,p
       <div style={{borderBottom:"1px solid "+T.border,padding:"0 28px",display:"flex",background:T.bgWarm,flexShrink:0}}>
         {[{id:"chat",label:"Conversar com Florence"},{id:"checkin",label:"Check-in Diário"}].map(t=>(<button key={t.id} onClick={()=>setAba(t.id)} style={{background:"none",border:"none",borderBottom:"2px solid "+aba===t.id?T.teal:"transparent",padding:"13px 22px",fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",color:aba===t.id?T.teal:T.inkFaint,cursor:"pointer",fontFamily:T.fB,transition:"all 0.2s",display:"flex",alignItems:"center",gap:6}}>{t.label}{t.id==="checkin"&&!checkinHoje&&<span style={{width:7,height:7,borderRadius:"50%",background:T.orange,display:"inline-block",animation:"pulse 1.5s ease infinite"}}/>}</button>))}
       </div>
-      {aba==="chat"&&<ChatIAComTools key={checkinHoje?`checkin-${checkinHoje.energia}-${checkinHoje.sono}`:"sem-checkin"} apiKey={apiKey} placeholder="Fale com Ana sobre qualquer assunto de saúde..." inicialMsg={`Olá, ${nome.split(" ")[0]}! Recebi seu check-in de hoje.\n\n${checkinHoje?`📊 Seus dados de agora:\n• Energia: ${checkinHoje.energia}/10\n• Sono: ${checkinHoje.sono}/10\n• Estresse: ${checkinHoje.estresse}/10${checkinHoje.vinculos?`\n• Vínculos: ${checkinHoje.vinculos}/10`:""}${checkinHoje.bem_estar?`\n• Bem-estar: ${checkinHoje.bem_estar}/10`:""}${checkinHoje.sintomas?`\n• Sintomas relatados: ${checkinHoje.sintomas}`:""}${checkinHoje.notas?`\n• Você escreveu: "${checkinHoje.notas}"`:""}\n\nBaseado nesses dados, o que mais te preocupa agora?`:"Você ainda não fez seu check-in de hoje. Como está se sentindo?"}`} sugestoes={["Comente sobre meus dados de hoje","O que devo priorizar agora?","Como estão meus vínculos?","Algum alerta no meu check-in?"]} systemPrompt={getBuildPrompt("enfermeira")} pacienteId={pacienteId} onPlanChange={onPlanChange}/>}
+      {aba==="chat"&&<ChatIAComTools key={checkinHoje?`checkin-${checkinHoje.energia}-${checkinHoje.sono}`:"sem-checkin"} apiKey={apiKey} placeholder="Fale com a Florence sobre qualquer assunto de saúde..." inicialMsg={`Olá, ${nome.split(" ")[0]}! Recebi seu check-in de hoje.\n\n${checkinHoje?`📊 Seus dados de agora:\n• Energia: ${checkinHoje.energia}/10\n• Sono: ${checkinHoje.sono}/10\n• Estresse: ${checkinHoje.estresse}/10${checkinHoje.vinculos?`\n• Vínculos: ${checkinHoje.vinculos}/10`:""}${checkinHoje.bem_estar?`\n• Bem-estar: ${checkinHoje.bem_estar}/10`:""}${checkinHoje.sintomas?`\n• Sintomas relatados: ${checkinHoje.sintomas}`:""}${checkinHoje.notas?`\n• Você escreveu: "${checkinHoje.notas}"`:""}\n\nBaseado nesses dados, o que mais te preocupa agora?`:"Você ainda não fez seu check-in de hoje. Como está se sentindo?"}`} sugestoes={["Comente sobre meus dados de hoje","O que devo priorizar agora?","Como estão meus vínculos?","Algum alerta no meu check-in?"]} systemPrompt={getBuildPrompt("enfermeira")} pacienteId={pacienteId} onPlanChange={onPlanChange}/>}
       {aba==="checkin"&&(
         <div style={{flex:1,overflowY:"auto",padding:"28px"}}>
           <div style={{maxWidth:580,margin:"0 auto"}}>
@@ -2321,12 +2321,17 @@ function ModuloMensagens({pacienteId,nome}){
   const[carregando,setCarregando]=useState(true);
   const[input,setInput]=useState("");
   const[enviando,setEnviando]=useState(false);
+  const[nomeMedico,setNomeMedico]=useState("seu médico");
   const bottomRef=useRef(null);
   const inputRef=useRef(null);
 
   useEffect(()=>{
     if(!pacienteId)return;
     carregarMensagens(pacienteId).then(data=>{setMsgs(data);setCarregando(false);});
+    // Buscar nome do médico do paciente
+    supabase.from("pacientes").select("medico:medicos(nome)").eq("id",pacienteId).single().then(({data})=>{
+      if(data?.medico?.nome)setNomeMedico(data.medico.nome);
+    });
     const channel=supabase.channel("mensagens-"+pacienteId)
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"mensagens",filter:"paciente_id=eq."+pacienteId},(payload)=>{setMsgs(prev=>[...prev,payload.new]);})
       .subscribe();
@@ -2360,7 +2365,7 @@ function ModuloMensagens({pacienteId,nome}){
     <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
       <div style={{borderBottom:"1px solid "+T.border,padding:"16px 28px",display:"flex",alignItems:"center",gap:14,background:T.surface,flexShrink:0,boxShadow:T.shadowCard}}>
         <div style={{width:42,height:42,borderRadius:"50%",background:eq.bg,border:"1.5px solid "+eq.cor+"40",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{eq.icon}</div>
-        <div><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>Mensagens</div><div style={{fontSize:9,color:T.green,letterSpacing:"0.15em"}}>● ONLINE · ANA E DR. DOHMANN</div></div>
+        <div><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>Mensagens</div><div style={{fontSize:9,color:T.green,letterSpacing:"0.15em"}}>● CONVERSA COM {(nomeMedico||"SEU MÉDICO").toUpperCase()}</div></div>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"24px 28px"}}>
         {carregando&&<div style={{textAlign:"center",padding:"40px",fontSize:12,color:T.inkFaint}}>Carregando mensagens...</div>}
@@ -2368,7 +2373,7 @@ function ModuloMensagens({pacienteId,nome}){
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",gap:16,textAlign:"center"}}>
             <div style={{width:80,height:80,borderRadius:"50%",background:T.tealBg,border:"2px solid "+T.teal+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:36}}>💬</div>
             <div style={{fontFamily:T.fD,fontSize:22,color:T.inkMid}}>Nenhuma mensagem ainda</div>
-            <div style={{fontSize:13,color:T.inkFaint,maxWidth:360,lineHeight:1.8}}>Envie uma mensagem para a Florence ou o seu médico pessoal — eles responderão em breve.</div>
+            <div style={{fontSize:13,color:T.inkFaint,maxWidth:360,lineHeight:1.8}}>Envie uma mensagem para o seu médico. Para conversar sobre seu plano de cuidado, use a Florence no menu principal.</div>
           </div>
         )}
         {msgs.map((msg,i)=>{
@@ -2904,7 +2909,7 @@ function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate
         {/* Check-in */}
         {!checkinHoje?(
           <Card style={{padding:"20px 24px",background:T.tealBg,border:"1px solid "+T.teal+"30",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <div><div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginBottom:4}}>Check-in diário pendente</div><div style={{fontSize:12,color:T.inkMid}}>2 minutos para atualizar seu plano. A Ana está esperando.</div></div>
+            <div><div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginBottom:4}}>Check-in diário pendente</div><div style={{fontSize:12,color:T.inkMid}}>2 minutos para atualizar seu plano. A Florence está esperando.</div></div>
             <Btn onClick={()=>setModulo("ana")} variant="teal">FAZER CHECK-IN →</Btn>
           </Card>
         ):(
