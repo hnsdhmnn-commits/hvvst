@@ -2437,7 +2437,7 @@ function ModuloHome({form,scores,setModulo,pacienteId}){
   const handleSelecionarPrograma=(p)=>{
     setProgramaSelecionado(p);
     carregarMedicos().then(setMedicos);
-    setTela("programas");
+    setTela("medicos");
   };
 
   const handleSelecionarEspecialidade=(esp)=>{
