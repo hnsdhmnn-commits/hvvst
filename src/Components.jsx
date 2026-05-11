@@ -3472,6 +3472,19 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
   );
 
   // ─── Aba Estilo de Vida (Florence, agrupado por eixo) ─────────────
+  // Mapeamento de area legado → eixo novo (fallback quando eixo é null)
+  const areaToEixo={
+    'atividade':'move',
+    'nutricao':'fuel',
+    'bem_estar':'rest',
+    'emocional':'calm',
+    'vinculos':'connect',
+    'saude':'fuel',
+    'saude_geral':'soul',
+    'prevencao':'soul',
+  };
+  const getEixo=(t)=>t.eixo||areaToEixo[t.area]||'soul';
+
   const renderAbaEstilo=()=>{
     if(tEstilo.length===0)return(
       <Card style={{padding:"40px",textAlign:"center"}}>
@@ -3482,7 +3495,7 @@ function ModuloPlano({form,scores,setModulo,planLog,checkinHoje,pacienteId,apiKe
       </Card>
     );
     return Object.keys(EIXO_INFO).map(eixoKey=>{
-      const ts=tEstilo.filter(t=>t.eixo===eixoKey);
+      const ts=tEstilo.filter(t=>getEixo(t)===eixoKey);
       if(ts.length===0)return null;
       const info=EIXO_INFO[eixoKey];
       const done=ts.filter(t=>isTarefaConcluida(t)).length;
